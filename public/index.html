@@ -512,7 +512,24 @@ const DANCE_COLOR={
 };
 
 /* ===================== НАВИГАЦИЯ МЕЖДУ ЭКРАНАМИ ===================== */
-function showView(name){
+async function showView(name){
+  // Раньше showView мог отрисоваться ДО того, как первый checkAuth() успел загрузить
+  // currentUser/myIdol/myTraining (гонка при быстром клике сразу после открытия страницы) —
+  // "Мой продакшн" тогда ошибочно показывал витрину выбора айдола вместо реального кабинета,
+  // пока фоновый запрос не досчитывался сам по себе через несколько кликов. Теперь любой
+  // переход между экранами сперва дожидается первой проверки авторизации.
+  // Сама эта проверка (+ подтяжка своего айдола) — это 2-4 последовательных запроса к Supabase
+  // (регион Сеул), на первом заходе после открытия страницы это заметно на глаз — без спиннера
+  // выглядит как зависание. На все последующие переходы authReady уже разрешён, ждать нечего.
+  if(name==='cabinet-own'&&!authReadyDone){
+    document.querySelectorAll('main').forEach(m=>m.classList.remove('show'));
+    document.getElementById('view-cabinet').classList.add('show');
+    document.querySelectorAll('.navtab').forEach(t=>t.classList.toggle('on',t.dataset.view==='cabinet-own'));
+    document.getElementById('cabBody').innerHTML='<div style="padding:100px 0;text-align:center"><div class="spinner" style="margin:0 auto"></div></div>';
+    window.scrollTo({top:0,behavior:'instant'});
+  }
+  await authReady;
+  authReadyDone=true;
   // Конструктор ведёт прямиком к платной генерации (Kling+ElevenLabs) — без аккаунта туда
   // попадать нельзя ни с одной кнопки (раньше можно было зайти в обход через "Топ-чарт" и
   // сгенерировать клип анонимно, реальные деньги списывались без регистрации).
@@ -1216,7 +1233,7 @@ function closeOv(){document.getElementById('ov').classList.remove('show')}
 document.getElementById('ov').onclick=e=>{if(e.target.id==='ov')closeOv()};
 
 /* ===================== АВТОРИЗАЦИЯ ===================== */
-let currentUser=null, myIdol=null, myTraining=null;
+let currentUser=null, myIdol=null, myTraining=null, authReadyDone=false;
 async function checkAuth(){
   const r=await fetch('/api/auth?action=me');
   const d=await r.json();
@@ -1291,7 +1308,7 @@ async function doLogout(){
   toast('Вы вышли из аккаунта');
 }
 
-checkAuth();
+const authReady=checkAuth();
 boot();
 </script>
 </body>
