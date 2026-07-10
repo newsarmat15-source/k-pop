@@ -108,6 +108,11 @@ main{display:none}main.show{display:block}
 .opt small{display:block;color:var(--dim);font-size:11px;margin-top:2px}
 .opt.on small{color:rgba(255,255,255,.72)}
 .empty-genre{color:var(--dim);font-size:13px;background:var(--panel);border:1px dashed var(--line);padding:22px;text-align:center;margin-top:4px}
+.lang-lock{color:var(--dim);font-size:13px;background:var(--panel);border:1px dashed var(--line);padding:14px 16px;line-height:1.5}
+.lang-lock b{color:var(--ink)}
+.bilingual-toggle{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--ink);cursor:pointer;margin-bottom:12px;user-select:none}
+.bilingual-toggle input{width:16px;height:16px;accent-color:var(--accent-fill);cursor:pointer}
+.lang-progress{color:var(--dim);font-size:12px;margin-top:4px}
 .selrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);
   padding:14px;margin-bottom:8px}
 .selrow .chip{display:flex;align-items:center;gap:8px;background:var(--panel2);border:1px solid var(--line);padding:6px 8px 6px 6px}
@@ -390,6 +395,10 @@ div.bio-text{color:var(--mut)}
     <div class="opt-h">💃 Хореография в стиле</div>
     <div class="opts" id="optDance"></div>
 
+    <div class="opt-h">🌐 Язык исполнения</div>
+    <div class="opts" id="optLang1"></div>
+    <div id="bilingualBox" style="margin-top:12px"></div>
+
     <div class="note">Клип ~20 сек, вертикальный, из 2 частей с разным ракурсом. Настоящая песня (ElevenLabs) на выбранный стиль, синхронизация губ через Kling LipSync — отдельно для каждой части, потом всё склеивается в один файл.</div>
 
     <div class="genbar"><div class="wrap inner" style="padding:0">
@@ -409,13 +418,16 @@ div.bio-text{color:var(--mut)}
 
 <script>
 let IDOLS=[], picked=null;         // picked = один выбранный айдол или null
-const state={song:"ballad",clip:"girlcrush",dance:"lesserafim",genderTab:"girl"};
+const state={song:"ballad",clip:"girlcrush",dance:"lesserafim",genderTab:"girl",lang1:"ko",lang2:"ko",bilingual:false};
 // Портреты — статичные файлы, всегда берём с живого хоста (нужен публичный HTTPS для fal.ai),
 // независимо от того, где физически крутится сама генерация (локально/preview/прод).
 const IMAGE_BASE="https://k-pop-black.vercel.app";
 
 const SONG=[["ballad","Баллада","эмоции, медленно"],["rnb","R&B","соул, грув"],["hyperpop","Hyperpop","ярко, быстро"],
 ["citypop","City-pop","ретро, фанк"],["rock","Рок","драйв, гитары"],["darktrap","Dark trap","808, агрессия"]];
+const LANGUAGE=[["ko","Корейский","родной язык K-pop"],["en","Английский",""],["ja","Японский",""],["zh","Китайский",""]];
+const LANG_CODE={ko:"KR",en:"EN",ja:"JA",zh:"ZH"};
+const LANG_COLOR={ko:"#e8a9c9",en:"#9fd8ff",ja:"#ffb3d9",zh:"#f3d9ac"};
 const CLIP=[["girlcrush","Girl-crush","тёмная сцена, неон"],["ethereal","Ethereal","пастель, воздух"],
 ["neon","Neon city","ночной город"],["studio","Studio","чистый бэкдроп"],["street","Street","улица, деним"],["stage","Big stage","стадион, софиты"]];
 const DANCE=[
@@ -714,7 +726,8 @@ function renderCabinet(chartEntry,readOnly){
         ${awardsHtml(mockAward)}
         <div class="stat">
           <div class="stat-h"><span>Занятия языком</span><b>${isOther?'скрыто для гостей':Math.round(langPct/10)+'/10'}</b></div>
-          ${isOther?'':`<div class="bar"><i style="width:${langPct}%"></i></div>`}
+          ${isOther?'':`<div class="bar"><i style="width:${langPct}%"></i></div>
+          <div class="lang-progress">${langPct>=100?'🎉 100% — доступен клип на 2 языках':'100% откроет клип на 2 языках (сейчас '+langPct+'%)'}</div>`}
         </div>
         <div class="stat">
           <div class="stat-h"><span>Разучено движений</span><b>${movesVal}</b></div>
@@ -798,16 +811,20 @@ async function claimIdol(c){
   myIdol={...d.idol,img:d.idol.portrait_url};
   myTraining=d.training;
   renderCabinet(null);
+  renderLangOpts();
   toast('Твой айдол теперь — '+c.name+' 🎉');
 }
 async function doTrain(kind){
   const r=await fetch('/api/engage?action=train',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind})});
   const d=await r.json();
   if(!r.ok||d.ok===false){toast(d.error||'Не получилось');return}
+  const justUnlockedBilingual=kind==='lang'&&myTraining&&myTraining.language_pct<100&&d.training.language_pct>=100;
   myTraining=d.training;
-  toast(kind==='lang'?'Занятие языком пройдено · '+Math.round(myTraining.language_pct/10)+'/10 · следующее через 4ч'
-                      :'Разучено новое движение · '+myTraining.dance_moves_learned+' всего · следующее через 4ч');
+  toast(justUnlockedBilingual?'🎉 Язык прокачан до 100% — теперь доступен клип на 2 языках!'
+    :kind==='lang'?'Занятие языком пройдено · '+Math.round(myTraining.language_pct/10)+'/10 · следующее через 4ч'
+                  :'Разучено новое движение · '+myTraining.dance_moves_learned+' всего · следующее через 4ч');
   renderCabinet(null);
+  renderLangOpts();
 }
 // Мгновенный, но не задокументированный фидбэк на голос — эффект должен быть сюрпризом,
 // поэтому нигде в интерфейсе это не анонсируется и не объясняется заранее.
@@ -881,6 +898,7 @@ async function boot(){
   buildOpts('optSong',SONG,'song',SONG_ICON,SONG_COLOR);
   buildOpts('optClip',CLIP,'clip',CLIP_ICON,CLIP_COLOR);
   renderDanceOpts();
+  renderLangOpts();
   [...document.querySelectorAll('#idolGenderTabs .gtab')].forEach(t=>{
     t.onclick=()=>{
       state.genderTab=t.dataset.g;
@@ -932,6 +950,63 @@ function renderDanceOpts(){
   });
   updateSummary();
 }
+function langSwatch(val){
+  return `<div class="swatch" style="background:${LANG_COLOR[val]}22;color:${LANG_COLOR[val]};font-size:11px;font-weight:800;letter-spacing:.03em">${LANG_CODE[val]}</div>`;
+}
+function renderLangOpts(){
+  const box=document.getElementById('optLang1');
+  box.innerHTML='';
+  LANGUAGE.forEach(([val,label,sub])=>{
+    const b=document.createElement('button');b.className='opt'+(state.lang1===val?' on':'');
+    b.innerHTML=`${langSwatch(val)}<div class="txt">${label}${state.bilingual?'<small>1-я половина</small>':(sub?`<small>${sub}</small>`:'')}</div>`;
+    b.onclick=()=>{
+      state.lang1=val;
+      if(!state.bilingual) state.lang2=val;
+      [...box.children].forEach(x=>x.classList.remove('on'));b.classList.add('on');
+      renderLangOpts();updateSummary();
+    };
+    box.appendChild(b);
+  });
+  renderBilingualBox();
+}
+// Билингвальный клип (разные языки в 2 половинах) открывается только когда у СВОЕГО айдола
+// языковой навык прокачан до 100% — тренировка привязана к аккаунту, а не к тому, чей портрет
+// сейчас личности выбран в витрине для генерации (см. PROGRESS.md — билингвальность была открытой задачей).
+function bilingualUnlocked(){
+  return !!(currentUser && myIdol && myTraining && myTraining.language_pct>=100);
+}
+function renderBilingualBox(){
+  const box=document.getElementById('bilingualBox');
+  const pct=(currentUser && myIdol && myTraining)?myTraining.language_pct:0;
+  if(!bilingualUnlocked()){
+    state.bilingual=false;state.lang2=state.lang1;
+    let hint;
+    if(!currentUser) hint='Войди и заведи своего айдола, чтобы начать тренировки.';
+    else if(!myIdol) hint='Заведи своего айдола в «Моём продакшне», чтобы начать тренировки.';
+    else hint=`Тренируй «Язык» в Личном кабинете, чтобы поднять прогресс.`;
+    box.innerHTML=`<div class="lang-lock">🔒 <b>Спеть на 2 языках</b> — 1-я половина клипа на одном языке, 2-я на другом.
+      Открывается при 100% в навыке «Язык».
+      ${currentUser&&myIdol?`<div class="lang-progress">Сейчас: ${pct}% · ${hint}</div>`:`<div class="lang-progress">${hint}</div>`}</div>`;
+    return;
+  }
+  box.innerHTML=`<label class="bilingual-toggle"><input type="checkbox" id="bilingualCheck" ${state.bilingual?'checked':''}>
+    Спеть на 2 языках — 1-я половина на одном, 2-я на другом</label>
+    <div class="opts" id="optLang2" style="display:${state.bilingual?'flex':'none'}"></div>`;
+  document.getElementById('bilingualCheck').onchange=(e)=>{
+    state.bilingual=e.target.checked;
+    if(!state.bilingual) state.lang2=state.lang1;
+    renderLangOpts();updateSummary();
+  };
+  if(state.bilingual){
+    const box2=document.getElementById('optLang2');
+    LANGUAGE.forEach(([val,label])=>{
+      const b=document.createElement('button');b.className='opt'+(state.lang2===val?' on':'');
+      b.innerHTML=`${langSwatch(val)}<div class="txt">${label}<small>2-я половина</small></div>`;
+      b.onclick=()=>{state.lang2=val;[...box2.children].forEach(x=>x.classList.remove('on'));b.classList.add('on');updateSummary()};
+      box2.appendChild(b);
+    });
+  }
+}
 function toggle(id){
   if(picked && picked.id===id){
     picked=null;
@@ -965,7 +1040,8 @@ function updateSummary(){
   document.getElementById('pickTag').textContent=picked?'выбран 1 айдол':'выбери одного';
   if(!picked){s.innerHTML='Сначала выбери айдола в витрине ↑';b.disabled=true;return}
   b.disabled=false;
-  s.innerHTML=`<b>${picked.name}</b> · ${lbl(SONG,state.song)} · ${lbl(CLIP,state.clip)} · танец ${wordmark(state.dance,lbl(DANCE,state.dance))}`;
+  const langTxt=state.bilingual?`${lbl(LANGUAGE,state.lang1)} + ${lbl(LANGUAGE,state.lang2)}`:lbl(LANGUAGE,state.lang1);
+  s.innerHTML=`<b>${picked.name}</b> · ${lbl(SONG,state.song)} · ${lbl(CLIP,state.clip)} · танец ${wordmark(state.dance,lbl(DANCE,state.dance))} · ${langTxt}`;
 }
 
 function errBox(box,msg){
@@ -1065,8 +1141,8 @@ async function generate(){
     const imageUrl=IMAGE_BASE+picked.img;
     const base={imageUrl,theme:state.clip,dance:state.dance,name,gender:picked.gender,song:state.song};
 
-    const seg1=await generateOneSegment({...base,angle:'front',language:'ko'},setLoad,'Часть 1/2');
-    const seg2=await generateOneSegment({...base,angle:'side',language:'ko'},setLoad,'Часть 2/2');
+    const seg1=await generateOneSegment({...base,angle:'front',language:state.lang1},setLoad,'Часть 1/2');
+    const seg2=await generateOneSegment({...base,angle:'side',language:state.lang2},setLoad,'Часть 2/2');
 
     setLoad('stitch','Склеиваем обе части в один клип…');
     const stitchResp=await fetch('/api/pipeline?action=stitch',{method:'POST',headers:{'Content-Type':'application/json'},
@@ -1079,7 +1155,7 @@ async function generate(){
 
     box.innerHTML=`<div class="rv"><video src="${playUrl}" controls autoplay playsinline></video></div>
       <div class="rb"><h3>${name} — «${lbl(SONG,state.song)}»</h3>
-      <p>${lbl(CLIP,state.clip)} · танец ${lbl(DANCE,state.dance)} · ~20с</p>
+      <p>${lbl(CLIP,state.clip)} · танец ${lbl(DANCE,state.dance)} · ~20с · ${state.bilingual?`${lbl(LANGUAGE,state.lang1)} + ${lbl(LANGUAGE,state.lang2)}`:lbl(LANGUAGE,state.lang1)}</p>
       <div class="racts"><button class="btn ghost" onclick="closeOv()">Готово</button>
       <a class="btn accent" href="${playUrl}" target="_blank" style="text-align:center;text-decoration:none">Скачать</a></div></div>`;
   }catch(e){
@@ -1099,6 +1175,7 @@ async function checkAuth(){
   currentUser=d.user||null;
   renderAuthArea();
   if(currentUser) await loadMyIdol();
+  renderLangOpts();
 }
 let myClips=[];
 async function loadMyIdol(){
@@ -1162,6 +1239,7 @@ async function doLogout(){
   myIdol=null;
   myTraining=null;
   renderAuthArea();
+  renderLangOpts();
   toast('Вы вышли из аккаунта');
 }
 
