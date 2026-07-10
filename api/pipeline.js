@@ -9,6 +9,7 @@ import path from "node:path";
 import os from "node:os";
 import ffmpegPath from "ffmpeg-static";
 import { fetchWithRetry } from "../lib/fal-fetch.js";
+import { readUserId } from "../lib/session.js";
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 async function withRetry(fn, tries = 4) {
@@ -115,6 +116,7 @@ const DANCE_NEGATIVE = "weak movement, minimal movement, half-hearted gestures, 
 
 async function handleGenerate(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Use POST" });
+  if (!readUserId(req)) return res.status(401).json({ error: "Нужно войти в аккаунт" });
   const KEY = process.env.FAL_KEY;
   if (!KEY) return res.status(500).json({ error: "FAL_KEY не задан в Vercel" });
 
@@ -210,6 +212,7 @@ async function handleResult(req, res) {
 /* ===================== LIPSYNC ===================== */
 async function handleLipsync(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Use POST" });
+  if (!readUserId(req)) return res.status(401).json({ error: "Нужно войти в аккаунт" });
   const KEY = process.env.FAL_KEY;
   if (!KEY) return res.status(500).json({ error: "FAL_KEY не задан" });
 
@@ -310,6 +313,7 @@ async function trimAudio(inputPath, outputPath, startSec, durationSec) {
 
 async function handleSong(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Use POST" });
+  if (!readUserId(req)) return res.status(401).json({ error: "Нужно войти в аккаунт" });
   const ELEVEN_KEY = process.env.ELEVENLABS_API_KEY;
   const FAL_KEY = process.env.FAL_KEY;
   if (!ELEVEN_KEY) return res.status(500).json({ error: "ELEVENLABS_API_KEY не задан" });
@@ -359,6 +363,7 @@ async function handleSong(req, res) {
 /* ===================== STITCH (склейка сегментов) ===================== */
 async function handleStitch(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Use POST" });
+  if (!readUserId(req)) return res.status(401).json({ error: "Нужно войти в аккаунт" });
   const FAL_KEY = process.env.FAL_KEY;
   if (!FAL_KEY) return res.status(500).json({ error: "FAL_KEY не задан" });
 
@@ -406,6 +411,7 @@ const TRIM_END_SEC = 0.8;
 
 async function handleFinalize(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Use POST" });
+  if (!readUserId(req)) return res.status(401).json({ error: "Нужно войти в аккаунт" });
   const FAL_KEY = process.env.FAL_KEY;
   if (!FAL_KEY) return res.status(500).json({ error: "FAL_KEY не задан" });
 
@@ -446,6 +452,7 @@ async function handleFinalize(req, res) {
 /* ===================== TTS (голосовые — задел под чат-компаньона) ===================== */
 async function handleTts(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Use POST" });
+  if (!readUserId(req)) return res.status(401).json({ error: "Нужно войти в аккаунт" });
   const ELEVEN_KEY = process.env.ELEVENLABS_API_KEY;
   if (!ELEVEN_KEY) return res.status(500).json({ error: "ELEVENLABS_API_KEY не задан" });
 

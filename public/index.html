@@ -25,7 +25,7 @@ body{background:radial-gradient(120% 80% at 50% -10%,#2c2044 0%,var(--bg) 55%);
   color:var(--ink);font-family:"Segoe UI",system-ui,-apple-system,sans-serif;min-height:100vh;-webkit-font-smoothing:antialiased}
 .wrap{max-width:1120px;margin:0 auto;padding:0 20px}
 header{position:sticky;top:0;z-index:40;backdrop-filter:blur(14px);background:rgba(21,15,30,.82);border-bottom:1px solid var(--line)}
-.hbar{display:flex;align-items:center;gap:22px;height:60px}
+.hbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px 22px;min-height:60px;padding-block:10px}
 .logo{font-family:var(--f-display);font-weight:900;letter-spacing:.2em;font-size:15px}
 .logo b{background:linear-gradient(90deg,var(--holo1),var(--holo2),var(--holo3),var(--holo4),var(--holo1));
   background-size:300% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;
@@ -57,7 +57,7 @@ header{position:sticky;top:0;z-index:40;backdrop-filter:blur(14px);background:rg
 .step-ind{margin-left:auto;display:flex;gap:8px;font-size:12px;color:var(--dim)}
 .step-ind span{padding:5px 12px;border:1px solid var(--line)}
 .step-ind span.on{color:var(--accent);border-color:var(--accent2)}
-.auth-area{display:flex;align-items:center;gap:10px}
+.auth-area{display:flex;align-items:center;gap:10px;margin-left:auto}
 .auth-user{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--mut)}
 .auth-user b{color:var(--ink)}
 .auth-form{padding:26px 28px 28px}
@@ -153,7 +153,16 @@ main{display:none}main.show{display:block}
 .note{background:rgba(63,224,197,.07);border:1px solid rgba(63,224,197,.25);color:#9deee0;padding:12px 15px;font-size:12px;line-height:1.5;margin-top:14px}
 footer{border-top:1px solid var(--line);margin-top:50px;padding:26px 0;text-align:center;color:var(--dim);font-size:12px;line-height:1.6}
 footer b{color:var(--accent)}
-@media(max-width:600px){.step-ind{display:none}}
+@media(max-width:900px){.step-ind{display:none}}
+@media(max-width:640px){
+  .navtabs{gap:2px;margin-left:0}
+  .navtab{padding:8px 9px;font-size:12px}
+  .hbar{gap:8px 12px}
+}
+@media(max-width:420px){
+  .logo{font-size:13px}
+  .navtab{padding:6px 7px;font-size:11px}
+}
 .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);background:var(--panel2);border:1px solid var(--gold);
   color:var(--ink);padding:12px 22px;font-size:13px;font-weight:700;opacity:0;pointer-events:none;transition:.25s;z-index:80;box-shadow:0 12px 30px -10px rgba(0,0,0,.6)}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
@@ -303,6 +312,12 @@ div.bio-text{color:var(--mut)}
 .lenta-item .li-body .kind{color:var(--gold);font-size:10.5px;text-transform:uppercase;letter-spacing:.12em;font-weight:700;margin-bottom:4px}
 .lenta-item .li-body .sub{color:var(--mut);font-size:12.5px;margin-top:2px}
 .lenta-empty{border:1px dashed var(--line);color:var(--dim);padding:40px 20px;text-align:center;font-size:13px;line-height:1.7}
+.lenta-teaser{position:relative;max-height:75vh;min-height:420px;overflow:hidden}
+.lenta-blur{filter:blur(7px);opacity:.5;pointer-events:none;user-select:none}
+.lenta-lock{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:20px}
+.lenta-lock-box{background:rgba(21,15,30,.92);border:1px solid var(--line);padding:30px 34px;text-align:center;max-width:360px;backdrop-filter:blur(4px)}
+.lenta-lock-box .ll-h{font-family:var(--f-serif);font-size:20px;margin-bottom:10px}
+.lenta-lock-box p{color:var(--mut);font-size:13.5px;line-height:1.6;margin-bottom:18px}
 </style>
 </head>
 <body>
@@ -498,6 +513,14 @@ const DANCE_COLOR={
 
 /* ===================== НАВИГАЦИЯ МЕЖДУ ЭКРАНАМИ ===================== */
 function showView(name){
+  // Конструктор ведёт прямиком к платной генерации (Kling+ElevenLabs) — без аккаунта туда
+  // попадать нельзя ни с одной кнопки (раньше можно было зайти в обход через "Топ-чарт" и
+  // сгенерировать клип анонимно, реальные деньги списывались без регистрации).
+  if(name==='constructor'&&!currentUser){
+    openAuth('signup');
+    toast('Сначала зарегистрируйся — это займёт полминуты');
+    return;
+  }
   const elId = name.indexOf('cabinet')===0 ? 'view-cabinet' : 'view-'+name;
   document.querySelectorAll('main').forEach(m=>m.classList.remove('show'));
   document.getElementById(elId).classList.add('show');
@@ -871,8 +894,32 @@ async function doFollow(idolId){
 function mockAddIdol(){toast('Добавление айдола за $10 — оплата появится вместе с платёжной системой')}
 
 /* ===================== ЛЕНТА ПОДПИСОК ===================== */
+const FAKE_PRODUCERS=['moonlight_stage','neon_producer','starlight_fan','crystal_prod'];
+// Незалогиненным не показываем честную пустую ленту — она читается как "тут ничего нет,
+// нечего и регистрироваться". Вместо этого блюрим правдоподобный превью (реальные портреты
+// из витрины, без обращения к базе) и предлагаем регистрацию, чтобы разблокировать.
+function renderLentaTeaser(body){
+  const sample=IDOLS.slice(0,4);
+  if(!sample.length){body.innerHTML='<div class="lenta-empty">Зарегистрируйся, чтобы видеть ленту.</div>';return}
+  const kinds=[["Клип","новое выступление"],["Фотокарточка","новая карточка в коллекции"],["Лайв","живое фото со съёмок"]];
+  const items=sample.map((c,i)=>`
+    <div class="lenta-item">
+      <div class="li-owner"><img src="${c.img}"><div><b>${c.name}</b><div class="who">Продюсер: @${FAKE_PRODUCERS[i%FAKE_PRODUCERS.length]}</div></div></div>
+      <div class="li-photo"><img src="${c.img}"></div>
+      <div class="li-body"><div class="kind">${kinds[i%kinds.length][0]}</div><div class="sub">${kinds[i%kinds.length][1]}</div></div>
+    </div>`).join('');
+  body.innerHTML=`<div class="lenta-teaser">
+    <div class="lenta-blur">${items}</div>
+    <div class="lenta-lock"><div class="lenta-lock-box">
+      <div class="ll-h">Лента полна жизни 👀</div>
+      <p>Новые клипы, фотокарточки и лайвы от продюсеров, на которых ты подписан. Зарегистрируйся, чтобы видеть их первым.</p>
+      <button class="btn accent" onclick="openAuth('signup')">Зарегистрироваться</button>
+    </div></div>
+  </div>`;
+}
 function renderLenta(){
   const body=document.getElementById('lentaBody');
+  if(!currentUser){renderLentaTeaser(body);return}
   const followed=CHART.slice(0,4); // мок: как будто пользователь подписан на топ-4
   if(!followed.length){body.innerHTML='<div class="lenta-empty">Пока никто не подписан — загляни в топ-чарт и подпишись на кого-нибудь.</div>';return}
   const kinds=[["Клип","новое выступление"],["Фотокарточка","новая карточка в коллекции"],["Лайв","живое фото со съёмок"]];
@@ -1118,6 +1165,7 @@ async function generateOneSegment({imageUrl,theme,dance,name,gender,angle,song,l
 
 async function generate(){
   if(!picked)return;
+  if(!currentUser){openAuth('signup');toast('Сначала зарегистрируйся — это займёт полминуты');return}
   const ov=document.getElementById('ov');const box=document.getElementById('resultBox');
   ov.classList.add('show');
   const name=picked.name;
