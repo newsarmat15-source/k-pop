@@ -505,7 +505,7 @@ function toast(msg){
 /* ===================== ЧАРТ — реальные айдолы и голоса из базы ===================== */
 let CHART=null;
 async function loadChart(){
-  const r=await fetch('/api/chart');
+  const r=await fetch('/api/engage?action=chart');
   const d=await r.json();
   const entries=(d.entries||[]);
   CHART=entries.map(e=>{
@@ -791,7 +791,7 @@ async function claimIdol(c){
     toast('Сначала зарегистрируйся — это займёт полминуты');
     return;
   }
-  const r=await fetch('/api/create-idol',{method:'POST',headers:{'Content-Type':'application/json'},
+  const r=await fetch('/api/idol',{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({name:c.name,concept:c.concept,portraitUrl:c.img,gender:c.gender})});
   const d=await r.json();
   if(!r.ok||d.ok===false){toast(d.error||'Не получилось создать айдола');return}
@@ -801,7 +801,7 @@ async function claimIdol(c){
   toast('Твой айдол теперь — '+c.name+' 🎉');
 }
 async function doTrain(kind){
-  const r=await fetch('/api/train',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind})});
+  const r=await fetch('/api/engage?action=train',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind})});
   const d=await r.json();
   if(!r.ok||d.ok===false){toast(d.error||'Не получилось');return}
   myTraining=d.training;
@@ -832,7 +832,7 @@ async function doVote(idolId){
   const idx=CHART.findIndex(e=>e.idol.id===idolId);
   if(idx<0)return;
   const oldRank=idx+1;
-  const r=await fetch('/api/vote',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({idolId})});
+  const r=await fetch('/api/engage?action=vote',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({idolId})});
   const d=await r.json();
   if(!r.ok||d.ok===false){toast(d.error||'Не получилось проголосовать');return}
   CHART[idx].votes=d.votes;
@@ -844,7 +844,7 @@ async function doVote(idolId){
 async function doFollow(idolId){
   if(!currentUser){openAuth('login');toast('Сначала войди в аккаунт');return}
   const wasFollowing=viewedIdol&&viewedIdol.myFollow&&viewedIdol.myFollow.following;
-  const r=await fetch('/api/follow',{method:'POST',headers:{'Content-Type':'application/json'},
+  const r=await fetch('/api/engage?action=follow',{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({idolId,action:wasFollowing?'unfollow':'follow'})});
   const d=await r.json();
   if(!r.ok||d.ok===false){toast(d.error||'Не получилось');return}
@@ -988,7 +988,7 @@ async function pollJob(requestId, onProgress){
   const MAX_MS=8*60*1000;
   for(;;){
     if(Date.now()-started>MAX_MS) throw new Error('Слишком долго (8 мин)');
-    const sr=await fetch('/api/status?id='+encodeURIComponent(requestId));
+    const sr=await fetch('/api/pipeline?action=status&id='+encodeURIComponent(requestId));
     const sd=await sr.json();
     if(!sr.ok) throw new Error(sd.error||'Ошибка статуса');
     if(sd.status==='ERROR') throw new Error('Ошибка fal: '+(sd.error||'')+' '+JSON.stringify(sd.detail||''));
@@ -1001,7 +1001,7 @@ async function pollJob(requestId, onProgress){
 }
 
 async function generateOneSegment({imageUrl,theme,dance,name,gender,angle,song,language},setLoad,segLabel){
-  const songResp=await fetch('/api/song',{method:'POST',headers:{'Content-Type':'application/json'},
+  const songResp=await fetch('/api/pipeline?action=song',{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({song,lengthMs:10000,language,memberName:name,gender})}).then(r=>r.json());
   if(songResp.ok===false||!songResp.songUrl) throw new Error(songResp.error||`Не удалось сгенерировать песню (${segLabel})`);
 
@@ -1009,17 +1009,17 @@ async function generateOneSegment({imageUrl,theme,dance,name,gender,angle,song,l
   let lipsyncSubmit=null;
   for(let attempt=1;attempt<=MAX_ATTEMPTS;attempt++){
     setLoad('video',`${segLabel}: Kling рендерит видео${attempt>1?` (попытка ${attempt})`:''}…`);
-    const videoSubmit=await fetch('/api/generate',{method:'POST',headers:{'Content-Type':'application/json'},
+    const videoSubmit=await fetch('/api/pipeline?action=generate',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({imageUrl,theme,dance,memberName:name,angle})}).then(r=>r.json());
     if(videoSubmit.ok===false||!videoSubmit.requestId) throw new Error((videoSubmit.error||`Не удалось поставить видео в очередь (${segLabel})`)+' '+JSON.stringify(videoSubmit.detail||''));
 
     await pollJob(videoSubmit.requestId,(t)=>setLoad('video',`${segLabel}: Kling рендерит видео… ${t}`));
-    const videoResultResp=await fetch('/api/result?id='+encodeURIComponent(videoSubmit.requestId));
+    const videoResultResp=await fetch('/api/pipeline?action=result&id='+encodeURIComponent(videoSubmit.requestId));
     const videoResult=await videoResultResp.json();
     if(!videoResultResp.ok||videoResult.ok===false||!videoResult.videoUrl) throw new Error((videoResult.error||`Видео не получено (${segLabel})`)+' '+JSON.stringify(videoResult.detail||''));
 
     setLoad('sync',`${segLabel}: синхронизируем губы под песню…`);
-    const attemptSubmit=await fetch('/api/lipsync',{method:'POST',headers:{'Content-Type':'application/json'},
+    const attemptSubmit=await fetch('/api/pipeline?action=lipsync',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({videoUrl:videoResult.videoUrl,songUrl:songResp.songUrl})}).then(r=>r.json());
 
     const isFaceError=attemptSubmit.ok===false&&JSON.stringify(attemptSubmit.detail||'').includes('face_detection_error');
@@ -1030,12 +1030,12 @@ async function generateOneSegment({imageUrl,theme,dance,name,gender,angle,song,l
   }
 
   await pollJob(lipsyncSubmit.requestId,(t)=>setLoad('sync',`${segLabel}: синхронизируем губы… ${t}`));
-  const finalResultResp=await fetch('/api/result?id='+encodeURIComponent(lipsyncSubmit.requestId));
+  const finalResultResp=await fetch('/api/pipeline?action=result&id='+encodeURIComponent(lipsyncSubmit.requestId));
   const finalResult=await finalResultResp.json();
   if(!finalResultResp.ok||finalResult.ok===false||!finalResult.videoUrl) throw new Error((finalResult.error||`Видео сегмента не получено (${segLabel})`)+' '+JSON.stringify(finalResult.detail||''));
 
   setLoad('sync',`${segLabel}: дошлифовываем…`);
-  const finalizeResp=await fetch('/api/finalize',{method:'POST',headers:{'Content-Type':'application/json'},
+  const finalizeResp=await fetch('/api/pipeline?action=finalize',{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({videoUrl:finalResult.videoUrl})}).then(r=>r.json());
   return (finalizeResp.ok!==false&&finalizeResp.videoUrl)?finalizeResp.videoUrl:finalResult.videoUrl;
 }
@@ -1055,7 +1055,7 @@ async function generate(){
   // просто не сохранится — см. "первый клип бесплатный" в позиционировании продукта.
   let clipId=null;
   if(currentUser&&myIdol){
-    const cr=await fetch('/api/clip-create',{method:'POST'});
+    const cr=await fetch('/api/clip',{method:'POST'});
     const cd=await cr.json();
     if(cr.ok&&cd.ok) clipId=cd.clipId;
   }
@@ -1069,12 +1069,12 @@ async function generate(){
     const seg2=await generateOneSegment({...base,angle:'side',language:'ko'},setLoad,'Часть 2/2');
 
     setLoad('stitch','Склеиваем обе части в один клип…');
-    const stitchResp=await fetch('/api/stitch',{method:'POST',headers:{'Content-Type':'application/json'},
+    const stitchResp=await fetch('/api/pipeline?action=stitch',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({videoUrls:[seg1,seg2]})}).then(r=>r.json());
     if(stitchResp.ok===false||!stitchResp.videoUrl) throw new Error((stitchResp.error||'Не удалось склеить части')+'');
     const playUrl=stitchResp.videoUrl;
 
-    if(clipId) await fetch('/api/clip-update',{method:'POST',headers:{'Content-Type':'application/json'},
+    if(clipId) await fetch('/api/clip',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({clipId,status:'done',videoUrl:playUrl,durationSec:20,costUsd:0.93})});
 
     box.innerHTML=`<div class="rv"><video src="${playUrl}" controls autoplay playsinline></video></div>
@@ -1083,7 +1083,7 @@ async function generate(){
       <div class="racts"><button class="btn ghost" onclick="closeOv()">Готово</button>
       <a class="btn accent" href="${playUrl}" target="_blank" style="text-align:center;text-decoration:none">Скачать</a></div></div>`;
   }catch(e){
-    if(clipId) await fetch('/api/clip-update',{method:'POST',headers:{'Content-Type':'application/json'},
+    if(clipId) await fetch('/api/clip',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({clipId,status:'failed',error:String(e.message||e)})}).catch(()=>{});
     errBox(box, e.message||String(e));
   }
@@ -1094,7 +1094,7 @@ document.getElementById('ov').onclick=e=>{if(e.target.id==='ov')closeOv()};
 /* ===================== АВТОРИЗАЦИЯ ===================== */
 let currentUser=null, myIdol=null, myTraining=null;
 async function checkAuth(){
-  const r=await fetch('/api/me');
+  const r=await fetch('/api/auth?action=me');
   const d=await r.json();
   currentUser=d.user||null;
   renderAuthArea();
@@ -1102,13 +1102,13 @@ async function checkAuth(){
 }
 let myClips=[];
 async function loadMyIdol(){
-  const r=await fetch('/api/my-idol');
+  const r=await fetch('/api/idol');
   const d=await r.json();
   myIdol=d.idol?{...d.idol,img:d.idol.portrait_url}:null;
   myTraining=d.training||null;
   myClips=[];
   if(myIdol){
-    const cr=await fetch('/api/clip-list?idolId='+encodeURIComponent(myIdol.id));
+    const cr=await fetch('/api/clip?idolId='+encodeURIComponent(myIdol.id));
     const cd=await cr.json();
     myClips=cd.clips||[];
   }
@@ -1147,7 +1147,7 @@ async function submitAuth(mode){
   if(!email||!password){renderAuthForm(mode,'Заполни email и пароль');return}
   const btn=document.getElementById('authSubmitBtn');
   btn.disabled=true;btn.textContent='Секунду…';
-  const r=await fetch('/api/'+mode,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password,username})});
+  const r=await fetch('/api/auth?action='+mode,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password,username})});
   const d=await r.json();
   if(!r.ok||d.ok===false){renderAuthForm(mode,d.error||'Что-то пошло не так');return}
   currentUser=d.profile;
@@ -1157,7 +1157,7 @@ async function submitAuth(mode){
   toast(mode==='signup'?'Аккаунт создан — добро пожаловать!':'С возвращением, @'+(d.profile.username||''));
 }
 async function doLogout(){
-  await fetch('/api/logout',{method:'POST'});
+  await fetch('/api/auth?action=logout',{method:'POST'});
   currentUser=null;
   myIdol=null;
   myTraining=null;
