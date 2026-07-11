@@ -61,58 +61,227 @@ const CLIP = {
   street:"urban street, daytime city energy, denim streetwear, candid crew vibe",
   stage:"massive concert stage, stadium spotlights, laser beams, crowd, dramatic wide shots",
 };
-// Раскадровка по фазам времени, не мешок прилагательных — иначе модель зацикливает
-// один-два движения на весь клип. Каждый стиль — 3 явные фазы (начало/середина/конец),
-// это словарь энергетики жанра, не покадровая копия чьей-то реальной хореографии.
-// "Synchronized/formation" — убрано намеренно: продукт соло, синхронизироваться не с кем,
-// это были бесполезные слова за счёт реальных движений.
-const DANCE = {
-  lesserafim:"Choreography timeline: first third — sharp diagonal arm cuts at full extension building into the opening pose; " +
-    "middle third — forceful hip snaps combined with sharp point-and-freeze poses held with attitude, changing direction each hit; " +
-    "final third — powerful floor-shaking stomps building to a strong held finishing pose. Athletic, precise, direct attitude throughout.",
-  aespa:"Choreography timeline: first third — sharp robotic arm isolations with staccato snapping motions; " +
-    "middle third — a powerful arm-wave sequence flowing through the whole body at full extension; " +
-    "final third — a sudden hard freeze into a strong grounded power stance, then a sharp direction change to finish. Futuristic, powerful.",
-  ive:"Choreography timeline: first third — sweeping full-arm extensions opening the routine, reaching completely outward; " +
-    "middle third — powerful body rolls transitioning into sharp staccato accents; " +
-    "final third — a graceful turn revealing her profile, ending in an elegant full-extension finishing pose. Refined but full amplitude.",
-  idle:"Choreography timeline: first third — confident strutting with big forceful arm swings; " +
-    "middle third — sharp hip rolls transitioning into bold chest pops; " +
-    "final third — a fierce point-and-hold pose flowing into high-energy floor work to finish. Sensual, confident, fierce.",
-  babymonster:"Choreography timeline: first third — deep knee bends with sharp arm pumps at full extension; " +
-    "middle third — aggressive chest and shoulder pops building energy; " +
-    "final third — forceful grounded stomps building into a powerful full-body bounce finish. Hard-hitting hip-hop.",
-  katseye:"Choreography timeline: first third — bouncy opening with sharp arm waves at full extension; " +
-    "middle third — playful powerful hip bounces with confident big-armed struts; " +
-    "final third — a dynamic spin building into a bright, energetic finishing pose. Playful, global-pop energy.",
-  blackpink:"Choreography timeline: first third — a confident hip-hop groove with sharp shoulder pops and a slow badass strut; " +
-    "middle third — sudden sharp arm accents breaking the groove, contrasting elegant hand lines with hard-hitting hits; " +
-    "final third — a bold power stance with a slow head tilt, full attitude held to the finish. Sultry, badass, effortlessly cool.",
-  newjeans:"Choreography timeline: first third — light, natural bouncy steps with relaxed shoulder sways, deceptively simple and catchy; " +
-    "middle third — a playful point-and-step sequence with subtle hip sways, easygoing but precise; " +
-    "final third — a breezy spin into a soft natural finishing pose, arms relaxed. Effortless, youthful, naturalistic energy — never overly sharp or forced.",
-  twice:"Choreography timeline: first third — delicate, precise hand gestures and light footwork, bright and crisp; " +
-    "middle third — a sudden fiery burst of sharp hip accents and a powerful arm extension, contrasting the delicate opening; " +
-    "final third — bright, bouncy finishing choreography with a confident wide-arm pose held to camera. Contrast of delicate and fiery, crisp precision throughout.",
-  straykids:"Choreography timeline: first third — sharp, complex footwork combined with hard-hitting arm accents, aggressive and precise; " +
-    "middle third — a rapid-fire sequence of grounded power hits and sharp direction changes, intense and technical; " +
-    "final third — an explosive full-body finishing combo, dropping low into a powerful held stance. Intense, technical, powerful hip-hop energy.",
-  ateez:"Choreography timeline: first third — a theatrical grounded entrance with sharp street-style isolations and a commanding stance; " +
-    "middle third — powerful wide-stance hits building in intensity, dramatic and sharp; " +
-    "final third — an explosive theatrical finishing pose, arms thrown wide, full commitment. Theatrical, powerful, street-dance grit.",
-  enhypen:"Choreography timeline: first third — smooth moody isolations with slow-building intensity, atmospheric and controlled; " +
-    "middle third — an intricate sequence of sharp accents woven through fluid transitions, precise and intense; " +
-    "final third — a dramatic sharp finishing line held with brooding intensity. Atmospheric, intricate, moody power.",
-  txt:"Choreography timeline: first third — light bouncy footwork with playful arm swings, breezy and youthful; " +
-    "middle third — a bright energetic sequence of sharp claps and easy hip sways; " +
-    "final third — a big joyful finishing pose with arms thrown up, warm and open. Light, youthful, summery energy.",
+/* ============================================================================
+ * ТАНЦЕВАЛЬНАЯ СИСТЕМА (взаимозависимая: жанр песни ↔ стиль группы ↔ пул движений)
+ * ----------------------------------------------------------------------------
+ * Kling ест только текст. Это СЛОВАРЬ энергетики/сигнатуры, не покадровая копия
+ * чужой хореографии (CLAUDE.md §5, корейский дипфейк/закон о схожести): во фразах
+ * НЕТ ни названий групп, ни названий песен — только обобщённые движения (finger
+ * guns, hip sway, tutting и т.п.), которые сами по себе не охраняются.
+ *
+ * 5 унифицированных жанров = 5 однозначных танцевальных энергий (см. GENRE_ALIAS).
+ * Каждое движение тегается: genres[], fam[] (семья стиля), phase, sig (фирменное).
+ * selectDance(genre, group, seed) детерминированно (seed) собирает 3-фазный
+ * таймлайн: сначала ВСЕ фирменные point-движения группы, добор — филлер по жанру.
+ * Разный seed (разный айдол/юзер) → разные комбинации, без повторов, всё популярное.
+ * ============================================================================ */
+
+// Жанр песни → канонический танцевальный жанр. Старые ключи фронта тоже резолвятся
+// (обратная совместимость, чтобы холодный/старый клиент не падал).
+const GENRE_ALIAS = {
+  ballad:"ballad",
+  girlcrush:"girlcrush", rock:"girlcrush", darktrap:"girlcrush",
+  retro:"retro", citypop:"retro", rnb:"retro",
+  future:"future", hyperpop:"future",
+  easy:"easy",
+};
+const resolveGenre = (g) => GENRE_ALIAS[g] || "girlcrush";
+
+// Стиль каждой из 9 женских групп: семья движений (fam) + родные жанры.
+const GROUP_STYLE = {
+  lesserafim:{ fam:"crush",   genres:["girlcrush","future"] },
+  aespa:     { fam:"future",  genres:["future","girlcrush"] },
+  ive:       { fam:"elegant", genres:["retro","easy"] },
+  idle:      { fam:"crush",   genres:["girlcrush","retro"] },
+  babymonster:{fam:"crush",   genres:["girlcrush","future"] },
+  katseye:   { fam:"easy",    genres:["easy","future"] },
+  blackpink: { fam:"crush",   genres:["girlcrush","retro"] },
+  newjeans:  { fam:"easy",    genres:["easy","retro"] },
+  twice:     { fam:"retro",   genres:["retro","easy"] },
+};
+
+const STYLE_TONE = {
+  crush:  "Athletic, powerful, hard-hitting attitude throughout — every hit committed and grounded.",
+  future: "Futuristic, sharp and robotic — precise isolations with cool controlled attitude.",
+  retro:  "Groovy, playful retro energy — bouncy, swingy and confident.",
+  easy:   "Effortless, natural and youthful — relaxed but precise, never stiff or forced.",
+  elegant:"Refined and confident — full-amplitude lines with elegant control.",
+};
+const BALLAD_TONE = "Minimal, slow and emotional — restrained flowing movement, only a few gestures, lots of expressive stillness, never busy.";
+
+// Библиотека мув-фраз. sig=<ключ группы> → обязательное фирменное point-движение.
+// sig=null → филлер (добор по жанру/семье). phase: open|mid|close|any.
+const MOVES = [
+  // ---- Фирменные (point) движения групп — обобщённые, без копирования ----
+  { id:"ls_o", sig:"lesserafim", phase:"open",  fam:["crush"],  genres:["girlcrush","future"], phrase:"sharp diagonal arm slashes snapping out to full extension on each beat" },
+  { id:"ls_m", sig:"lesserafim", phase:"mid",   fam:["crush"],  genres:["girlcrush"],          phrase:"an athletic hip snap freezing into a cocky attitude pose, switching direction on the hit" },
+  { id:"ls_c", sig:"lesserafim", phase:"close", fam:["crush"],  genres:["girlcrush"],          phrase:"fanning both hands past the head then flicking them up into raised pointed fingers" },
+
+  { id:"ae_o", sig:"aespa", phase:"open",  fam:["future"], genres:["future"],           phrase:"crisp tutting hand isolations tracing sharp geometric angles in the air" },
+  { id:"ae_m", sig:"aespa", phase:"mid",   fam:["future"], genres:["future","girlcrush"],phrase:"flicking the fingers side to side with a cool dismissive attitude" },
+  { id:"ae_c", sig:"aespa", phase:"close", fam:["future"], genres:["future","girlcrush"],phrase:"a hard robotic freeze locking into a low grounded power stance" },
+
+  { id:"iv_o", sig:"ive", phase:"open",  fam:["elegant"], genres:["retro","easy"], phrase:"an elegant sweeping full-arm extension with a confident lifted chin" },
+  { id:"iv_m", sig:"ive", phase:"mid",   fam:["elegant"], genres:["retro"],        phrase:"lifting one hand beside the face and gazing into it like an imaginary mirror with a self-adoring tilt" },
+  { id:"iv_c", sig:"ive", phase:"close", fam:["elegant"], genres:["retro","easy"], phrase:"a smooth retro shoulder groove rolling into a playful hip pop" },
+
+  { id:"id_o", sig:"idle", phase:"open",  fam:["crush"], genres:["girlcrush","retro"], phrase:"a slow confident strut punctuated by a bold chest pop" },
+  { id:"id_m", sig:"idle", phase:"mid",   fam:["crush"], genres:["girlcrush","retro"], phrase:"a sensual hip roll melting into a fierce point-and-hold" },
+  { id:"id_c", sig:"idle", phase:"close", fam:["crush"], genres:["girlcrush"],         phrase:"a sassy hand-on-hip snap with a defiant head turn to camera" },
+
+  { id:"bm_o", sig:"babymonster", phase:"open",  fam:["crush"], genres:["girlcrush","future"], phrase:"aggressive grounded stomps driven by hard shoulder pops" },
+  { id:"bm_m", sig:"babymonster", phase:"mid",   fam:["crush"], genres:["girlcrush","future"], phrase:"an explosive full-body point throwing both arms and one leg outward on the beat" },
+  { id:"bm_c", sig:"babymonster", phase:"close", fam:["crush"], genres:["girlcrush"],          phrase:"a rapid arm-pump combo dropping into a low wide power stance" },
+
+  { id:"ka_o", sig:"katseye", phase:"open",  fam:["easy"], genres:["easy","future"], phrase:"a bouncy playful step with a bright wide arm wave" },
+  { id:"ka_m", sig:"katseye", phase:"mid",   fam:["easy"], genres:["future","easy"], phrase:"a staccato hyperpop body-pop with a cheeky attitude flick" },
+  { id:"ka_c", sig:"katseye", phase:"close", fam:["easy"], genres:["easy"],          phrase:"a confident global-pop strut spinning into a photo-ready pose" },
+
+  { id:"bp_o", sig:"blackpink", phase:"open",  fam:["crush"], genres:["girlcrush","retro"], phrase:"a slow sultry hip-hop strut led by the shoulders with effortless swagger" },
+  { id:"bp_m", sig:"blackpink", phase:"mid",   fam:["crush"], genres:["girlcrush"],         phrase:"double finger-guns thrust forward snapping on the beat with a badass smirk" },
+  { id:"bp_c", sig:"blackpink", phase:"close", fam:["crush"], genres:["girlcrush"],         phrase:"a sharp arrow-like arm line cutting straight across the body into a power stance" },
+
+  { id:"nj_o", sig:"newjeans", phase:"open",  fam:["easy"], genres:["easy","retro"], phrase:"a relaxed hip sway rolling into a soft shoulder shimmy and a casual point" },
+  { id:"nj_m", sig:"newjeans", phase:"mid",   fam:["easy"], genres:["easy"],         phrase:"an easy natural two-step bounce with a light head tilt and a smile" },
+  { id:"nj_c", sig:"newjeans", phase:"close", fam:["easy"], genres:["easy","retro"], phrase:"breezy footwork gliding into a laid-back finishing groove, arms loose" },
+
+  { id:"tw_o", sig:"twice", phase:"open",  fam:["retro"], genres:["retro","easy"], phrase:"cheerful hands framing the face in a shy peek-a-boo gesture" },
+  { id:"tw_m", sig:"twice", phase:"mid",   fam:["retro"], genres:["retro","easy"], phrase:"playful arms sweeping overhead to draw a soft letter shape" },
+  { id:"tw_c", sig:"twice", phase:"close", fam:["retro"], genres:["retro"],        phrase:"a bright bouncy step snapping into a crisp finger point at camera" },
+
+  // ---- Филлер по жанру (любая группа добирает вариативность) ----
+  { id:"gc_o", sig:null, phase:"open",  fam:["crush"],           genres:["girlcrush"], phrase:"a commanding wide-legged entrance with a slow head roll up to camera" },
+  { id:"gc_m", sig:null, phase:"mid",   fam:["crush"],           genres:["girlcrush"], phrase:"a heavy groove bounce with sharp shoulder shrugs on the offbeat" },
+  { id:"gc_c", sig:null, phase:"close", fam:["crush","future"],  genres:["girlcrush"], phrase:"dropping low into a wide stance with fists pulled in tight" },
+  { id:"gc_a", sig:null, phase:"any",   fam:["crush","future"],  genres:["girlcrush"], phrase:"a powerful cross-body arm swipe snapping to a hard stop" },
+
+  { id:"fu_o", sig:null, phase:"open",  fam:["future"],          genres:["future"], phrase:"precise mechanical footwork with snapping wrist isolations" },
+  { id:"fu_m", sig:null, phase:"mid",   fam:["future"],          genres:["future"], phrase:"a full-body wave flowing from the fingertips through the hips" },
+  { id:"fu_c", sig:null, phase:"close", fam:["future","crush"],  genres:["future"], phrase:"a sudden pop-and-lock freeze holding a sharp angular shape" },
+  { id:"fu_a", sig:null, phase:"any",   fam:["future","crush"],  genres:["future"], phrase:"quick locking arm hits freezing between each beat" },
+
+  { id:"re_o", sig:null, phase:"open",  fam:["retro","elegant"],       genres:["retro"], phrase:"a swingy side-step with a playful hand roll" },
+  { id:"re_m", sig:null, phase:"mid",   fam:["retro","easy"],          genres:["retro"], phrase:"a funky hip swing with a loose finger-snap on the beat" },
+  { id:"re_c", sig:null, phase:"close", fam:["retro","elegant","easy"],genres:["retro"], phrase:"a smooth spin settling into a hip-cocked pose with a wink" },
+  { id:"re_a", sig:null, phase:"any",   fam:["retro","elegant","easy"],genres:["retro"], phrase:"a bouncy disco groove with alternating shoulder rolls" },
+
+  { id:"ea_o", sig:null, phase:"open",  fam:["easy","retro"], genres:["easy"], phrase:"easygoing sways with a gentle head bob and a smile" },
+  { id:"ea_m", sig:null, phase:"mid",   fam:["easy"],         genres:["easy"], phrase:"a soft body bounce with a casual point and a shoulder shimmy" },
+  { id:"ea_c", sig:null, phase:"close", fam:["easy","retro"], genres:["easy"], phrase:"a breezy little spin into a relaxed natural pose" },
+  { id:"ea_a", sig:null, phase:"any",   fam:["easy","retro"], genres:["easy"], phrase:"a light two-step bounce with relaxed swinging arms" },
+
+  // доп. филлер для вариативности (шире пул → меньше совпадений между юзерами)
+  { id:"gc_a2", sig:null, phase:"any", fam:["crush"],            genres:["girlcrush"], phrase:"a hard chest pop snapping the shoulders back with attitude" },
+  { id:"gc_a3", sig:null, phase:"any", fam:["crush","future"],   genres:["girlcrush"], phrase:"a fierce grounded body roll punching forward on the drop" },
+  { id:"fu_a2", sig:null, phase:"any", fam:["future"],           genres:["future"],    phrase:"rapid finger-tutting flicking into a sharp arm freeze" },
+  { id:"fu_a3", sig:null, phase:"any", fam:["future","crush"],   genres:["future"],    phrase:"a mechanical shoulder isolation ticking across the beat" },
+  { id:"re_a2", sig:null, phase:"any", fam:["retro","easy"],     genres:["retro"],     phrase:"a retro two-step shuffle with a playful shoulder shimmy" },
+  { id:"re_a3", sig:null, phase:"any", fam:["retro","elegant"],  genres:["retro"],     phrase:"a groovy body wave sliding into a finger-snap point" },
+  { id:"ea_a2", sig:null, phase:"any", fam:["easy"],             genres:["easy"],      phrase:"a soft sway with a lazy arm wave and a wink" },
+  { id:"ea_a3", sig:null, phase:"any", fam:["easy","retro"],     genres:["easy"],      phrase:"a light hop-step with a relaxed clap on the beat" },
+
+  // ---- Балладный пул: минимум движений, плавно, энергия низкая (для всех групп) ----
+  { id:"ba_o", sig:null, phase:"open",  fam:[], genres:["ballad"], phrase:"a slow expressive arm reach unfolding outward with the breath" },
+  { id:"ba_m", sig:null, phase:"mid",   fam:[], genres:["ballad"], phrase:"a gentle body sway with one hand drawn softly to the chest" },
+  { id:"ba_c", sig:null, phase:"close", fam:[], genres:["ballad"], phrase:"a delicate final pose, one arm lifted, head tilted with emotion" },
+  { id:"ba_a", sig:null, phase:"any",   fam:[], genres:["ballad"], phrase:"a graceful turn with the gaze following one slowly extended hand" },
+];
+
+// Детерминированный PRNG по seed (mulberry32) — стабильно per (айдол×группа×жанр),
+// разнообразно между разными юзерами.
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// Адаптер взаимозависимости. Возвращает {timeline, gender, genre, fam} или null (не наша группа).
+function selectDance(genreRaw, groupKey, seed) {
+  const style = GROUP_STYLE[groupKey];
+  if (!style) return null; // не из 9 женских — вызывающий откатится на LEGACY
+  const genre = resolveGenre(genreRaw);
+  const rand = mulberry32(((seed >>> 0) ^ hashStr(`${groupKey}|${genre}`)) >>> 0);
+  const used = new Set();
+  const take = (cands) => {
+    const pool = cands.filter((m) => !used.has(m.id));
+    if (!pool.length) return null;
+    const m = pool[Math.floor(rand() * pool.length)];
+    used.add(m.id);
+    return m;
+  };
+  const phases = ["open", "mid", "close"];
+  const out = { open: [], mid: [], close: [] };
+
+  if (genre === "ballad") {
+    const bal = MOVES.filter((m) => m.genres.includes("ballad"));
+    for (const p of phases) {
+      const m = take(bal.filter((x) => x.phase === p || x.phase === "any")) || take(bal);
+      if (m) out[p].push(m); // 1 движение на фазу — минимум
+    }
+  } else {
+    // 1) все фирменные point-движения группы, разложенные по своим фазам
+    const sigs = MOVES.filter((m) => m.sig === groupKey);
+    for (const p of phases) {
+      const s = take(sigs.filter((x) => x.phase === p));
+      if (s) out[p].push(s);
+    }
+    for (const s of sigs.filter((m) => !used.has(m.id))) {
+      const p = phases.reduce((a, b) => (out[a].length <= out[b].length ? a : b));
+      out[p].push(s); used.add(s.id);
+    }
+    // 2) добор по жанру, затем по семье стиля. Середина иногда получает 3-е
+    // движение (переменная длина → больше вариаций).
+    const genreFiller = MOVES.filter((m) => !m.sig && m.genres.includes(genre));
+    const famFiller = MOVES.filter((m) => !m.sig && m.fam.includes(style.fam));
+    const target = { open: 2, mid: rand() < 0.5 ? 3 : 2, close: 2 };
+    for (const p of phases) {
+      while (out[p].length < target[p]) {
+        const m =
+          take(genreFiller.filter((x) => x.phase === p || x.phase === "any")) ||
+          take(genreFiller) ||
+          take(famFiller.filter((x) => x.phase === p || x.phase === "any")) ||
+          take(famFiller);
+        if (!m) break;
+        out[p].push(m);
+      }
+    }
+    // порядок внутри фазы перемешиваем (сигнатура не всегда первой) — ещё вариаций
+    for (const p of phases) {
+      for (let i = out[p].length - 1; i > 0; i--) {
+        const j = Math.floor(rand() * (i + 1));
+        [out[p][i], out[p][j]] = [out[p][j], out[p][i]];
+      }
+    }
+  }
+
+  const join = (arr) => arr.map((m) => m.phrase).join(", then ");
+  const timeline =
+    `Choreography timeline: first third — ${join(out.open)}; ` +
+    `middle third — ${join(out.mid)}; ` +
+    `final third — ${join(out.close)}. ` +
+    (genre === "ballad" ? BALLAD_TONE : STYLE_TONE[style.fam]);
+  return { timeline, gender: "girl", genre, fam: style.fam };
+}
+
+// Боевой фолбэк для мужских групп (танцевальная система пока только женская).
+const DANCE_LEGACY = {
+  straykids:"Choreography timeline: first third — sharp complex footwork with hard-hitting arm accents; middle third — rapid-fire grounded power hits and sharp direction changes; final third — an explosive full-body combo dropping into a powerful held stance. Intense, technical hip-hop.",
+  ateez:"Choreography timeline: first third — a theatrical grounded entrance with sharp street isolations; middle third — powerful wide-stance hits building in intensity; final third — an explosive theatrical finish, arms thrown wide. Theatrical street-dance grit.",
+  enhypen:"Choreography timeline: first third — smooth moody isolations building slowly; middle third — sharp accents woven through fluid transitions; final third — a dramatic sharp finishing line held with brooding intensity. Atmospheric, moody power.",
+  txt:"Choreography timeline: first third — light bouncy footwork with playful arm swings; middle third — bright sharp claps and easy hip sways; final third — a big joyful finish, arms thrown up. Light, youthful, summery.",
 };
 const DANCE_GENDER = {
   lesserafim:"girl", aespa:"girl", ive:"girl", idle:"girl", babymonster:"girl", katseye:"girl",
   blackpink:"girl", newjeans:"girl", twice:"girl",
   straykids:"boy", ateez:"boy", enhypen:"boy", txt:"boy",
 };
-const DANCE_NEGATIVE = "weak movement, minimal movement, half-hearted gestures, subtle swaying, barely moving, low energy, static, stiff, timid, small amplitude, repetitive looping motion, face turned away, back of head to camera, full profile silhouette, face hidden, obscured face";
+// Разделено: база (лицо/качество) всегда; анти-вялость — только для НЕ-баллады,
+// иначе negative давит нужную баллады минимальность.
+const NEG_BASE = "blur, distort, low quality, extra fingers, deformed hands, face turned away, back of head to camera, full profile silhouette, face hidden, obscured face, repetitive looping motion";
+const NEG_ENERGY = "weak movement, minimal movement, half-hearted gestures, barely moving, low energy, static, stiff, timid, small amplitude";
 
 async function handleGenerate(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Use POST" });
@@ -122,11 +291,15 @@ async function handleGenerate(req, res) {
 
   try {
     const b = req.body || {};
-    const { imageUrl, theme = "girlcrush", dance = "lesserafim", memberName = "", angle = "front" } = b;
+    const { imageUrl, theme = "girlcrush", dance = "lesserafim", genre = "girlcrush", memberName = "", angle = "front", seed } = b;
     if (!imageUrl) return res.status(400).json({ error: "Нужен imageUrl" });
 
     const clipScene = CLIP[theme] || CLIP.girlcrush;
-    const danceStyle = DANCE[dance] || DANCE.lesserafim;
+    // seed стабилен per (айдол×группа×жанр), НЕ per-сегмент → оба ракурса пляшут один танец.
+    const danceSeed = seed != null ? Number(seed) : hashStr(`${memberName}|${dance}|${resolveGenre(genre)}`);
+    const picked = selectDance(genre, dance, danceSeed);
+    const danceStyle = picked ? picked.timeline : (DANCE_LEGACY[dance] || DANCE_LEGACY.straykids);
+    const effGenre = picked ? picked.genre : resolveGenre(genre);
     const gender = DANCE_GENDER[dance] || "girl";
     const pronoun = gender === "boy" ? "his" : "her";
     const heShe = gender === "boy" ? "he" : "she";
@@ -134,13 +307,15 @@ async function handleGenerate(req, res) {
     const angleLine = angle === "side"
       ? "Camera: three-quarter angle about 30 degrees off-center, a different framing than a straight front shot but with the face kept clearly visible toward camera at all times — like a new camera setup in a real music video edit. "
       : "Camera: straight-on front angle, clean and centered. ";
+    const energyLine = effGenre === "ballad"
+      ? "Restrained, emotional, minimal choreography — slow controlled movement with expressive stillness, only a few gestures, never busy or high-energy, clearly different motion in each third of the video. "
+      : "High-amplitude, full-extension, high-energy professional K-pop choreography — every movement committed and forceful, like a real K-pop comeback stage, clearly different motion in each third of the video, never repeating the same gesture on loop. ";
 
     const prompt =
       `This is ${who} performing a dance video. Keep ${pronoun} face and identity exactly consistent with the reference image. ` +
       `${angleLine}` +
       `Scene: ${clipScene}. ${danceStyle} ` +
-      `High-amplitude, full-extension, high-energy professional K-pop choreography — every movement committed and forceful, ` +
-      `like a real K-pop comeback stage, clearly different motion in each third of the video, never repeating the same gesture on loop. ` +
+      energyLine +
       `Shot sequence: wide full-body shot, cut to close-ups, cut to a dynamic angle mid-dance. ` +
       `Professional K-pop music video, cinematic lighting, smooth continuous motion throughout, no stutters, no freezing, sharp detail. ` +
       `${heShe.charAt(0).toUpperCase() + heShe.slice(1)} performs with full commitment and confidence.`;
@@ -153,7 +328,7 @@ async function handleGenerate(req, res) {
         start_image_url: imageUrl,
         duration: "10",
         generate_audio: false,
-        negative_prompt: `blur, distort, low quality, ${DANCE_NEGATIVE}`,
+        negative_prompt: effGenre === "ballad" ? NEG_BASE : `${NEG_BASE}, ${NEG_ENERGY}`,
         cfg_scale: 0.75,
       }),
     });
@@ -238,13 +413,14 @@ async function handleLipsync(req, res) {
 }
 
 /* ===================== SONG (ElevenLabs Music + обрезка по вокалу) ===================== */
+// 5 унифицированных жанров (те же ключи, что и танец). Старые ключи фронта
+// (rnb/citypop/hyperpop/rock/darktrap) резолвятся через resolveGenre — не ломается.
 const SONG = {
-  ballad: "slow emotional tempo, soft minor key, punchy kick",
-  rnb: "smooth R&B groove, sultry pocket, warm bass",
-  hyperpop: "fast high-energy beat, explosive drops, crisp hi-hats",
-  citypop: "retro funk groove, warm bass line, synth stabs",
-  rock: "driving rock energy, distorted guitars, hard drums",
-  darktrap: "heavy dark trap rhythm, 808 bass, rapid hi-hat rolls",
+  ballad:   "slow emotional ballad tempo, soft minor-key piano and strings, tender vocal, punchy kick",
+  girlcrush:"hard-hitting girl-crush beat, heavy trap 808 bass, dark brass stabs, fierce confident energy",
+  retro:    "retro funk-disco groove, warm slap bass, bright synth stabs, groovy city-pop shimmer",
+  future:   "futuristic EDM hyperpop beat, punchy synths, explosive drop, crisp hi-hats",
+  easy:     "light Y2K bubblegum-pop bounce, mellow drums, airy synths, easy breezy groove",
 };
 const LANGUAGE = { ko: "Korean", en: "English", ja: "Japanese", zh: "Chinese" };
 const GIRL_REGISTER = ["soprano", "mezzo-soprano", "alto"];
@@ -325,7 +501,7 @@ async function handleSong(req, res) {
 
   try {
     const { song = "ballad", lengthMs = 10000, language = "ko", memberName = "", gender = "girl" } = req.body || {};
-    const songVibe = SONG[song] || SONG.ballad;
+    const songVibe = SONG[resolveGenre(song)] || SONG.ballad;
     const langName = LANGUAGE[language] || LANGUAGE.ko;
     const windowSec = lengthMs / 1000;
     const bufferSec = windowSec + 10;

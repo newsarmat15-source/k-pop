@@ -4,8 +4,9 @@ const state={song:"ballad",clip:"girlcrush",dance:"lesserafim",genderTab:"girl",
 // независимо от того, где физически крутится сама генерация (локально/preview/прод).
 const IMAGE_BASE="https://k-pop-black.vercel.app";
 
-const SONG=[["ballad","Баллада","эмоции, медленно"],["rnb","R&B","соул, грув"],["hyperpop","Hyperpop","ярко, быстро"],
-["citypop","City-pop","ретро, фанк"],["rock","Рок","драйв, гитары"],["darktrap","Dark trap","808, агрессия"]];
+// 5 унифицированных жанров: каждый = одна танцевальная энергия (см. GENRE_ALIAS в pipeline.js).
+const SONG=[["ballad","Баллада","эмоции, минимум движений"],["girlcrush","Girl-crush","жёстко, хип-хоп/трэп"],
+["retro","Ретро-фанк","грув, city-pop, R&B"],["future","Future","EDM, хайперпоп"],["easy","Y2K поп","лайтово, качает"]];
 const LANGUAGE=[["ko","Корейский","родной язык K-pop"],["en","Английский",""],["ja","Японский",""],["zh","Китайский",""]];
 const LANG_CODE={ko:"KR",en:"EN",ja:"JA",zh:"ZH"};
 const LANG_COLOR={ko:"#e8a9c9",en:"#9fd8ff",ja:"#ffb3d9",zh:"#f3d9ac"};
@@ -51,13 +52,12 @@ function swatch(inner,color){
 }
 const SONG_ICON={
   ballad:'<line x1="5" y1="4" x2="5" y2="20"/><line x1="9.5" y1="4" x2="9.5" y2="15"/><line x1="14" y1="4" x2="14" y2="20"/><line x1="18.5" y1="4" x2="18.5" y2="15"/>',
-  rnb:'<polyline points="2,13 7,6 11,18 15,4 19,15 22,10"/>',
-  hyperpop:'<polygon points="13,2 5,14 11,14 9,22 19,9 13,9"/>',
-  citypop:'<circle cx="12" cy="11" r="6.5"/><line x1="4" y1="16" x2="20" y2="16"/><line x1="4" y1="19" x2="20" y2="19"/>',
-  rock:'<path d="M12 2 L20 12 L12 22 L4 12 Z"/>',
-  darktrap:'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/>',
+  girlcrush:'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/>',
+  retro:'<circle cx="12" cy="11" r="6.5"/><line x1="4" y1="16" x2="20" y2="16"/><line x1="4" y1="19" x2="20" y2="19"/>',
+  future:'<polygon points="13,2 5,14 11,14 9,22 19,9 13,9"/>',
+  easy:'<polyline points="2,13 7,6 11,18 15,4 19,15 22,10"/>',
 };
-const SONG_COLOR={ballad:"#f3d9ac",rnb:"#e8a9c9",hyperpop:"#ffb3d9",citypop:"#ffe9a8",rock:"#c98f68",darktrap:"#9fd8ff"};
+const SONG_COLOR={ballad:"#f3d9ac",girlcrush:"#9fd8ff",retro:"#ffe9a8",future:"#ffb3d9",easy:"#e8a9c9"};
 const CLIP_ICON={
   girlcrush:'<path d="M12 3 L20 20 L4 20 Z"/>',
   ethereal:'<circle cx="8" cy="14" r="4.5"/><circle cx="13" cy="10.5" r="5.5"/><circle cx="18" cy="15" r="3.5"/>',
@@ -706,7 +706,7 @@ async function pollJob(requestId, onProgress){
   }
 }
 
-async function generateOneSegment({imageUrl,theme,dance,name,gender,angle,song,language},setLoad,segLabel){
+async function generateOneSegment({imageUrl,theme,dance,name,gender,angle,song,language,seed},setLoad,segLabel){
   const songResp=await fetch('/api/pipeline?action=song',{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({song,lengthMs:10000,language,memberName:name,gender})}).then(r=>r.json());
   if(songResp.ok===false||!songResp.songUrl) throw new Error(songResp.error||`Не удалось сгенерировать песню (${segLabel})`);
@@ -716,7 +716,7 @@ async function generateOneSegment({imageUrl,theme,dance,name,gender,angle,song,l
   for(let attempt=1;attempt<=MAX_ATTEMPTS;attempt++){
     setLoad('video',`${segLabel}: Kling рендерит видео${attempt>1?` (попытка ${attempt})`:''}…`);
     const videoSubmit=await fetch('/api/pipeline?action=generate',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({imageUrl,theme,dance,memberName:name,angle})}).then(r=>r.json());
+      body:JSON.stringify({imageUrl,theme,dance,genre:song,memberName:name,angle,seed})}).then(r=>r.json());
     if(videoSubmit.ok===false||!videoSubmit.requestId) throw new Error((videoSubmit.error||`Не удалось поставить видео в очередь (${segLabel})`)+' '+JSON.stringify(videoSubmit.detail||''));
 
     await pollJob(videoSubmit.requestId,(t)=>setLoad('video',`${segLabel}: Kling рендерит видео… ${t}`));
@@ -770,7 +770,8 @@ async function generate(){
   try{
     setLoad('video','Готовим 20-секундное выступление (2 части)…');
     const imageUrl=IMAGE_BASE+picked.img;
-    const base={imageUrl,theme:state.clip,dance:state.dance,name,gender:picked.gender,song:state.song};
+    // один seed на весь клип → оба сегмента (front/side) пляшут ОДИН танец (когерентность)
+    const base={imageUrl,theme:state.clip,dance:state.dance,name,gender:picked.gender,song:state.song,seed:Math.floor(Math.random()*1e9)};
 
     const seg1=await generateOneSegment({...base,angle:'front',language:state.lang1},setLoad,'Часть 1/2');
     const seg2=await generateOneSegment({...base,angle:'side',language:state.lang2},setLoad,'Часть 2/2');
