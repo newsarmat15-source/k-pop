@@ -198,11 +198,10 @@ function mulberry32(a) {
   };
 }
 
-// Адаптер взаимозависимости. Возвращает {timeline, gender, genre, fam} или null (не наша группа).
-function selectDance(genreRaw, groupKey, seed) {
+// Собирает УПОРЯДОЧЕННУЮ последовательность движений на ВЕСЬ клип (open→close),
+// все различны, без повторов. Для упбита ~6 движений, для баллады 3.
+function buildClipMoves(genre, groupKey, seed) {
   const style = GROUP_STYLE[groupKey];
-  if (!style) return null; // не из 9 женских — вызывающий откатится на LEGACY
-  const genre = resolveGenre(genreRaw);
   const rand = mulberry32(((seed >>> 0) ^ hashStr(`${groupKey}|${genre}`)) >>> 0);
   const used = new Set();
   const take = (cands) => {
@@ -213,55 +212,62 @@ function selectDance(genreRaw, groupKey, seed) {
     return m;
   };
   const phases = ["open", "mid", "close"];
-  const out = { open: [], mid: [], close: [] };
 
   if (genre === "ballad") {
     const bal = MOVES.filter((m) => m.genres.includes("ballad"));
+    const seq = [];
     for (const p of phases) {
       const m = take(bal.filter((x) => x.phase === p || x.phase === "any")) || take(bal);
-      if (m) out[p].push(m); // 1 движение на фазу — минимум
+      if (m) seq.push(m);
     }
-  } else {
-    // 1) все фирменные point-движения группы, разложенные по своим фазам
-    const sigs = MOVES.filter((m) => m.sig === groupKey);
-    for (const p of phases) {
-      const s = take(sigs.filter((x) => x.phase === p));
-      if (s) out[p].push(s);
-    }
-    for (const s of sigs.filter((m) => !used.has(m.id))) {
-      const p = phases.reduce((a, b) => (out[a].length <= out[b].length ? a : b));
-      out[p].push(s); used.add(s.id);
-    }
-    // 2) добор по жанру, затем по семье стиля. Середина иногда получает 3-е
-    // движение (переменная длина → больше вариаций).
-    const genreFiller = MOVES.filter((m) => !m.sig && m.genres.includes(genre));
-    const famFiller = MOVES.filter((m) => !m.sig && m.fam.includes(style.fam));
-    const target = { open: 2, mid: rand() < 0.5 ? 3 : 2, close: 2 };
-    for (const p of phases) {
-      while (out[p].length < target[p]) {
-        const m =
-          take(genreFiller.filter((x) => x.phase === p || x.phase === "any")) ||
-          take(genreFiller) ||
-          take(famFiller.filter((x) => x.phase === p || x.phase === "any")) ||
-          take(famFiller);
-        if (!m) break;
-        out[p].push(m);
-      }
-    }
-    // порядок внутри фазы перемешиваем (сигнатура не всегда первой) — ещё вариаций
-    for (const p of phases) {
-      for (let i = out[p].length - 1; i > 0; i--) {
-        const j = Math.floor(rand() * (i + 1));
-        [out[p][i], out[p][j]] = [out[p][j], out[p][i]];
-      }
-    }
+    return seq;
   }
 
-  const join = (arr) => arr.map((m) => m.phrase).join(", then ");
+  const sigs = MOVES.filter((m) => m.sig === groupKey); // 3 фирменных, по одному на фазу
+  const genreFiller = MOVES.filter((m) => !m.sig && m.genres.includes(genre));
+  const famFiller = MOVES.filter((m) => !m.sig && m.fam.includes(style.fam));
+  const fillFor = (p) =>
+    take(genreFiller.filter((x) => x.phase === p || x.phase === "any")) ||
+    take(genreFiller) ||
+    take(famFiller.filter((x) => x.phase === p || x.phase === "any")) ||
+    take(famFiller);
+
+  // порядок: [openSig, openFill, midSig, midFill, closeSig, closeFill] — все разные
+  const seq = [];
+  for (const p of phases) {
+    const s = take(sigs.filter((x) => x.phase === p));
+    if (s) seq.push(s);
+    const f = fillFor(p);
+    if (f) seq.push(f);
+  }
+  for (const s of sigs.filter((m) => !used.has(m.id))) seq.push(s); // страховка
+  return seq;
+}
+
+function fmtThirds(moves) {
+  const j = (a) => a.map((m) => m.phrase).join(", then ");
+  let a, b, c;
+  if (moves.length >= 3) { a = [moves[0]]; b = [moves[1]]; c = moves.slice(2); }
+  else if (moves.length === 2) { a = [moves[0]]; b = []; c = [moves[1]]; }
+  else { a = []; b = moves; c = []; }
+  const seg = [];
+  if (a.length) seg.push(`first third — ${j(a)}`);
+  if (b.length) seg.push(`middle third — ${j(b)}`);
+  if (c.length) seg.push(`final third — ${j(c)}`);
+  return seg.join("; ");
+}
+
+// Адаптер. part/parts делят единый набор движений между сегментами клипа так,
+// что во второй половине НЕ повторяются движения первой. Возврат {timeline,...} | null.
+function selectDance(genreRaw, groupKey, seed, part = 0, parts = 1) {
+  const style = GROUP_STYLE[groupKey];
+  if (!style) return null; // не из 9 женских — вызывающий откатится на LEGACY
+  const genre = resolveGenre(genreRaw);
+  const all = buildClipMoves(genre, groupKey, seed);
+  const per = Math.max(1, Math.ceil(all.length / Math.max(1, parts)));
+  const slice = parts > 1 ? all.slice(part * per, part * per + per) : all;
   const timeline =
-    `Choreography timeline: first third — ${join(out.open)}; ` +
-    `middle third — ${join(out.mid)}; ` +
-    `final third — ${join(out.close)}. ` +
+    `Choreography timeline: ${fmtThirds(slice.length ? slice : all)}. ` +
     (genre === "ballad" ? BALLAD_TONE : STYLE_TONE[style.fam]);
   return { timeline, gender: "girl", genre, fam: style.fam };
 }
@@ -291,13 +297,14 @@ async function handleGenerate(req, res) {
 
   try {
     const b = req.body || {};
-    const { imageUrl, theme = "girlcrush", dance = "lesserafim", genre = "girlcrush", memberName = "", angle = "front", seed } = b;
+    const { imageUrl, theme = "girlcrush", dance = "lesserafim", genre = "girlcrush", memberName = "", angle = "front", seed, part = 0, parts = 1, startImageUrl } = b;
     if (!imageUrl) return res.status(400).json({ error: "Нужен imageUrl" });
 
     const clipScene = CLIP[theme] || CLIP.girlcrush;
-    // seed стабилен per (айдол×группа×жанр), НЕ per-сегмент → оба ракурса пляшут один танец.
+    // seed стабилен на весь клип; part/parts дают КАЖДОМУ сегменту свой кусок танца
+    // (во 2-й половине не повторяются движения 1-й).
     const danceSeed = seed != null ? Number(seed) : hashStr(`${memberName}|${dance}|${resolveGenre(genre)}`);
-    const picked = selectDance(genre, dance, danceSeed);
+    const picked = selectDance(genre, dance, danceSeed, Number(part) || 0, Number(parts) || 1);
     const danceStyle = picked ? picked.timeline : (DANCE_LEGACY[dance] || DANCE_LEGACY.straykids);
     const effGenre = picked ? picked.genre : resolveGenre(genre);
     const gender = DANCE_GENDER[dance] || "girl";
@@ -308,15 +315,15 @@ async function handleGenerate(req, res) {
       ? "Camera: three-quarter angle about 30 degrees off-center, a different framing than a straight front shot but with the face kept clearly visible toward camera at all times — like a new camera setup in a real music video edit. "
       : "Camera: straight-on front angle, clean and centered. ";
     const energyLine = effGenre === "ballad"
-      ? "Restrained, emotional, minimal choreography — slow controlled movement with expressive stillness, only a few gestures, never busy or high-energy, clearly different motion in each third of the video. "
-      : "High-amplitude, full-extension, high-energy professional K-pop choreography — every movement committed and forceful, like a real K-pop comeback stage, clearly different motion in each third of the video, never repeating the same gesture on loop. ";
+      ? "Restrained, emotional, minimal choreography — slow controlled movement with expressive stillness, only a few gestures. The routine keeps progressing forward through these 10 seconds and never loops back to an earlier pose. "
+      : "High-amplitude, full-extension, high-energy professional K-pop choreography — every movement committed and forceful, like a real K-pop comeback stage. Each beat introduces a brand-new movement; the routine constantly progresses forward and NEVER loops, repeats, or returns to any earlier pose within these 10 seconds. ";
 
     const prompt =
       `This is ${who} performing a dance video. Keep ${pronoun} face and identity exactly consistent with the reference image. ` +
       `${angleLine}` +
       `Scene: ${clipScene}. ${danceStyle} ` +
       energyLine +
-      `Shot sequence: wide full-body shot, cut to close-ups, cut to a dynamic angle mid-dance. ` +
+      `Shot sequence: open on a wide full-body shot already mid-dance, then brief close-ups and dynamic angles while she keeps dancing — no static posing or held portrait at any moment, continuous full-body movement from the very first second. ` +
       `Professional K-pop music video, cinematic lighting, smooth continuous motion throughout, no stutters, no freezing, sharp detail. ` +
       `${heShe.charAt(0).toUpperCase() + heShe.slice(1)} performs with full commitment and confidence.`;
 
@@ -325,7 +332,7 @@ async function handleGenerate(req, res) {
       headers: { Authorization: `Key ${KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         prompt,
-        start_image_url: imageUrl,
+        start_image_url: startImageUrl || imageUrl,
         duration: "10",
         generate_audio: false,
         negative_prompt: effGenre === "ballad" ? NEG_BASE : `${NEG_BASE}, ${NEG_ENERGY}`,
@@ -498,22 +505,25 @@ async function handleSong(req, res) {
   const tag = Date.now();
   const rawPath = path.join(os.tmpdir(), `song-raw-${tag}.mp3`);
   const cutPath = path.join(os.tmpdir(), `song-cut-${tag}.mp3`);
+  const partPaths = [];
 
   try {
-    const { song = "ballad", lengthMs = 10000, language = "ko", memberName = "", gender = "girl" } = req.body || {};
-    const songVibe = SONG[resolveGenre(song)] || SONG.ballad;
+    const { song = "ballad", lengthMs = 10000, parts = 1, language = "ko", memberName = "", gender = "girl" } = req.body || {};
+    const partN = Math.max(1, Math.min(4, Number(parts) || 1));
+    const effGenre = resolveGenre(song);
+    const songVibe = SONG[effGenre] || SONG.ballad;
     const langName = LANGUAGE[language] || LANGUAGE.ko;
-    const windowSec = lengthMs / 1000;
-    const bufferSec = windowSec + 10;
+    const partSec = lengthMs / 1000;   // длина ОДНОЙ части (сегмента клипа)
+    const fullSec = partSec * partN;   // одна непрерывная песня на весь клип
+    const bufferSec = fullSec + 10;    // запас на тихие края
     const { descriptor: voiceDescriptor, seed } = voiceProfileFor(memberName, gender);
 
     const elevenlabs = new ElevenLabsClient({ apiKey: ELEVEN_KEY });
     // seed нельзя передавать вместе с prompt (ElevenLabs Music v2 → 422 unprocessable_entity).
-    // Вариативность голоса уже задаётся текстовым voiceDescriptor, seed тут лишний.
     const track = await elevenlabs.music.compose({
       prompt:
-        `Upbeat K-pop chorus hook, ${voiceDescriptor} vocals singing in ${langName}, ${songVibe}, ` +
-        "catchy, lyric-dense, modern K-pop production, confident mood, continuous singing throughout.",
+        `${effGenre === "ballad" ? "Emotional K-pop ballad" : "Upbeat K-pop chorus hook"}, ${voiceDescriptor} vocals singing in ${langName}, ${songVibe}, ` +
+        "catchy, lyric-dense, modern K-pop production, ONE continuous song from start to finish, no abrupt style or key change.",
       musicLengthMs: Math.round(bufferSec * 1000),
       modelId: "music_v2",
     });
@@ -522,18 +532,27 @@ async function handleSong(req, res) {
 
     const totalSec = (await getDurationSec(rawPath)) || bufferSec;
     const silences = await detectSilences(rawPath);
-    const startSec = findBestWindow(silences, totalSec, windowSec);
+    const startSec = findBestWindow(silences, totalSec, fullSec);
 
-    await trimAudio(rawPath, cutPath, startSec, windowSec);
-    const cutBuf = await readFile(cutPath);
+    // вырезаем ВСЮ песню, затем режем её на partN подряд идущих кусков —
+    // так части клипа получают ОДНУ песню, а не разные (баг #2).
+    await trimAudio(rawPath, cutPath, startSec, fullSec);
 
-    const songUrl = await uploadToFalCdn(cutBuf, FAL_KEY, "audio/mpeg", `song-${tag}.mp3`);
-    return res.status(200).json({ ok: true, songUrl, debug: { totalSec, silences, chosenStart: startSec, voiceDescriptor, seed } });
+    const songUrls = [];
+    for (let i = 0; i < partN; i++) {
+      const pp = path.join(os.tmpdir(), `song-part-${tag}-${i}.mp3`);
+      partPaths.push(pp);
+      await trimAudio(cutPath, pp, i * partSec, partSec);
+      const buf = await readFile(pp);
+      songUrls.push(await uploadToFalCdn(buf, FAL_KEY, "audio/mpeg", `song-${tag}-${i}.mp3`));
+    }
+    return res.status(200).json({ ok: true, songUrl: songUrls[0], songUrls, debug: { totalSec, chosenStart: startSec, fullSec, partN, voiceDescriptor, seed } });
   } catch (e) {
     return res.status(500).json({ ok: false, error: String(e?.message || e) });
   } finally {
     await unlink(rawPath).catch(() => {});
     await unlink(cutPath).catch(() => {});
+    for (const pp of partPaths) await unlink(pp).catch(() => {});
   }
 }
 
@@ -626,6 +645,42 @@ async function handleFinalize(req, res) {
   }
 }
 
+/* ===================== LASTFRAME (последний кадр сегмента → старт следующего) ===================== */
+// Часть 2 стартует с последнего кадра части 1 → сцена/костюм/лицо продолжаются (баги #3/#4).
+async function handleLastframe(req, res) {
+  if (req.method !== "POST") return res.status(405).json({ error: "Use POST" });
+  if (!readUserId(req)) return res.status(401).json({ error: "Нужно войти в аккаунт" });
+  const FAL_KEY = process.env.FAL_KEY;
+  if (!FAL_KEY) return res.status(500).json({ error: "FAL_KEY не задан" });
+
+  const tag = Date.now();
+  const inPath = path.join(os.tmpdir(), `lf-in-${tag}.mp4`);
+  const outPath = path.join(os.tmpdir(), `lf-out-${tag}.jpg`);
+
+  try {
+    const { videoUrl } = req.body || {};
+    if (!videoUrl) return res.status(400).json({ error: "Нужен videoUrl" });
+
+    const buf = await withRetry(async () => {
+      const r = await fetchWithRetry(videoUrl);
+      if (!r.ok) throw new Error(`не удалось скачать videoUrl: ${r.status}`);
+      return Buffer.from(await r.arrayBuffer());
+    });
+    await writeFile(inPath, buf);
+
+    // берём кадр за ~0.3с до конца (самый конец бывает подмороженный)
+    await runFfmpeg(["-y", "-sseof", "-0.4", "-i", inPath, "-frames:v", "1", "-q:v", "2", "-update", "1", outPath]);
+    const frameBuf = await readFile(outPath);
+    const imageUrl = await uploadToFalCdn(frameBuf, FAL_KEY, "image/jpeg", `lastframe-${tag}.jpg`);
+    return res.status(200).json({ ok: true, imageUrl });
+  } catch (e) {
+    return res.status(500).json({ ok: false, error: String(e?.message || e) });
+  } finally {
+    await unlink(inPath).catch(() => {});
+    await unlink(outPath).catch(() => {});
+  }
+}
+
 /* ===================== TTS (голосовые — задел под чат-компаньона) ===================== */
 async function handleTts(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Use POST" });
@@ -668,6 +723,7 @@ export default async function handler(req, res) {
   if (action === "song") return handleSong(req, res);
   if (action === "stitch") return handleStitch(req, res);
   if (action === "finalize") return handleFinalize(req, res);
+  if (action === "lastframe") return handleLastframe(req, res);
   if (action === "tts") return handleTts(req, res);
   return res.status(400).json({ error: "Неизвестный action" });
 }

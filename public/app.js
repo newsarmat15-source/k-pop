@@ -706,17 +706,13 @@ async function pollJob(requestId, onProgress){
   }
 }
 
-async function generateOneSegment({imageUrl,theme,dance,name,gender,angle,song,language,seed},setLoad,segLabel){
-  const songResp=await fetch('/api/pipeline?action=song',{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({song,lengthMs:10000,language,memberName:name,gender})}).then(r=>r.json());
-  if(songResp.ok===false||!songResp.songUrl) throw new Error(songResp.error||`Не удалось сгенерировать песню (${segLabel})`);
-
+async function generateOneSegment({imageUrl,theme,dance,name,gender,angle,song,seed,part,parts,songUrl,startImageUrl},setLoad,segLabel){
   const MAX_ATTEMPTS=3;
   let lipsyncSubmit=null;
   for(let attempt=1;attempt<=MAX_ATTEMPTS;attempt++){
     setLoad('video',`${segLabel}: Kling рендерит видео${attempt>1?` (попытка ${attempt})`:''}…`);
     const videoSubmit=await fetch('/api/pipeline?action=generate',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({imageUrl,theme,dance,genre:song,memberName:name,angle,seed})}).then(r=>r.json());
+      body:JSON.stringify({imageUrl,theme,dance,genre:song,memberName:name,angle,seed,part,parts,startImageUrl})}).then(r=>r.json());
     if(videoSubmit.ok===false||!videoSubmit.requestId) throw new Error((videoSubmit.error||`Не удалось поставить видео в очередь (${segLabel})`)+' '+JSON.stringify(videoSubmit.detail||''));
 
     await pollJob(videoSubmit.requestId,(t)=>setLoad('video',`${segLabel}: Kling рендерит видео… ${t}`));
@@ -726,7 +722,7 @@ async function generateOneSegment({imageUrl,theme,dance,name,gender,angle,song,l
 
     setLoad('sync',`${segLabel}: синхронизируем губы под песню…`);
     const attemptSubmit=await fetch('/api/pipeline?action=lipsync',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({videoUrl:videoResult.videoUrl,songUrl:songResp.songUrl})}).then(r=>r.json());
+      body:JSON.stringify({videoUrl:videoResult.videoUrl,songUrl})}).then(r=>r.json());
 
     const isFaceError=attemptSubmit.ok===false&&JSON.stringify(attemptSubmit.detail||'').includes('face_detection_error');
     if(isFaceError&&attempt<MAX_ATTEMPTS){continue;}
@@ -770,11 +766,28 @@ async function generate(){
   try{
     setLoad('video','Готовим 20-секундное выступление (2 части)…');
     const imageUrl=IMAGE_BASE+picked.img;
-    // один seed на весь клип → оба сегмента (front/side) пляшут ОДИН танец (когерентность)
-    const base={imageUrl,theme:state.clip,dance:state.dance,name,gender:picked.gender,song:state.song,seed:Math.floor(Math.random()*1e9)};
+    // один seed на весь клип; part 0/1 дают каждой половине СВОЙ кусок танца (без повторов)
+    const base={imageUrl,theme:state.clip,dance:state.dance,name,gender:picked.gender,song:state.song,seed:Math.floor(Math.random()*1e9),parts:2};
 
-    const seg1=await generateOneSegment({...base,angle:'front',language:state.lang1},setLoad,'Часть 1/2');
-    const seg2=await generateOneSegment({...base,angle:'side',language:state.lang2},setLoad,'Часть 2/2');
+    // ОДНА песня на весь клип, режется на 2 половины → музыка не прыгает между частями
+    setLoad('video','Генерируем одну песню на весь клип…');
+    const songResp=await fetch('/api/pipeline?action=song',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({song:state.song,lengthMs:10000,parts:2,language:state.lang1,memberName:name,gender:picked.gender})}).then(r=>r.json());
+    if(songResp.ok===false||!Array.isArray(songResp.songUrls)||songResp.songUrls.length<2) throw new Error(songResp.error||'Не удалось сгенерировать песню');
+    const [songA,songB]=songResp.songUrls;
+
+    const seg1=await generateOneSegment({...base,angle:'front',part:0,songUrl:songA},setLoad,'Часть 1/2');
+
+    // последний кадр части 1 → старт части 2 (сцена/одежда/лицо продолжаются)
+    setLoad('video','Часть 2/2: берём последний кадр части 1 для непрерывности…');
+    let startImageUrl=null;
+    try{
+      const lf=await fetch('/api/pipeline?action=lastframe',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({videoUrl:seg1})}).then(r=>r.json());
+      if(lf.ok&&lf.imageUrl) startImageUrl=lf.imageUrl;
+    }catch(e){/* не критично — откатимся на портрет */}
+
+    const seg2=await generateOneSegment({...base,angle:'side',part:1,songUrl:songB,startImageUrl},setLoad,'Часть 2/2');
 
     setLoad('stitch','Склеиваем обе части в один клип…');
     const stitchResp=await fetch('/api/pipeline?action=stitch',{method:'POST',headers:{'Content-Type':'application/json'},
