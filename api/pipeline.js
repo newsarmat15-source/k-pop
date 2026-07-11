@@ -551,7 +551,7 @@ async function handleSong(req, res) {
       const buf = await readFile(pp);
       songUrls.push(await uploadToFalCdn(buf, FAL_KEY, "audio/mpeg", `song-${tag}-${i}.mp3`));
     }
-    return res.status(200).json({ ok: true, songUrl: songUrls[0], songUrls, debug: { totalSec, chosenStart: startSec, fullSec, partN, voiceDescriptor, seed } });
+    return res.status(200).json({ ok: true, songUrl: songUrls[0], songUrls, debug: { totalSec, chosenStart: startSec, fullSec, partN, voiceDescriptor, seed, lyricsUsed: !!lyricLine } });
   } catch (e) {
     return res.status(500).json({ ok: false, error: String(e?.message || e) });
   } finally {
