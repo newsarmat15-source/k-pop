@@ -450,6 +450,19 @@ const DANCE_GENDER = {
 const NEG_BASE = "blur, distort, low quality, extra fingers, deformed hands, face turned away, back of head to camera, full profile silhouette, face hidden, obscured face, repetitive looping motion";
 const NEG_ENERGY = "weak movement, minimal movement, half-hearted gestures, barely moving, low energy, static, stiff, timid, small amplitude";
 
+// Темп/энергия описания танца по жанру песни (см. SONG-объект в handleSong — тот же жанр).
+// Раньше energyLine была одна на все 4 небалладных жанра ("high-energy" без разбора темпа) —
+// future (EDM, ~150-160 BPM) и easy (bubblegum, ~100-105 BPM) требуют видимо разного темпа
+// движения, не только слов "энергично". Числа BPM ориентировочные — Kling не читает
+// референс-аудио (нет такого входа у модели), это текстовая подсказка на ощущение темпа,
+// не гарантия покадровой синхронизации с реальным треком.
+const TEMPO_BY_GENRE = {
+  girlcrush: "hard-hitting trap-influenced tempo around 130-140 BPM, sharp aggressive hits landing exactly on the strong downbeats",
+  retro:     "groovy funk-disco tempo around 110-115 BPM, bouncy swinging movement locked to a steady four-on-the-floor pulse",
+  future:    "driving EDM/hyperpop tempo around 150-160 BPM, rapid sharp cuts and isolations snapping precisely on every beat",
+  easy:      "light bubblegum-pop tempo around 100-105 BPM, breezy bouncy movement with relaxed but precise on-beat timing",
+};
+
 async function handleGenerate(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Use POST" });
   if (!readUserId(req)) return res.status(401).json({ error: "Нужно войти в аккаунт" });
@@ -476,9 +489,10 @@ async function handleGenerate(req, res) {
     const angleLine = angle === "side"
       ? "Camera: three-quarter angle about 30 degrees off-center, a different framing than a straight front shot but with the face kept clearly visible toward camera at all times — like a new camera setup in a real music video edit. "
       : "Camera: straight-on front angle, clean and centered. ";
+    const tempoLine = TEMPO_BY_GENRE[effGenre] ? `Moving to a ${TEMPO_BY_GENRE[effGenre]}. ` : "";
     const energyLine = effGenre === "ballad"
       ? "Restrained, emotional, minimal choreography — slow controlled movement with expressive stillness, only a few gestures. The routine keeps progressing forward through these 10 seconds and never loops back to an earlier pose. "
-      : "High-amplitude, full-extension, high-energy professional K-pop choreography — every movement committed and forceful, like a real K-pop comeback stage. Each beat introduces a brand-new movement; the routine constantly progresses forward and NEVER loops, repeats, or returns to any earlier pose within these 10 seconds. ";
+      : `${tempoLine}High-amplitude, full-extension, high-energy professional K-pop choreography — every movement committed and forceful, like a real K-pop comeback stage. Each beat introduces a brand-new movement; the routine constantly progresses forward and NEVER loops, repeats, or returns to any earlier pose within these 10 seconds. `;
 
     const prompt =
       `This is ${who} performing a dance video. Keep ${pronoun} face and identity exactly consistent with the reference image. ` +
@@ -584,12 +598,15 @@ async function handleLipsync(req, res) {
 /* ===================== SONG (ElevenLabs Music + обрезка по вокалу) ===================== */
 // 5 унифицированных жанров (те же ключи, что и танец). Старые ключи фронта
 // (rnb/citypop/hyperpop/rock/darktrap) резолвятся через resolveGenre — не ломается.
+// BPM-ориентиры совпадают с TEMPO_BY_GENRE у танца (см. handleGenerate) — чтобы темп
+// песни и текстовое описание хореографии хотя бы концептуально совпадали. Не гарантия
+// покадровой синхронизации (ElevenLabs и Kling генерятся независимо друг от друга).
 const SONG = {
-  ballad:   "slow emotional ballad tempo, soft minor-key piano and strings, tender vocal, punchy kick",
-  girlcrush:"hard-hitting girl-crush beat, heavy trap 808 bass, dark brass stabs, fierce confident energy",
-  retro:    "retro funk-disco groove, warm slap bass, bright synth stabs, groovy city-pop shimmer",
-  future:   "futuristic EDM hyperpop beat, punchy synths, explosive drop, crisp hi-hats",
-  easy:     "light Y2K bubblegum-pop bounce, mellow drums, airy synths, easy breezy groove",
+  ballad:   "slow emotional ballad tempo around 70 BPM, soft minor-key piano and strings, tender vocal, punchy kick",
+  girlcrush:"hard-hitting girl-crush beat around 130-140 BPM, heavy trap 808 bass, dark brass stabs, fierce confident energy",
+  retro:    "retro funk-disco groove around 110-115 BPM, warm slap bass, bright synth stabs, groovy city-pop shimmer",
+  future:   "futuristic EDM hyperpop beat around 150-160 BPM, punchy synths, explosive drop, crisp hi-hats",
+  easy:     "light Y2K bubblegum-pop bounce around 100-105 BPM, mellow drums, airy synths, easy breezy groove",
 };
 const LANGUAGE = { ko: "Korean", en: "English", ja: "Japanese", zh: "Chinese" };
 const GIRL_REGISTER = ["soprano", "mezzo-soprano", "alto"];

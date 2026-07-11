@@ -784,7 +784,12 @@ async function generateOneSegment({imageUrl,theme,dance,name,gender,angle,song,s
     const muxResp=await fetch('/api/pipeline?action=muxaudio',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({videoUrl:lastSilentVideoUrl,songUrl})}).then(r=>r.json());
     if(muxResp.ok===false||!muxResp.videoUrl) throw new Error((muxResp.error||`Не удалось наложить песню (${segLabel})`)+' '+JSON.stringify(muxResp.detail||''));
-    return muxResp.videoUrl;
+    // Тот же трим краёв, что и в обычном пути (см. ниже) — иначе на стыке сегментов в
+    // склейке остаётся необрезанный "замёрзший" край, который читается как фриз на 1-2с.
+    setLoad('sync',`${segLabel}: дошлифовываем…`);
+    const muxFinalizeResp=await fetch('/api/pipeline?action=finalize',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({videoUrl:muxResp.videoUrl})}).then(r=>r.json());
+    return (muxFinalizeResp.ok!==false&&muxFinalizeResp.videoUrl)?muxFinalizeResp.videoUrl:muxResp.videoUrl;
   }
 
   await pollJob(lipsyncSubmit.requestId,(t)=>setLoad('sync',`${segLabel}: синхронизируем губы… ${t}`));
