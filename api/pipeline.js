@@ -112,7 +112,7 @@ const DANCE_GENDER = {
   blackpink:"girl", newjeans:"girl", twice:"girl",
   straykids:"boy", ateez:"boy", enhypen:"boy", txt:"boy",
 };
-const DANCE_NEGATIVE = "weak movement, minimal movement, half-hearted gestures, subtle swaying, barely moving, low energy, static, stiff, timid, small amplitude, repetitive looping motion";
+const DANCE_NEGATIVE = "weak movement, minimal movement, half-hearted gestures, subtle swaying, barely moving, low energy, static, stiff, timid, small amplitude, repetitive looping motion, face turned away, back of head to camera, full profile silhouette, face hidden, obscured face";
 
 async function handleGenerate(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Use POST" });
@@ -132,7 +132,7 @@ async function handleGenerate(req, res) {
     const heShe = gender === "boy" ? "he" : "she";
     const who = memberName ? `${memberName}, a K-pop idol,` : "a K-pop idol";
     const angleLine = angle === "side"
-      ? "Camera: three-quarter side angle, a different framing than a straight front shot — like a new camera setup in a real music video edit. "
+      ? "Camera: three-quarter angle about 30 degrees off-center, a different framing than a straight front shot but with the face kept clearly visible toward camera at all times — like a new camera setup in a real music video edit. "
       : "Camera: straight-on front angle, clean and centered. ";
 
     const prompt =
