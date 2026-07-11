@@ -87,7 +87,7 @@ const GENRE_ALIAS = {
 };
 const resolveGenre = (g) => GENRE_ALIAS[g] || "girlcrush";
 
-// Стиль каждой из 9 женских групп: семья движений (fam) + родные жанры.
+// Стиль каждой из 10 женских групп: семья движений (fam) + родные жанры.
 const GROUP_STYLE = {
   lesserafim:{ fam:"crush",   genres:["girlcrush","future"] },
   aespa:     { fam:"future",  genres:["future","girlcrush"] },
@@ -98,6 +98,7 @@ const GROUP_STYLE = {
   blackpink: { fam:"crush",   genres:["girlcrush","retro"] },
   newjeans:  { fam:"easy",    genres:["easy","retro"] },
   twice:     { fam:"retro",   genres:["retro","easy"] },
+  meovv:     { fam:"crush",   genres:["girlcrush","retro"] },
 };
 
 const STYLE_TONE = {
@@ -148,6 +149,12 @@ const MOVES = [
   { id:"tw_o", sig:"twice", phase:"open",  fam:["retro"], genres:["retro","easy"], phrase:"cheerful hands framing the face in a shy peek-a-boo gesture" },
   { id:"tw_m", sig:"twice", phase:"mid",   fam:["retro"], genres:["retro","easy"], phrase:"playful arms sweeping overhead to draw a soft letter shape" },
   { id:"tw_c", sig:"twice", phase:"close", fam:["retro"], genres:["retro"],        phrase:"a bright bouncy step snapping into a crisp finger point at camera" },
+
+  // --- MEOVV (2024-2026, добавлена 11.07.2026 по прямому запросу) ---
+  { id:"mv_o", sig:"meovv", phase:"open",  fam:["crush"], genres:["girlcrush"],         phrase:"a combat-ready fighting stance snapping into sharp alternating jabs thrown at camera" },
+  { id:"mv_m", sig:"meovv", phase:"mid",   fam:["crush"], genres:["girlcrush"],         phrase:"a powerful one-two punch combo landing on the beat with a fierce forward lunge" },
+  { id:"mv_m2",sig:"meovv", phase:"mid",   fam:["crush"], genres:["girlcrush","retro"], phrase:"a sporty bob-and-weave dodge rolling into a sudden freeze, fists raised" },
+  { id:"mv_c", sig:"meovv", phase:"close", fam:["crush"], genres:["girlcrush"],         phrase:"a hard uppercut motion whipping the whole body around into a victorious power pose" },
 
   // ---- Филлер по жанру (любая группа добирает вариативность) ----
   { id:"gc_o", sig:null, phase:"open",  fam:["crush"],           genres:["girlcrush"], phrase:"a commanding wide-legged entrance with a slow head roll up to camera" },
@@ -246,6 +253,92 @@ const MOVES = [
   // --- ballad: кульминация = крупный сдержанный жест (филлер) ---
   { id:"ba_f1", sig:null, phase:"close", fam:[], genres:["ballad"], phrase:"a sweeping emotional arm reach opening wide to the sky on the swell" },
   { id:"ba_f2", sig:null, phase:"mid",   fam:[], genres:["ballad"], phrase:"a slow expressive turn with a hand pressed to the heart" },
+
+  /* ===== Ресёрч доп. 7 групп 2024-2026 (не в GROUP_STYLE, не выбираемы юзером напрямую) =====
+   * ITZY, NMIXX, ILLIT, Hearts2Hearts, XG, tripleS, Billlie — источник движений.
+   * Переклассифицировано: часть вошла как фирменные (sig=<группа из 9>) там, где фраза
+   * механически/стилистически честно совпадает с идентичностью той группы; часть осталась
+   * филлером (sig=null); остальное удалено — либо завязано на построения/несколько
+   * танцоров (не подходит для клипа с одним айдолом), либо слишком слабое/неотличимое/неясное.
+   * Источники: Soompi, kpopecho, The Bias List "Top-10 K-Pop Choreography of 2025",
+   * kpopreviewed, Bandwagon Asia, allkpop, KpopStarz, otakukart, thatericalper,
+   * koreatimes (2025-2026 камбэки). Всё обобщено до словаря движений — без названий
+   * групп/песен/участниц (§5). */
+
+  // --- ITZY-derived ---
+  { id:"iz_2",  sig:null,          phase:"mid",   fam:["crush"], genres:["girlcrush"],         phrase:"a fierce shoulder pop rolling into a hard sudden freeze" },
+  { id:"iz_5",  sig:"blackpink",   phase:"mid",   fam:["crush"], genres:["girlcrush","retro"], phrase:"a bold strut with cool dismissive shoulder shrugs" },
+  { id:"iz_7",  sig:"babymonster", phase:"close", fam:["crush"], genres:["girlcrush"],         phrase:"a defiant chest-forward power walk ending in a synchronized freeze, fists clenched" },
+  { id:"iz_8",  sig:null,          phase:"mid",   fam:["crush","retro"], genres:["girlcrush"], phrase:"a grounded brass-accented bounce punctuated by sharp arm hits" },
+  { id:"iz_9",  sig:"lesserafim",  phase:"mid",   fam:["crush"], genres:["girlcrush"],         phrase:"a confident double hand-slice cutting the air on the downbeat" },
+  { id:"iz_10", sig:null,          phase:"close", fam:["crush"], genres:["girlcrush"],         phrase:"a wide-stance unison drop with arms thrown wide on the final hit" },
+  { id:"iz_11", sig:"idle",        phase:"mid",   fam:["crush"], genres:["girlcrush","retro"], phrase:"a playful strut swinging the hips with a cocky over-the-shoulder glance" },
+  { id:"iz_14", sig:"babymonster", phase:"close", fam:["crush"], genres:["girlcrush"],         phrase:"a sharp overhead arm raise pulled down into a fierce grounded lunge" },
+
+  // --- NMIXX-derived ---
+  { id:"nm_1",  sig:"ive",   phase:"open",  fam:["elegant"], genres:["retro","easy"], phrase:"an aesthetic flower-like unfurling of the arms rising up from a low crouch" },
+  { id:"nm_2",  sig:"idle",  phase:"mid",   fam:["crush"],   genres:["girlcrush"],    phrase:"a slow sultry hip roll snapping suddenly into a sharp hard hit on the beat-switch" },
+  { id:"nm_3",  sig:null,    phase:"mid",   fam:["future"],  genres:["future"],       phrase:"an intense dance break through a punchy electronic drop, rapid directional footwork" },
+  { id:"nm_5",  sig:null,    phase:"mid",   fam:["future","easy"], genres:["future","easy"], phrase:"flowing hand gestures tracing wide arcs, dissolving into a crisp modern isolation" },
+  { id:"nm_6",  sig:null,    phase:"open",  fam:["easy"],    genres:["easy"],         phrase:"a light bouncy step-touch with a playful cross-armed sway" },
+  { id:"nm_8",  sig:"ive",   phase:"close", fam:["elegant"], genres:["retro","easy"], phrase:"a graceful spin unfurling into a wide open-armed finishing pose" },
+  { id:"nm_9",  sig:null,    phase:"mid",   fam:["crush"],   genres:["girlcrush"],    phrase:"a confident chest-forward roll snapping into a fierce point on the downbeat" },
+  { id:"nm_10", sig:"aespa", phase:"any",   fam:["future"],  genres:["future"],       phrase:"crisp mechanical arm-count isolations ticking through a rhythmic pattern" },
+  { id:"nm_11", sig:"twice", phase:"mid",   fam:["retro"],   genres:["retro","easy"], phrase:"a bright skippy two-step with a cheerful hand-clap accent" },
+  { id:"nm_13", sig:null,    phase:"mid",   fam:["elegant"], genres:["retro"],        phrase:"a slow-motion arm ripple building tension before snapping into a sudden full-body hit" },
+  { id:"nm_14", sig:"aespa", phase:"open",  fam:["future"],  genres:["future"],       phrase:"staccato entrance steps ticking forward like a wound-up mechanism" },
+
+  // --- ILLIT-derived ---
+  { id:"il_2",  sig:null,       phase:"mid",   fam:["easy","retro"], genres:["easy"],         phrase:"a soft wrist tilt rolling side to side with a playful head bob" },
+  { id:"il_4",  sig:null,       phase:"open",  fam:["easy"],         genres:["easy"],         phrase:"a bouncy skip-step entrance with loose swinging arms and a bright smile" },
+  { id:"il_5",  sig:null,       phase:"mid",   fam:["retro","easy"], genres:["easy","retro"], phrase:"a whimsical frenetic hand-flutter dissolving into a smooth gliding sway" },
+  { id:"il_6",  sig:"twice",    phase:"mid",   fam:["retro"],        genres:["retro","easy"], phrase:"a cute finger-point tucked into a quick double clap" },
+  { id:"il_7",  sig:"twice",    phase:"close", fam:["retro"],        genres:["retro","easy"], phrase:"a playful spin settling into a knees-bent giggly pose" },
+  { id:"il_8",  sig:"newjeans", phase:"any",   fam:["easy"],         genres:["easy"],         phrase:"a simple, easy-to-copy shoulder shimmy paired with a wide-eyed head tilt" },
+  { id:"il_9",  sig:"newjeans", phase:"mid",   fam:["easy"],         genres:["easy"],         phrase:"a soft cheeky hip bump alternating side to side with light finger snaps" },
+  { id:"il_10", sig:"newjeans", phase:"open",  fam:["easy"],         genres:["easy"],         phrase:"a fresh youthful two-step bounce with hands brushing lightly past the hips" },
+  { id:"il_11", sig:null,       phase:"close", fam:["easy"],         genres:["easy"],         phrase:"a delicate hand-to-heart gesture blooming outward into a wide-armed finish" },
+  { id:"il_12", sig:"idle",     phase:"mid",   fam:["crush"],        genres:["girlcrush","retro"], phrase:"a bratty little stomp-and-pose punctuating a cheeky accent" },
+  { id:"il_13", sig:"katseye",  phase:"mid",   fam:["easy"],         genres:["easy"],         phrase:"a light hopping side-step with a playful over-the-shoulder wink" },
+
+  // --- Hearts2Hearts-derived ---
+  { id:"h2_3",  sig:"katseye", phase:"mid",   fam:["easy"],  genres:["easy"],         phrase:"an elastic bouncy house-style groove step, knees loose and springy" },
+  { id:"h2_4",  sig:"idle",    phase:"close", fam:["crush"], genres:["girlcrush"],    phrase:"a cheeky shameless hand-on-hip pose thrown to camera with a defiant smirk" },
+  { id:"h2_7",  sig:"twice",   phase:"open",  fam:["retro"], genres:["retro","easy"], phrase:"a bright bouncy entrance step with a playful crossed-arm sway" },
+  { id:"h2_8",  sig:null,      phase:"close", fam:["easy","retro"], genres:["easy"],  phrase:"a mischievous rule-breaking little stomp snapping into a proud chin lift" },
+  { id:"h2_9",  sig:null,      phase:"mid",   fam:["easy"],  genres:["easy"],         phrase:"a soft rolling wave through the arms building into a springy bounce" },
+  { id:"h2_10", sig:"katseye", phase:"any",   fam:["easy"],  genres:["easy"],         phrase:"a light spring-loaded bounce with a teasing finger wag" },
+  { id:"h2_13", sig:"twice",   phase:"mid",   fam:["retro"], genres:["retro","easy"], phrase:"a bouncy playful sway with hands framing a cheeky grin" },
+
+  // --- XG-derived ---
+  { id:"xg_1",  sig:"aespa",       phase:"open",  fam:["future"], genres:["future","girlcrush"], phrase:"a striking mannequin-like freeze holding a fashion-editorial pose before snapping to life" },
+  { id:"xg_2",  sig:null,          phase:"mid",   fam:["future","crush"], genres:["future","girlcrush"], phrase:"sharp voguing hand-frames slicing through the air with runway attitude" },
+  { id:"xg_3",  sig:"babymonster", phase:"mid",   fam:["crush"],  genres:["girlcrush"], phrase:"an explosive breaking-inspired floor drop spinning back up into a sharp stance" },
+  { id:"xg_4",  sig:"lesserafim",  phase:"close", fam:["crush"],  genres:["girlcrush"], phrase:"a fluid acrobatic handspring-like motion landing in a commanding pose" },
+  { id:"xg_5",  sig:"blackpink",   phase:"mid",   fam:["crush"],  genres:["girlcrush"], phrase:"hard urban hip-hop isolations rolling through the chest with fierce swagger" },
+  { id:"xg_7",  sig:"blackpink",   phase:"mid",   fam:["crush"],  genres:["girlcrush"], phrase:"a sharp catwalk-inspired strut breaking into sudden aggressive arm cuts" },
+  { id:"xg_8",  sig:"babymonster", phase:"close", fam:["crush"],  genres:["girlcrush"], phrase:"a hard grounded power stance with a piercing over-the-shoulder stare" },
+  { id:"xg_9",  sig:"aespa",       phase:"mid",   fam:["future"], genres:["future"],    phrase:"crisp voguing arm-framing around the face snapping into a hard geometric line" },
+  { id:"xg_10", sig:"babymonster", phase:"any",   fam:["crush"],  genres:["girlcrush"], phrase:"rapid urban footwork chaining into a sharp freeze, fists clenched low" },
+  { id:"xg_11", sig:null,          phase:"mid",   fam:["crush"],  genres:["girlcrush"], phrase:"a fierce chest-pop combo rolling into a fashion-forward hip cock" },
+  { id:"xg_12", sig:"aespa",       phase:"close", fam:["future"], genres:["future","girlcrush"], phrase:"an acrobatic spin whipping down into a sharp mannequin freeze, chin raised" },
+  { id:"xg_13", sig:"blackpink",   phase:"open",  fam:["crush"],  genres:["girlcrush"], phrase:"a slow predatory runway walk building into a sudden burst of hard-hitting hits" },
+
+  // --- tripleS-derived (почти всё построено на массовых построениях/юнитах — не подходит
+  // для клипа с одним айдолом; оставлены только 2 сольно-совместимых движения) ---
+  { id:"ts_8",  sig:"idle",        phase:"mid",   fam:["crush"], genres:["girlcrush"], phrase:"a hard confident hip snap with a sharp over-the-shoulder point" },
+  { id:"ts_11", sig:"babymonster", phase:"close", fam:["crush"], genres:["girlcrush"], phrase:"a grounded power stance with both arms crossed sharply over the chest" },
+
+  // --- Billlie-derived ---
+  { id:"bl_1",  sig:null,          phase:"mid",   fam:["retro","easy"], genres:["retro"],        phrase:"a quirky twisting hand gesture like turning an invisible key, snapping into a sharp lock" },
+  { id:"bl_4",  sig:"katseye",     phase:"open",  fam:["easy"],  genres:["easy"],                phrase:"a playful off-kilter entrance step with a cheeky sideways glance" },
+  { id:"bl_5",  sig:"lesserafim",  phase:"mid",   fam:["crush"], genres:["girlcrush"],           phrase:"a rhythmic-contrast move, slow deliberate drag suddenly bursting into a sharp hit" },
+  { id:"bl_6",  sig:null,          phase:"mid",   fam:["easy","retro"], genres:["easy","retro"], phrase:"a simple easy-to-copy hook gesture locking into place like a padlock clicking shut" },
+  { id:"bl_7",  sig:"blackpink",   phase:"close", fam:["crush"], genres:["girlcrush","retro"],   phrase:"a runway-ready strut snapping into a stylish hip-cocked pose" },
+  { id:"bl_8",  sig:"twice",       phase:"mid",   fam:["retro"], genres:["retro","easy"],        phrase:"a quirky head-tilt paired with a small mischievous shoulder pop" },
+  { id:"bl_9",  sig:"katseye",     phase:"any",   fam:["easy"],  genres:["easy","future"],       phrase:"a bouncy syncopated step with unexpected pauses breaking the rhythm" },
+  { id:"bl_11", sig:"aespa",       phase:"mid",   fam:["future"],genres:["future"],              phrase:"a soft glitchy shoulder ripple contrasted by a sudden sharp freeze" },
+  { id:"bl_13", sig:"newjeans",    phase:"any",   fam:["easy"],  genres:["easy","retro"],        phrase:"a rave-inspired bounce with loose wrists flicking on every offbeat" },
 ];
 
 // Детерминированный PRNG по seed (mulberry32) — стабильно per (айдол×группа×жанр),
@@ -293,15 +386,21 @@ function buildClipMoves(genre, groupKey, seed) {
     take(famFiller.filter((x) => x.phase === p || x.phase === "any")) ||
     take(famFiller);
 
-  // порядок: [openSig, openFill, midSig, midFill, closeSig, closeFill] — все разные.
+  // порядок: [openSig, openFill, midSig, midFill, midFill2, closeSig, closeFill] — все разные.
   // При разросшемся пуле фирменных берём сид-подмножество (1 на фазу) → разнообразие
   // между сидами, а не раздувание клипа. Все движения остаются в пуле.
+  // Один лишний филлер в "mid" (~+17% плотности) — реальный 8-count в к-попе ≈4с,
+  // это подтягивает клип к этому темпу, не перегружая Kling-промпт (см. память проекта).
   const seq = [];
   for (const p of phases) {
     const s = take(sigs.filter((x) => x.phase === p));
     if (s) seq.push(s);
     const f = fillFor(p);
     if (f) seq.push(f);
+    if (p === "mid") {
+      const f2 = fillFor(p);
+      if (f2) seq.push(f2);
+    }
   }
   return seq;
 }
@@ -323,7 +422,7 @@ function fmtThirds(moves) {
 // что во второй половине НЕ повторяются движения первой. Возврат {timeline,...} | null.
 function selectDance(genreRaw, groupKey, seed, part = 0, parts = 1) {
   const style = GROUP_STYLE[groupKey];
-  if (!style) return null; // не из 9 женских — вызывающий откатится на LEGACY
+  if (!style) return null; // не из 10 женских — вызывающий откатится на LEGACY
   const genre = resolveGenre(genreRaw);
   const all = buildClipMoves(genre, groupKey, seed);
   const per = Math.max(1, Math.ceil(all.length / Math.max(1, parts)));
@@ -343,7 +442,7 @@ const DANCE_LEGACY = {
 };
 const DANCE_GENDER = {
   lesserafim:"girl", aespa:"girl", ive:"girl", idle:"girl", babymonster:"girl", katseye:"girl",
-  blackpink:"girl", newjeans:"girl", twice:"girl",
+  blackpink:"girl", newjeans:"girl", twice:"girl", meovv:"girl",
   straykids:"boy", ateez:"boy", enhypen:"boy", txt:"boy",
 };
 // Разделено: база (лицо/качество) всегда; анти-вялость — только для НЕ-баллады,

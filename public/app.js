@@ -17,7 +17,7 @@ const DANCE=[
 ["ive","IVE","элегантная","girl"],["idle","(G)I-DLE","чувственная","girl"],
 ["babymonster","BABYMONSTER","жёсткий хип-хоп","girl"],["katseye","KATSEYE","глобал-поп","girl"],
 ["blackpink","BLACKPINK","дерзко и элегантно","girl"],["newjeans","NewJeans","естественная, лёгкая","girl"],
-["twice","TWICE","нежно и ярко","girl"],
+["twice","TWICE","нежно и ярко","girl"],["meovv","MEOVV","бойцовская, дерзкая","girl"],
 ["straykids","Stray Kids","мощный хип-хоп","boy"],["ateez","ATEEZ","театральность, драйв","boy"],
 ["enhypen","ENHYPEN","атмосферность","boy"],["txt","TXT","лёгкость, тепло","boy"],
 ];
@@ -34,6 +34,7 @@ const WORDMARK={
   blackpink:"font-family:var(--f-display);font-weight:900;letter-spacing:-.01em",
   newjeans:"font-family:'Segoe UI',sans-serif;font-weight:300;letter-spacing:.18em",
   twice:"font-family:var(--f-display);font-weight:700;letter-spacing:.08em",
+  meovv:"font-family:var(--f-display);font-weight:900;letter-spacing:.03em;font-style:italic",
   straykids:"font-family:var(--f-display);font-weight:900;letter-spacing:.02em;font-style:italic",
   ateez:"font-family:var(--f-display);font-weight:700;letter-spacing:.16em",
   enhypen:"font-family:var(--f-serif);font-weight:800;letter-spacing:.1em",
@@ -73,9 +74,25 @@ const DANCE_BURST='<line x1="12" y1="2" x2="12" y2="8"/><line x1="12" y1="16" x2
   '<line x1="19.1" y1="4.9" x2="14.8" y2="9.2"/><line x1="9.2" y1="14.8" x2="4.9" y2="19.1"/>';
 const DANCE_COLOR={
   lesserafim:"#e8a9c9",aespa:"#c9a9ff",ive:"#f3d9ac",idle:"#ffb3d9",babymonster:"#c98f68",katseye:"#9fd8ff",
-  blackpink:"#d980ab",newjeans:"#ffe9a8",twice:"#e8a9c9",
+  blackpink:"#d980ab",newjeans:"#ffe9a8",twice:"#e8a9c9",meovv:"#b34a5e",
   straykids:"#8f7ad9",ateez:"#c98f68",enhypen:"#9fd8ff",txt:"#f3d9ac",
 };
+// Родные жанры каждой группы (зеркалит GROUP_STYLE.genres в api/pipeline.js) — только эти
+// жанры реально дают ей узнаваемый набор фирменных движений, остальные жанры для группы
+// заблокированы в UI. ballad — универсальный пул без привязки к группе (buildClipMoves
+// игнорирует groupKey для баллад), поэтому доступна всегда.
+const GROUP_GENRES={
+  lesserafim:["girlcrush","future"], aespa:["future","girlcrush"], ive:["retro","easy"],
+  idle:["girlcrush","retro"],        babymonster:["girlcrush","future"], katseye:["easy","future"],
+  blackpink:["girlcrush","retro"],   newjeans:["easy","retro"], twice:["retro","easy"],
+  meovv:["girlcrush","retro"],
+};
+function nativeGenres(){
+  // Мужские группы — легаси-хореография (DANCE_LEGACY в pipeline.js), жанр песни на неё
+  // не влияет, поэтому для них ограничение жанров не действует, доступны все 5.
+  if(!GROUP_GENRES[state.dance]) return SONG.map(([v])=>v);
+  return [...new Set([...GROUP_GENRES[state.dance],"ballad"])];
+}
 
 /* ===================== НАВИГАЦИЯ МЕЖДУ ЭКРАНАМИ ===================== */
 async function showView(name){
@@ -525,7 +542,6 @@ function renderLenta(){
 async function boot(){
   IDOLS=await (await fetch('/idols.json')).json();
   renderIdolGrid();
-  buildOpts('optSong',SONG,'song',SONG_ICON,SONG_COLOR);
   buildOpts('optClip',CLIP,'clip',CLIP_ICON,CLIP_COLOR);
   renderDanceOpts();
   renderLangOpts();
@@ -575,7 +591,33 @@ function renderDanceOpts(){
   list.forEach(([val,label,sub])=>{
     const b=document.createElement('button');b.className='opt'+(state.dance===val?' on':'');
     b.innerHTML=`${swatch(DANCE_BURST,DANCE_COLOR[val])}<div class="txt">${wordmark(val,label)}<small>${sub}</small></div>`;
-    b.onclick=()=>{state.dance=val;[...box.children].forEach(x=>x.classList.remove('on'));b.classList.add('on');updateSummary()};
+    b.onclick=()=>{state.dance=val;[...box.children].forEach(x=>x.classList.remove('on'));b.classList.add('on');updateSummary();renderSongOpts()};
+    box.appendChild(b);
+  });
+  renderSongOpts(); // жанры песни зависят от выбранной группы — обновляем список блокировок
+  updateSummary();
+}
+// Жанр песни ограничен родными жанрами выбранной группы (+ всегда доступная ballad).
+// Несовместимые жанры показаны, но заблюрены и некликабельны — видно, что выбор есть,
+// но пока недоступен, пока не выбрана подходящая группа.
+function renderSongOpts(){
+  const box=document.getElementById('optSong');
+  box.innerHTML='';
+  const avail=nativeGenres();
+  if(!avail.includes(state.song)) state.song=avail[0];
+  // Первый жанр в GROUP_GENRES[группа] — это тот, что совпадает с её fam в pipeline.js
+  // (родной жанр, под который у группы больше всего фирменных движений). Для мужских
+  // групп (нет в GROUP_GENRES) рекомендации нет — у них жанр не привязан к хореографии.
+  const recommended=GROUP_GENRES[state.dance]?GROUP_GENRES[state.dance][0]:null;
+  const groupLabel=lbl(DANCE,state.dance);
+  SONG.forEach(([val,label,sub])=>{
+    const locked=!avail.includes(val);
+    const isRec=!locked&&val===recommended;
+    const b=document.createElement('button');
+    b.className='opt'+(state.song===val?' on':'')+(locked?' locked':' available')+(isRec?' recommended':'');
+    if(isRec) b.title=`Родной стиль ${groupLabel} — здесь у неё больше всего фирменных движений`;
+    b.innerHTML=`${swatch(SONG_ICON[val],SONG_COLOR[val])}<div class="txt">${label}${isRec?' <span class="rec-badge">★ рекомендуется</span>':''}<small>${isRec?`родной стиль ${groupLabel} · `:''}${sub}</small></div>`;
+    if(!locked) b.onclick=()=>{state.song=val;[...box.children].forEach(x=>x.classList.remove('on'));b.classList.add('on');updateSummary()};
     box.appendChild(b);
   });
   updateSummary();
