@@ -751,6 +751,8 @@ async function pollJob(requestId, onProgress){
 async function generateOneSegment({imageUrl,theme,dance,name,gender,angle,song,seed,part,parts,songUrl,startImageUrl},setLoad,segLabel){
   const MAX_ATTEMPTS=3;
   let lipsyncSubmit=null;
+  let lastSilentVideoUrl=null;
+  let gaveUpOnLipsync=false;
   for(let attempt=1;attempt<=MAX_ATTEMPTS;attempt++){
     setLoad('video',`${segLabel}: Kling рендерит видео${attempt>1?` (попытка ${attempt})`:''}…`);
     const videoSubmit=await fetch('/api/pipeline?action=generate',{method:'POST',headers:{'Content-Type':'application/json'},
@@ -761,6 +763,7 @@ async function generateOneSegment({imageUrl,theme,dance,name,gender,angle,song,s
     const videoResultResp=await fetch('/api/pipeline?action=result&id='+encodeURIComponent(videoSubmit.requestId));
     const videoResult=await videoResultResp.json();
     if(!videoResultResp.ok||videoResult.ok===false||!videoResult.videoUrl) throw new Error((videoResult.error||`Видео не получено (${segLabel})`)+' '+JSON.stringify(videoResult.detail||''));
+    lastSilentVideoUrl=videoResult.videoUrl;
 
     setLoad('sync',`${segLabel}: синхронизируем губы под песню…`);
     const attemptSubmit=await fetch('/api/pipeline?action=lipsync',{method:'POST',headers:{'Content-Type':'application/json'},
@@ -768,9 +771,20 @@ async function generateOneSegment({imageUrl,theme,dance,name,gender,angle,song,s
 
     const isFaceError=attemptSubmit.ok===false&&JSON.stringify(attemptSubmit.detail||'').includes('face_detection_error');
     if(isFaceError&&attempt<MAX_ATTEMPTS){continue;}
+    if(isFaceError){gaveUpOnLipsync=true;break;} // лицо стабильно не детектится на этой хореографии — фолбэк ниже
     if(attemptSubmit.ok===false||!attemptSubmit.requestId) throw new Error((attemptSubmit.error||`Не удалось запустить склейку (${segLabel})`)+' '+JSON.stringify(attemptSubmit.detail||''));
     lipsyncSubmit=attemptSubmit;
     break;
+  }
+
+  // Kling LipSync не смог найти лицо ни на одной из попыток (быстрый/закрытый лицом танец) —
+  // не проваливаем весь клип, кладём песню поверх немого видео без синхронизации губ.
+  if(gaveUpOnLipsync){
+    setLoad('sync',`${segLabel}: губы не синхронизируются на этой хореографии — накладываем песню без липсинка…`);
+    const muxResp=await fetch('/api/pipeline?action=muxaudio',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({videoUrl:lastSilentVideoUrl,songUrl})}).then(r=>r.json());
+    if(muxResp.ok===false||!muxResp.videoUrl) throw new Error((muxResp.error||`Не удалось наложить песню (${segLabel})`)+' '+JSON.stringify(muxResp.detail||''));
+    return muxResp.videoUrl;
   }
 
   await pollJob(lipsyncSubmit.requestId,(t)=>setLoad('sync',`${segLabel}: синхронизируем губы… ${t}`));

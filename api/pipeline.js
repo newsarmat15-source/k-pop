@@ -814,6 +814,54 @@ async function handleFinalize(req, res) {
   }
 }
 
+/* ===================== MUXAUDIO (фолбэк без липсинка) ===================== */
+// Kling LipSync требует чётко видимое лицо в каждом кадре — на быстрых/закрытых лицом танцах
+// регулярно падает с face_detection_error (см. память проекта, было "решено, но не сделано").
+// После исчерпания ретраев на face_detection_error просто кладём песню как аудио-дорожку поверх
+// немого видео от generate — без синхронизации губ, но клип не проваливается целиком.
+async function handleMuxAudio(req, res) {
+  if (req.method !== "POST") return res.status(405).json({ error: "Use POST" });
+  if (!readUserId(req)) return res.status(401).json({ error: "Нужно войти в аккаунт" });
+  const FAL_KEY = process.env.FAL_KEY;
+  if (!FAL_KEY) return res.status(500).json({ error: "FAL_KEY не задан" });
+
+  const tag = Date.now();
+  const videoPath = path.join(os.tmpdir(), `mux-video-${tag}.mp4`);
+  const audioPath = path.join(os.tmpdir(), `mux-audio-${tag}.mp3`);
+  const outPath = path.join(os.tmpdir(), `mux-out-${tag}.mp4`);
+
+  try {
+    const { videoUrl, songUrl } = req.body || {};
+    if (!videoUrl || !songUrl) return res.status(400).json({ error: "Нужны videoUrl и songUrl" });
+
+    const [videoBuf, audioBuf] = await Promise.all([
+      withRetry(async () => {
+        const r = await fetchWithRetry(videoUrl);
+        if (!r.ok) throw new Error(`не удалось скачать videoUrl: ${r.status}`);
+        return Buffer.from(await r.arrayBuffer());
+      }),
+      withRetry(async () => {
+        const r = await fetchWithRetry(songUrl);
+        if (!r.ok) throw new Error(`не удалось скачать songUrl: ${r.status}`);
+        return Buffer.from(await r.arrayBuffer());
+      }),
+    ]);
+    await writeFile(videoPath, videoBuf);
+    await writeFile(audioPath, audioBuf);
+
+    // -shortest: если песня/видео чуть разной длины — обрезаем по короткому, не растягиваем.
+    await runFfmpeg(["-y", "-i", videoPath, "-i", audioPath, "-c:v", "copy", "-map", "0:v:0", "-map", "1:a:0", "-shortest", outPath]);
+    const finalBuf = await readFile(outPath);
+    const finalUrl = await uploadToFalCdn(finalBuf, FAL_KEY, "video/mp4", `muxed-${tag}.mp4`);
+
+    return res.status(200).json({ ok: true, videoUrl: finalUrl, lipsync: false });
+  } catch (e) {
+    return res.status(500).json({ ok: false, error: String(e?.message || e) });
+  } finally {
+    await Promise.all([videoPath, audioPath, outPath].map((p) => unlink(p).catch(() => {})));
+  }
+}
+
 /* ===================== LASTFRAME (последний кадр сегмента → старт следующего) ===================== */
 // Часть 2 стартует с последнего кадра части 1 → сцена/костюм/лицо продолжаются (баги #3/#4).
 async function handleLastframe(req, res) {
@@ -889,6 +937,7 @@ export default async function handler(req, res) {
   if (action === "status") return handleStatus(req, res);
   if (action === "result") return handleResult(req, res);
   if (action === "lipsync") return handleLipsync(req, res);
+  if (action === "muxaudio") return handleMuxAudio(req, res);
   if (action === "song") return handleSong(req, res);
   if (action === "stitch") return handleStitch(req, res);
   if (action === "finalize") return handleFinalize(req, res);
