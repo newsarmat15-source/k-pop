@@ -508,11 +508,15 @@ async function handleSong(req, res) {
   const partPaths = [];
 
   try {
-    const { song = "ballad", lengthMs = 10000, parts = 1, language = "ko", memberName = "", gender = "girl" } = req.body || {};
+    const { song = "ballad", lengthMs = 10000, parts = 1, language = "ko", memberName = "", gender = "girl", lyrics = "" } = req.body || {};
     const partN = Math.max(1, Math.min(4, Number(parts) || 1));
     const effGenre = resolveGenre(song);
     const songVibe = SONG[effGenre] || SONG.ballad;
     const langName = LANGUAGE[language] || LANGUAGE.ko;
+    // Реальные слова: передаём готовый текст, иначе модель поёт псевдоязык (кашу).
+    const lyricLine = lyrics.trim()
+      ? ` Sing these exact ${langName} lyrics word for word, do not invent or replace any words: "${lyrics.trim()}".`
+      : "";
     const partSec = lengthMs / 1000;   // длина ОДНОЙ части (сегмента клипа)
     const fullSec = partSec * partN;   // одна непрерывная песня на весь клип
     const bufferSec = fullSec + 10;    // запас на тихие края
@@ -523,7 +527,8 @@ async function handleSong(req, res) {
     const track = await elevenlabs.music.compose({
       prompt:
         `${effGenre === "ballad" ? "Emotional K-pop ballad" : "Upbeat K-pop chorus hook"}, ${voiceDescriptor} vocals singing in ${langName}, ${songVibe}, ` +
-        "catchy, lyric-dense, modern K-pop production, ONE continuous song from start to finish, no abrupt style or key change.",
+        "catchy, modern K-pop production, ONE continuous song from start to finish, no abrupt style or key change." +
+        lyricLine,
       musicLengthMs: Math.round(bufferSec * 1000),
       modelId: "music_v2",
     });
