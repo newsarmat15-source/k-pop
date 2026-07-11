@@ -332,13 +332,14 @@ async function handleSong(req, res) {
     const { descriptor: voiceDescriptor, seed } = voiceProfileFor(memberName, gender);
 
     const elevenlabs = new ElevenLabsClient({ apiKey: ELEVEN_KEY });
+    // seed нельзя передавать вместе с prompt (ElevenLabs Music v2 → 422 unprocessable_entity).
+    // Вариативность голоса уже задаётся текстовым voiceDescriptor, seed тут лишний.
     const track = await elevenlabs.music.compose({
       prompt:
         `Upbeat K-pop chorus hook, ${voiceDescriptor} vocals singing in ${langName}, ${songVibe}, ` +
         "catchy, lyric-dense, modern K-pop production, confident mood, continuous singing throughout.",
       musicLengthMs: Math.round(bufferSec * 1000),
       modelId: "music_v2",
-      seed,
     });
     const rawBuf = Buffer.isBuffer(track) ? track : await streamToBuffer(track);
     await writeFile(rawPath, rawBuf);
