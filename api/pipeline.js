@@ -508,7 +508,8 @@ async function handleSong(req, res) {
   const partPaths = [];
 
   try {
-    const { song = "ballad", lengthMs = 10000, parts = 1, language = "ko", memberName = "", gender = "girl", lyrics = "" } = req.body || {};
+    const { song = "ballad", lengthMs = 10000, parts = 1, language = "ko", memberName = "", gender = "girl", lyrics = "", style = "" } = req.body || {};
+    const styleLine = style.trim() ? ` Vocal delivery style: ${style.trim()}.` : "";
     const partN = Math.max(1, Math.min(4, Number(parts) || 1));
     const effGenre = resolveGenre(song);
     const songVibe = SONG[effGenre] || SONG.ballad;
@@ -528,6 +529,7 @@ async function handleSong(req, res) {
       prompt:
         `${effGenre === "ballad" ? "Emotional K-pop ballad" : "Upbeat K-pop chorus hook"}, ${voiceDescriptor} vocals singing in ${langName}, ${songVibe}, ` +
         "catchy, modern K-pop production, ONE continuous song from start to finish, no abrupt style or key change." +
+        styleLine +
         lyricLine,
       musicLengthMs: Math.round(bufferSec * 1000),
       modelId: "music_v2",
