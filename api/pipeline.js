@@ -185,6 +185,67 @@ const MOVES = [
   { id:"ba_m", sig:null, phase:"mid",   fam:[], genres:["ballad"], phrase:"a gentle body sway with one hand drawn softly to the chest" },
   { id:"ba_c", sig:null, phase:"close", fam:[], genres:["ballad"], phrase:"a delicate final pose, one arm lifted, head tilted with emotion" },
   { id:"ba_a", sig:null, phase:"any",   fam:[], genres:["ballad"], phrase:"a graceful turn with the gaze following one slowly extended hand" },
+
+  /* ===== Ресёрч топ-женских 2024–2026 (упор на кульминацию/дроп/хук) =====
+   * Источники: The Bias List «Top-10 choreo 2025»; kpopecho/txdonut «viral challenges 2026»;
+   * Bandwagon «15 iconic girl-group moves»; Koreaboo (Gashina/Love Dive/DDU-DU/ITZY);
+   * allkpop; Soompi. Всё обобщено (без названий групп/песен, без покадрового копирования, §5).
+   * sig=наша группа (углубляем её пул); sig=null → иконный хук другой группы как филлер. */
+
+  // --- углубление фирменных наших 9 групп (новые point-моменты) ---
+  { id:"ls_o2", sig:"lesserafim", phase:"open",  fam:["crush"], genres:["girlcrush","future"], phrase:"a low crouched fierce opening pose exploding upward on the first beat" },
+  { id:"ls_m2", sig:"lesserafim", phase:"mid",   fam:["crush"], genres:["girlcrush","retro"],  phrase:"sharp sassy hand-twirls winding in front of the chest with a fierce glare" },
+  { id:"ls_c2", sig:"lesserafim", phase:"close", fam:["crush"], genres:["girlcrush"],          phrase:"rapid isolated hip sways accelerating with the beat, core locked tight" },
+  { id:"ae_o2", sig:"aespa", phase:"open", fam:["future"], genres:["future"],           phrase:"a smooth wrist hand-spin rolling out then snapping the arm to a hard stop" },
+  { id:"ae_m2", sig:"aespa", phase:"mid",  fam:["future"], genres:["future","girlcrush"],phrase:"cool cross-stepping heel taps with sliding controlled footwork" },
+  { id:"id_o2", sig:"idle", phase:"open", fam:["crush"], genres:["retro","girlcrush"], phrase:"a cheeky playful bounce with wiggling arms and a mischievous shoulder shimmy" },
+  { id:"id_m2", sig:"idle", phase:"mid",  fam:["crush"], genres:["girlcrush","retro"], phrase:"latin-tinged street steps rolling the hips with a sharp attitude snap" },
+  { id:"iv_o2", sig:"ive", phase:"open", fam:["elegant"], genres:["retro","easy"], phrase:"a graceful fan-like arm sweep arcing across the body with an elegant wrist flick" },
+  { id:"bm_c2", sig:"babymonster", phase:"close", fam:["crush"], genres:["girlcrush","future"], phrase:"explosive rapid footwork snapping into a fierce clawed-hand gesture held to camera" },
+  { id:"ka_m2", sig:"katseye", phase:"mid", fam:["easy"], genres:["future","easy"], phrase:"quirky off-kilter body pops with an exaggerated playful attitude" },
+  { id:"bp_o2", sig:"blackpink", phase:"open", fam:["crush"], genres:["girlcrush","retro"], phrase:"loose hip-hop isolations rolling through the shoulders with charismatic swagger" },
+  { id:"tw_m2", sig:"twice", phase:"mid", fam:["retro"], genres:["retro","easy"], phrase:"crisp small chorus hand accents snapping precisely on the beat with a bright pop" },
+  { id:"nj_m2", sig:"newjeans", phase:"mid", fam:["easy"], genres:["easy","retro"], phrase:"a soft point-and-step with a gentle shoulder shimmy and a natural head bob" },
+
+  // --- girlcrush: иконные жёсткие хуки/дропы (филлер) ---
+  { id:"gc_f1", sig:null, phase:"any",   fam:["crush"],          genres:["girlcrush"], phrase:"a fierce finger-gun point thrown forward with a defiant chin lift" },
+  { id:"gc_f2", sig:null, phase:"mid",   fam:["crush","future"], genres:["girlcrush"], phrase:"a powerful stop-and-go burst — a sharp arm cut then a sudden level drop" },
+  { id:"gc_f3", sig:null, phase:"close", fam:["crush"],          genres:["girlcrush"], phrase:"a bold self-crowning gesture over the head snapping into a power stance" },
+  { id:"gc_f4", sig:null, phase:"any",   fam:["crush"],          genres:["girlcrush"], phrase:"a sharp chest rotation with a dismissive go-away hand flick" },
+  { id:"gc_f5", sig:null, phase:"mid",   fam:["crush"],          genres:["girlcrush"], phrase:"a hard cross-body arm slice snapping to a dead stop on the drop" },
+  { id:"gc_f6", sig:null, phase:"close", fam:["crush","future"], genres:["girlcrush"], phrase:"dropping to one knee with a sharp arm thrust forward" },
+  { id:"gc_f7", sig:null, phase:"open",  fam:["crush"],          genres:["girlcrush"], phrase:"a slow menacing shoulder-led walk toward camera with a cold stare" },
+  { id:"gc_f8", sig:null, phase:"open",  fam:["crush"],          genres:["girlcrush"], phrase:"an acrobatic spinning entrance whipping into a bold grounded stance" },
+
+  // --- future: EDM/тутинг/робо (филлер) ---
+  { id:"fu_f1", sig:null, phase:"any",   fam:["future","easy"],  genres:["future"], phrase:"rapid finger-tutting articulations rippling like a glitch effect" },
+  { id:"fu_f2", sig:null, phase:"open",  fam:["future","crush"], genres:["future"], phrase:"sharp chasing footwork darting side to side with quick directional arm points" },
+  { id:"fu_f3", sig:null, phase:"mid",   fam:["future"],         genres:["future"], phrase:"stiff mannequin arm isolations moving in wooden right-angle snaps" },
+  { id:"fu_f4", sig:null, phase:"close", fam:["future","crush"], genres:["future"], phrase:"a robotic body-lock freeze ticking into a sharp geometric shape" },
+  { id:"fu_f5", sig:null, phase:"mid",   fam:["future"],         genres:["future"], phrase:"a fast double arm-wave rippling shoulder to shoulder then a hard lock" },
+  { id:"fu_f6", sig:null, phase:"any",   fam:["future","easy"],  genres:["future"], phrase:"quick staccato hand claps punctuated by a sharp head snap" },
+  { id:"fu_f7", sig:null, phase:"close", fam:["future","crush"], genres:["future"], phrase:"a sudden freeze splitting the arms into a sharp X-shape" },
+
+  // --- retro: фанк/диско/грув хуки (филлер) ---
+  { id:"re_f1", sig:null, phase:"mid",   fam:["retro","easy"],           genres:["retro"], phrase:"a sassy shoulder-brush flowing into quick rhythmic hand-sign gestures" },
+  { id:"re_f2", sig:null, phase:"any",   fam:["retro","elegant"],        genres:["retro"], phrase:"a smooth disco shoulder-roll groove stepping side to side" },
+  { id:"re_f3", sig:null, phase:"close", fam:["retro","easy"],           genres:["retro"], phrase:"a bright bouncy chorus step with a playful knees-together shuffle" },
+  { id:"re_f4", sig:null, phase:"mid",   fam:["retro"],                  genres:["retro"], phrase:"a funky body roll rippling down through the hips into a groove" },
+  { id:"re_f5", sig:null, phase:"mid",   fam:["retro","easy"],           genres:["retro"], phrase:"a swingy hip pop with a finger-snap rolling side to side" },
+  { id:"re_f6", sig:null, phase:"close", fam:["retro","elegant"],        genres:["retro"], phrase:"a smooth spin settling with a wink and a cocked hip" },
+  { id:"re_f7", sig:null, phase:"any",   fam:["retro"],                  genres:["retro"], phrase:"a bouncy two-step with alternating shoulder shrugs on the offbeat" },
+
+  // --- easy: Y2K/баблгам/натуральные хуки (филлер) ---
+  { id:"ea_f1", sig:null, phase:"mid",   fam:["easy","crush"], genres:["easy","girlcrush"], phrase:"a bratty little stomp with a finger-to-lips shush bursting into a jump" },
+  { id:"ea_f2", sig:null, phase:"any",   fam:["easy","retro"], genres:["easy"], phrase:"a cute standout point tucked into a bouncy relaxed groove" },
+  { id:"ea_f3", sig:null, phase:"open",  fam:["easy"],         genres:["easy"], phrase:"an easy push-and-pull hip sway with soft rolling arms" },
+  { id:"ea_f4", sig:null, phase:"close", fam:["easy","retro"], genres:["easy"], phrase:"a light galloping side-step with a playful bounce" },
+  { id:"ea_f5", sig:null, phase:"mid",   fam:["easy"],         genres:["easy"], phrase:"a relaxed body bounce with a lazy point and a soft smile" },
+  { id:"ea_f6", sig:null, phase:"any",   fam:["easy","retro"], genres:["easy"], phrase:"an effortless sway gliding into a casual hair-flick" },
+
+  // --- ballad: кульминация = крупный сдержанный жест (филлер) ---
+  { id:"ba_f1", sig:null, phase:"close", fam:[], genres:["ballad"], phrase:"a sweeping emotional arm reach opening wide to the sky on the swell" },
+  { id:"ba_f2", sig:null, phase:"mid",   fam:[], genres:["ballad"], phrase:"a slow expressive turn with a hand pressed to the heart" },
 ];
 
 // Детерминированный PRNG по seed (mulberry32) — стабильно per (айдол×группа×жанр),
@@ -232,7 +293,9 @@ function buildClipMoves(genre, groupKey, seed) {
     take(famFiller.filter((x) => x.phase === p || x.phase === "any")) ||
     take(famFiller);
 
-  // порядок: [openSig, openFill, midSig, midFill, closeSig, closeFill] — все разные
+  // порядок: [openSig, openFill, midSig, midFill, closeSig, closeFill] — все разные.
+  // При разросшемся пуле фирменных берём сид-подмножество (1 на фазу) → разнообразие
+  // между сидами, а не раздувание клипа. Все движения остаются в пуле.
   const seq = [];
   for (const p of phases) {
     const s = take(sigs.filter((x) => x.phase === p));
@@ -240,7 +303,6 @@ function buildClipMoves(genre, groupKey, seed) {
     const f = fillFor(p);
     if (f) seq.push(f);
   }
-  for (const s of sigs.filter((m) => !used.has(m.id))) seq.push(s); // страховка
   return seq;
 }
 
@@ -297,7 +359,8 @@ async function handleGenerate(req, res) {
 
   try {
     const b = req.body || {};
-    const { imageUrl, theme = "girlcrush", dance = "lesserafim", genre = "girlcrush", memberName = "", angle = "front", seed, part = 0, parts = 1, startImageUrl } = b;
+    const { imageUrl, theme = "girlcrush", dance = "lesserafim", genre = "girlcrush", memberName = "", angle = "front", seed, part = 0, parts = 1, startImageUrl, wardrobe = "" } = b;
+    const wardrobeLine = wardrobe.trim() ? `Wardrobe: styled in ${wardrobe.trim()} (keep the same face and identity, change only the outfit). ` : "";
     if (!imageUrl) return res.status(400).json({ error: "Нужен imageUrl" });
 
     const clipScene = CLIP[theme] || CLIP.girlcrush;
@@ -321,7 +384,7 @@ async function handleGenerate(req, res) {
     const prompt =
       `This is ${who} performing a dance video. Keep ${pronoun} face and identity exactly consistent with the reference image. ` +
       `${angleLine}` +
-      `Scene: ${clipScene}. ${danceStyle} ` +
+      `Scene: ${clipScene}. ${wardrobeLine}${danceStyle} ` +
       energyLine +
       `Shot sequence: open on a wide full-body shot already mid-dance, then brief close-ups and dynamic angles while she keeps dancing — no static posing or held portrait at any moment, continuous full-body movement from the very first second. ` +
       `Professional K-pop music video, cinematic lighting, smooth continuous motion throughout, no stutters, no freezing, sharp detail. ` +
