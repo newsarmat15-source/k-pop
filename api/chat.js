@@ -3,20 +3,25 @@
 // Движок — Anthropic Claude (claude-opus-4-8). Без thinking и без стриминга:
 // реплики короткие, важна скорость и надёжность в serverless-функции.
 // Персона айдола собирается из его карточки (имя/био/концепт) + уровень корейского из тренировок.
-import Anthropic from "@anthropic-ai/sdk";
 import { supabase } from "../lib/supabase.js";
 import { readUserId } from "../lib/session.js";
 
-const MODEL = "claude-haiku-4-5-20251001"; // дёшево+быстро для языкового тьютора на массе
+// Чат идёт через fal.ai any-llm — FAL_KEY уже оплачен и настроен в Vercel,
+// поэтому отдельный биллинг Anthropic не нужен.
+const MODEL = "anthropic/claude-haiku-4.5"; // дёшево+быстро для языкового тьютора
 const HISTORY_LIMIT = 40; // сколько последних сообщений держим в контексте
 
-let anthropic;
-function client() {
-  if (anthropic) return anthropic;
-  const key = process.env.ANTHROPIC_API_KEY;
-  if (!key) throw new Error("ANTHROPIC_API_KEY не задан");
-  anthropic = new Anthropic({ apiKey: key });
-  return anthropic;
+async function callLLM(system, prompt) {
+  const key = process.env.FAL_KEY;
+  if (!key) throw new Error("FAL_KEY не задан");
+  const r = await fetch("https://fal.run/fal-ai/any-llm", {
+    method: "POST",
+    headers: { Authorization: `Key ${key}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ model: MODEL, system_prompt: system, prompt }),
+  });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok || data.error) throw new Error(data.error || `fal any-llm ${r.status}`);
+  return (data.output || "").trim();
 }
 
 // Достаём айдола владельца + его тренировки. Чат доступен только со своим айдолом.
@@ -121,25 +126,15 @@ async function handleSend(req, res) {
     .limit(HISTORY_LIMIT);
   if (histErr) return res.status(500).json({ error: histErr.message });
 
-  const history = (recent || [])
-    .slice()
-    .reverse()
-    .map((m) => ({ role: m.sender === "owner" ? "user" : "assistant", content: m.content }));
+  // any-llm принимает один prompt — сворачиваем недавнюю историю в транскрипт диалога.
+  const chrono = (recent || []).slice().reverse();
+  const transcript = chrono
+    .map((m) => (m.sender === "owner" ? "Фанат" : idol.name) + ": " + m.content)
+    .join("\n");
 
-  // 3. Спрашиваем Claude. Без thinking — чат должен отвечать быстро.
   let reply;
   try {
-    const msg = await client().messages.create({
-      model: MODEL,
-      max_tokens: 600,
-      system: buildPersona(idol),
-      messages: history.length ? history : [{ role: "user", content: text.trim() }],
-    });
-    reply = msg.content
-      .filter((b) => b.type === "text")
-      .map((b) => b.text)
-      .join("")
-      .trim();
+    reply = await callLLM(buildPersona(idol), transcript);
   } catch (e) {
     return res.status(502).json({ error: "Айдол сейчас недоступен, попробуй ещё раз", detail: String(e?.message || e) });
   }
