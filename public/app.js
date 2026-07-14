@@ -961,7 +961,25 @@ function renderAuthForm(mode,errMsg){
     <input id="authPassword" type="password" placeholder="${t('au_pass')}" autocomplete="${isSignup?'new-password':'current-password'}">
     <button class="btn accent" style="width:100%" id="authSubmitBtn" onclick="submitAuth('${mode}')">${isSignup?t('au_create'):t('au_login')}</button>
     <div class="auth-switch">${isSignup?`${t('au_have')} <a onclick=\"renderAuthForm('login')\">${t('au_login')}</a>`:`${t('au_no')} <a onclick=\"renderAuthForm('signup')\">${t('au_signup')}</a>`}</div>
+    ${isSignup?'':`<div class="auth-switch"><a onclick="renderForgotForm()">${t('forgot_link')}</a></div>`}
   `;
+}
+function renderForgotForm(sent){
+  const box=document.getElementById('authBox');
+  box.innerHTML=`
+    <h3>${t('forgot_h')}</h3>
+    ${sent?`<div class="msg ok" style="color:var(--good,#7fe8c9);font-size:13px;margin-bottom:12px">${t('forgot_sent')}</div>`:`
+    <input id="forgotEmail" type="email" placeholder="${t('au_email')}" autocomplete="email">
+    <button class="btn accent" style="width:100%" id="forgotBtn" onclick="submitForgot()">${t('forgot_send')}</button>`}
+    <div class="auth-switch"><a onclick="renderAuthForm('login')">${t('back_login')}</a></div>
+  `;
+}
+async function submitForgot(){
+  const email=document.getElementById('forgotEmail').value.trim();
+  if(!email){renderForgotForm();return}
+  const b=document.getElementById('forgotBtn');b.disabled=true;b.textContent='…';
+  try{await fetch('/api/auth?action=forgot',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})})}catch(e){}
+  renderForgotForm(true);
 }
 async function submitAuth(mode){
   const email=document.getElementById('authEmail').value.trim();
@@ -1009,6 +1027,7 @@ const T={
     chat_title:n=>`Lesson with ${n}`, chat_ph:"Answer or ask in Korean…",
     chat_loading:"Loading chat…", chat_first:"Say hi first — your idol will reply 💛", chat_need_idol:"Get an idol first.", chat_err:"Idol didn't reply", chat_net:"Network unavailable",
     au_signup:"Sign up", au_login:"Log in", au_logout:"Log out", au_user:"Producer name", au_email:"Email", au_pass:"Password (min 8 chars)", au_create:"Create account", au_have:"Already have an account?", au_no:"No account yet?",
+    forgot_link:"Forgot password?", forgot_h:"Reset password", forgot_send:"Send reset link", forgot_sent:"If that email exists, we sent a reset link. Check your inbox.", back_login:"← Back to log in",
   },
   ru:{
     nav_home:"Мой айдол", footer:"STAGE ONE · учи корейский с AI-айдолом, которого выбрал сам · твой друг и преподаватель в одном лице",
@@ -1026,6 +1045,7 @@ const T={
     chat_title:n=>`Урок с ${n}`, chat_ph:"Ответь или спроси по-корейски…",
     chat_loading:"Загружаю переписку…", chat_first:"Напиши первым — твой айдол ответит 💛", chat_need_idol:"Сначала заведи айдола.", chat_err:"Айдол не ответил", chat_net:"Сеть недоступна",
     au_signup:"Регистрация", au_login:"Вход", au_logout:"Выйти", au_user:"Имя продюсера", au_email:"Email", au_pass:"Пароль (мин. 8 символов)", au_create:"Создать аккаунт", au_have:"Уже есть аккаунт?", au_no:"Нет аккаунта?",
+    forgot_link:"Забыли пароль?", forgot_h:"Сброс пароля", forgot_send:"Отправить ссылку", forgot_sent:"Если такой email есть — мы отправили ссылку для сброса. Проверь почту.", back_login:"← Назад ко входу",
   }
 };
 function t(k){const d=T[getLang()]||T.en;return d[k]!==undefined?d[k]:(T.en[k]!==undefined?T.en[k]:k)}

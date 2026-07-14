@@ -56,6 +56,37 @@ async function handleLogout(req, res) {
   return res.status(200).json({ ok: true });
 }
 
+// Забыли пароль: Supabase шлёт письмо со ссылкой на /reset.html с recovery-токеном.
+async function handleForgot(req, res) {
+  if (req.method !== "POST") return res.status(405).json({ error: "Use POST" });
+  const { email } = req.body || {};
+  if (!email) return res.status(400).json({ error: "Нужен email" });
+  const origin = req.headers.origin || `https://${req.headers.host}`;
+  // Не раскрываем, есть ли такой email — всегда ok.
+  try {
+    await supabaseAnon().auth.resetPasswordForEmail(email, { redirectTo: `${origin}/reset.html` });
+  } catch (_) {}
+  return res.status(200).json({ ok: true });
+}
+
+// Установка нового пароля по recovery-токену из письма (проверяем токен, меняем через admin).
+async function handleReset(req, res) {
+  if (req.method !== "POST") return res.status(405).json({ error: "Use POST" });
+  const { access_token, password } = req.body || {};
+  if (!access_token || !password) return res.status(400).json({ error: "Нужны access_token и password" });
+  if (password.length < 8) return res.status(400).json({ error: "Пароль минимум 8 символов" });
+
+  const db = supabase();
+  const { data: u, error: getErr } = await db.auth.getUser(access_token);
+  if (getErr || !u?.user) return res.status(401).json({ error: "Ссылка недействительна или устарела — запроси сброс заново" });
+
+  const { error: updErr } = await db.auth.admin.updateUserById(u.user.id, { password });
+  if (updErr) return res.status(400).json({ error: updErr.message });
+
+  res.setHeader("Set-Cookie", createSessionCookie(u.user.id));
+  return res.status(200).json({ ok: true });
+}
+
 async function handleMe(req, res) {
   const uid = readUserId(req);
   if (!uid) return res.status(200).json({ ok: true, user: null });
@@ -70,6 +101,8 @@ export default async function handler(req, res) {
   if (action === "signup") return handleSignup(req, res);
   if (action === "login") return handleLogin(req, res);
   if (action === "logout") return handleLogout(req, res);
+  if (action === "forgot") return handleForgot(req, res);
+  if (action === "reset") return handleReset(req, res);
   if (action === "me") return handleMe(req, res);
   return res.status(400).json({ error: "Неизвестный action" });
 }

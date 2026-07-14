@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reset password · STAGE ONE</title>
+<link rel="stylesheet" href="/style.css">
+<style>
+  .rw{max-width:400px;margin:60px auto;padding:0 22px}
+  .rw h1{font-size:22px;font-weight:800;margin-bottom:16px}
+  .rw input{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--ink);font:inherit;font-size:14px;padding:12px 13px;margin-bottom:12px}
+  .rw input:focus{outline:none;border-color:var(--accent2,#f3d9ac)}
+  .rw .btn{width:100%}
+  .rw .msg{font-size:13px;margin-bottom:12px}
+  .rw .err{color:#ff9aa2}
+  .rw .ok{color:var(--good,#7fe8c9)}
+</style>
+</head>
+<body>
+<div class="rw">
+  <h1>Новый пароль · New password</h1>
+  <div id="box"></div>
+</div>
+<script>
+// Supabase кладёт токены в hash: #access_token=...&type=recovery
+const hash=new URLSearchParams(location.hash.slice(1));
+const token=hash.get('access_token');
+const box=document.getElementById('box');
+if(!token){
+  box.innerHTML='<div class="msg err">Ссылка недействительна. Запроси сброс пароля заново на главной.<br>Invalid link. Please request a new reset.</div>';
+}else{
+  box.innerHTML=`
+    <input id="pw" type="password" placeholder="Новый пароль (мин. 8) / New password" autocomplete="new-password">
+    <button class="btn accent" id="btn" onclick="doReset()">Сохранить · Save</button>
+    <div class="msg" id="m"></div>`;
+}
+async function doReset(){
+  const pw=document.getElementById('pw').value;
+  const m=document.getElementById('m');
+  if(pw.length<8){m.className='msg err';m.textContent='Минимум 8 символов / min 8 characters';return}
+  const b=document.getElementById('btn');b.disabled=true;b.textContent='…';
+  try{
+    const r=await fetch('/api/auth?action=reset',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({access_token:token,password:pw})});
+    const d=await r.json();
+    if(!r.ok||d.ok===false){m.className='msg err';m.textContent=d.error||'Ошибка / Error';b.disabled=false;b.textContent='Сохранить · Save';return}
+    m.className='msg ok';m.textContent='Пароль изменён! Входим… / Password changed! Redirecting…';
+    setTimeout(()=>location.href='/',1200);
+  }catch(e){m.className='msg err';m.textContent='Сеть недоступна / Network error';b.disabled=false;b.textContent='Сохранить · Save'}
+}
+</script>
+</body>
+</html>
