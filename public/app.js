@@ -335,45 +335,55 @@ function renderCabinet(chartEntry,readOnly){
   const danceRest=fmtRest(myTraining&&myTraining.dance_cooldown_until?new Date(myTraining.dance_cooldown_until).getTime()-Date.now():0);
   const bioText=isOther?(BIO_SAMPLE[idHash(idol.id,BIO_SAMPLE.length)]):(bioState[idol.id]||'');
 
-  body.innerHTML=`
-    ${isOther?`<button class="cab-back" onclick="showView('cabinet-own')">← Назад</button>`:''}
-    <div class="cab-top">
-      <div class="cab-ph holo-frame"><div class="ph-inner"><img src="${idol.img}"></div></div>
-      <div class="cab-info">
-        <div class="h2row"><h2>${idol.name}</h2>${AI_BADGE}</div>
-        <div class="cab-owner">${isOther?'Продюсер: @'+chartEntry.owner:'твой айдол'} · ${idol.concept}</div>
-        <div class="cab-badges">
-          <span class="badge streak">🔥 ${streak} дней вместе</span>
+  const lvl=Math.max(1,Math.round(langPct/10));
+  body.innerHTML = isOther ? `
+    <button class="cab-back" onclick="showView('cabinet-own')">← Назад</button>
+    <div class="idol-hero">
+      <div class="idol-ph"><img src="${idol.img}"></div>
+      <div class="idol-meta">
+        <div class="idol-name">${idol.name} ${AI_BADGE}</div>
+        <div class="idol-concept">${idol.concept}</div>
+        <div class="idol-bio-ro">${bioText||''}</div>
+      </div>
+    </div>` : `
+    <div class="home">
+      <div class="idol-hero">
+        <div class="idol-ph holo-frame"><div class="ph-inner"><img src="${idol.img}"></div></div>
+        <div class="idol-meta">
+          <div class="idol-name">${idol.name} ${AI_BADGE}</div>
+          <div class="idol-concept">${idol.concept} · твой айдол-учитель</div>
+          <div class="lvl">
+            <div class="lvl-top"><span>Твой корейский</span><b>уровень ${lvl} · ${langPct}%</b></div>
+            <div class="bar"><i style="width:${langPct}%"></i></div>
+          </div>
+          <div class="streak-chip">🔥 ${streak} дней вместе</div>
         </div>
-        ${isOther?'':`
-        <button class="btn accent chat-cta" onclick="openChat()">🇰🇷 Начать урок корейского с ${idol.name}</button>
-        <div class="chat-cta-sub">Живая переписка — ${idol.name} учит тебя корейскому как друг</div>
-        <div class="stat">
-          <div class="stat-h"><span>Твой корейский</span><b>уровень ${Math.max(1,Math.round(langPct/10))} · ${langPct}%</b></div>
-          <div class="bar"><i style="width:${langPct}%"></i></div>
-          <div class="lang-progress">${langPct>=100?'🎉 Ты свободно переписываешься по-корейски':'Занимайся каждый день — уровень растёт, а '+idol.name+' переходит на корейский'}</div>
-        </div>`}
-        ${isOther?`
-        <div class="cab-actions">
-          <button class="btn accent" onclick="doVote('${idol.id}')">Голосовать</button>
-          <button class="btn ${viewedIdol.myFollow&&viewedIdol.myFollow.following?'accent':'ghost'}" onclick="doFollow('${idol.id}')">${viewedIdol.myFollow&&viewedIdol.myFollow.following?'Подписан ✓':'Подписаться'}</button>
-        </div>`:`
-        <div class="cab-actions">
-          <button class="btn ghost sm" onclick="startCheckout('sub')">Подписка · $10/мес</button>
-          <button class="btn ghost sm" onclick="startCheckout('extra_idol')">+ Ещё айдол · $6</button>
-        </div>`}
       </div>
-      <div class="cab-bio">
-        <div class="bio-h">О персонаже</div>
-        ${isOther?
-          `<div class="bio-text">${bioText||'Продюсер пока не добавил описание.'}</div>`:
-          `<textarea class="bio-text" id="bioInput" placeholder="Опиши своего айдола: характер, что любит, к чему стремится… (влияет на то, как она общается)" oninput="bioState['${idol.id}']=this.value">${bioText}</textarea>`}
-      </div>
-    </div>
 
-    <div class="port-h">Фотокарточки <span class="cnt">${cards.length}</span></div>
-    <div class="port-grid">${cards.map(src=>`<img src="${src}">`).join('')}</div>
-    ${isOther?'':`<div class="port-empty">Собирай образы своего айдола — редкие карточки открываются в паках. Скоро.</div>`}
+      <button class="lesson-cta" onclick="openChat()">
+        <span class="lc-emoji">🇰🇷</span>
+        <span class="lc-text"><b>Начать урок</b><small>${idol.name} учит корейскому прямо в переписке</small></span>
+        <span class="lc-arrow">→</span>
+      </button>
+
+      <div class="tiles">
+        <button class="tile" onclick="openChat('Разбери песню: ')"><span class="t-emoji">🎵</span><b>Разбор песни</b><small>строка за строкой</small></button>
+        <button class="tile" onclick="openChat('Научи меня корейскому сленгу из песен 🙂')"><span class="t-emoji">🗣️</span><b>Сленг из песен</b><small>живой корейский</small></button>
+        <button class="tile" onclick="openChat('Как сказать по-корейски: ')"><span class="t-emoji">💬</span><b>Спросить фразу</b><small>перевод + грамматика</small></button>
+      </div>
+
+      <div class="coll">
+        <div class="coll-h">Фотокарточки <span>${cards.length}</span></div>
+        <div class="coll-grid">${cards.map(src=>`<img src="${src}">`).join('')}</div>
+        <div class="coll-note">Собирай образы ${idol.name} — редкие карточки в паках. Скоро.</div>
+      </div>
+
+      <details class="bio-box"><summary>О персонаже — настрой характер</summary>
+        <textarea class="bio-text" id="bioInput" placeholder="Характер, что любит, к чему стремится… (влияет на то, как ${idol.name} общается)" oninput="bioState['${idol.id}']=this.value">${bioText}</textarea>
+      </details>
+
+      <button class="sub-link" onclick="startCheckout('sub')">Подписка · безлимит уроков · $10/мес →</button>
+    </div>
   `;
 }
 function renderCabGrid(){
@@ -479,7 +489,7 @@ function chatBubble(m){
   return `<div class="chat-msg ${mine?'me':'idol'}"><div class="chat-b">${escapeHtml(m.content)}</div></div>`;
 }
 function escapeHtml(s){return String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))}
-async function openChat(){
+async function openChat(prefill){
   if(!currentUser){openAuth('signup');return}
   const ov=document.getElementById('chatOv');ov.classList.add('show');
   const log=document.getElementById('chatLog');
@@ -492,7 +502,9 @@ async function openChat(){
     document.getElementById('chatTitle').textContent='🇰🇷 Урок с '+d.idol.name+(d.idol.name_kr?' · '+d.idol.name_kr:'');
     log.innerHTML=d.messages.length?d.messages.map(chatBubble).join(''):'<div class="chat-empty">Напиши «привет» или «안녕» — '+d.idol.name+' начнёт урок 💛</div>';
     log.scrollTop=log.scrollHeight;
-    document.getElementById('chatText').focus();
+    const inp=document.getElementById('chatText');
+    if(prefill){inp.value=prefill}
+    inp.focus();
   }catch(e){log.innerHTML='<div class="chat-empty">Сеть недоступна</div>'}
 }
 async function sendChat(){
