@@ -487,9 +487,10 @@ async function startCheckout(product){
 // Чат с собственным айдолом.
 function closeChat(){document.getElementById('chatOv').classList.remove('show')}
 document.getElementById('chatOv').onclick=e=>{if(e.target.id==='chatOv')closeChat()};
+function fmtMsg(s){return escapeHtml(s).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/(?<![:/])\*(?!\s)(.+?)(?<!\s)\*/g,'<i>$1</i>')}
 function chatBubble(m){
   const mine=m.sender==='owner';
-  return `<div class="chat-msg ${mine?'me':'idol'}"><div class="chat-b">${escapeHtml(m.content)}</div></div>`;
+  return `<div class="chat-msg ${mine?'me':'idol'}"><div class="chat-b">${fmtMsg(m.content)}</div></div>`;
 }
 function escapeHtml(s){return String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))}
 async function openChat(prefill){
