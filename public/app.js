@@ -303,12 +303,12 @@ function renderCabinet(chartEntry,readOnly){
     // Витрина айдолов встроена прямо сюда, а не спрятана за отдельной кнопкой —
     // "Мой продакшн" без айдола сразу же предлагает его выбрать.
     body.innerHTML=`<div class="cab-empty">
-      <h2 class="pick-h">Выбери айдола — он станет твоим другом и научит тебя корейскому 🇰🇷</h2>
-      <p>Один айдол бесплатно и навсегда твой. Общайся каждый день — учи корейский играючи.</p>
+      <h2 class="pick-h">${t('pick_h')}</h2>
+      <p>${t('pick_sub')}</p>
     </div>
     <div class="gender-tabs" id="cabGenderTabs">
-      <button class="gtab on" data-g="girl">Девушки</button>
-      <button class="gtab" data-g="boy">Парни</button>
+      <button class="gtab on" data-g="girl">${t('tab_girls')}</button>
+      <button class="gtab" data-g="boy">${t('tab_boys')}</button>
     </div>
     <div class="grid" id="cabGrid"></div>`;
     renderCabGrid();
@@ -336,6 +336,7 @@ function renderCabinet(chartEntry,readOnly){
   const bioText=isOther?(BIO_SAMPLE[idHash(idol.id,BIO_SAMPLE.length)]):(bioState[idol.id]||'');
 
   const lvl=Math.max(1,Math.round(langPct/10));
+  const si=langPct>=60?2:langPct>=25?1:0;
   body.innerHTML = isOther ? `
     <button class="cab-back" onclick="showView('cabinet-own')">← Назад</button>
     <div class="idol-hero">
@@ -351,41 +352,41 @@ function renderCabinet(chartEntry,readOnly){
         <div class="idol-ph holo-frame"><div class="ph-inner"><img src="${idol.img}"></div></div>
         <div class="idol-meta">
           <div class="idol-name">${idol.name} ${AI_BADGE}</div>
-          <div class="idol-concept">${idol.concept} · твой айдол-учитель</div>
+          <div class="idol-concept">${idol.concept} ${t('concept_suffix')}</div>
           <div class="lvl">
-            <div class="lvl-top"><span>Твой корейский</span><b>уровень ${lvl} · ${langPct}%</b></div>
+            <div class="lvl-top"><span>${t('your_korean')}</span><b>${t('level')} ${lvl} · ${langPct}%</b></div>
             <div class="bar"><i style="width:${langPct}%"></i></div>
           </div>
-          <div class="streak-chip">🔥 ${streak} дней вместе</div>
+          <div class="streak-chip">🔥 ${streak} ${t('days_together')}</div>
         </div>
       </div>
 
       <button class="lesson-cta" onclick="openChat()">
         <span class="lc-emoji">🇰🇷</span>
-        <span class="lc-text"><b>Начать урок</b><small>${idol.name} учит корейскому прямо в переписке</small></span>
+        <span class="lc-text"><b>${t('lesson_start')}</b><small>${t('lesson_sub')(idol.name)}</small></span>
         <span class="lc-arrow">→</span>
       </button>
 
       <div class="tiles">
-        <button class="tile" onclick="openChat('Разбери песню: ')"><span class="t-emoji">🎵</span><b>Разбор песни</b><small>строка за строкой</small></button>
-        <button class="tile" onclick="openChat('Научи меня корейскому сленгу из песен 🙂')"><span class="t-emoji">🗣️</span><b>Сленг из песен</b><small>живой корейский</small></button>
-        <button class="tile" onclick="openChat('Как сказать по-корейски: ')"><span class="t-emoji">💬</span><b>Спросить фразу</b><small>перевод + грамматика</small></button>
+        <button class="tile" onclick="openChat(t('seed_song'))"><span class="t-emoji">🎵</span><b>${t('tile_song')}</b><small>${t('tile_song_sub')}</small></button>
+        <button class="tile" onclick="openChat(t('seed_slang'))"><span class="t-emoji">🗣️</span><b>${t('tile_slang')}</b><small>${t('tile_slang_sub')}</small></button>
+        <button class="tile" onclick="openChat(t('seed_phrase'))"><span class="t-emoji">💬</span><b>${t('tile_phrase')}</b><small>${t('tile_phrase_sub')}</small></button>
       </div>
 
       <div class="coll">
-        <div class="coll-h">Фотокарточки <span>${cards.length}</span></div>
+        <div class="coll-h">${t('coll_h')} <span>${cards.length}</span></div>
         <div class="coll-grid">${cards.map(src=>`<img src="${src}">`).join('')}</div>
-        <div class="coll-note">Собирай образы ${idol.name} — редкие карточки в паках. Скоро.</div>
+        <div class="coll-note">${t('coll_note')(idol.name)}</div>
       </div>
 
       <div class="closeness">
-        <div class="close-h">💞 Ваша близость</div>
-        <div class="close-stage">${langPct>=60?'Близкие друзья':langPct>=25?'Сближаетесь':'Только познакомились'}</div>
+        <div class="close-h">${t('close_h')}</div>
+        <div class="close-stage">${t('close_stage')[si]}</div>
         <div class="bar"><i style="width:${Math.max(6,langPct)}%"></i></div>
-        <div class="close-note">${idol.name} говорит с тобой на <b>${langPct>=60?'дружеском 반말 (banmal)':langPct>=25?'존댓말, скоро перейдёт на 반말':'вежливом 존댓말 (jondaetmal)'}</b> — чем больше учишься, тем ближе вы, и речь становится дружеской.</div>
+        <div class="close-note">${t('close_note')(idol.name,t('speech')[si])}</div>
       </div>
 
-      <button class="sub-link" onclick="startCheckout('sub')">Подписка · безлимит уроков · $10/мес →</button>
+      <button class="sub-link" onclick="startCheckout('sub')">${t('sub_link')}</button>
     </div>
   `;
 }
@@ -497,19 +498,19 @@ async function openChat(prefill){
   if(!currentUser){openAuth('signup');return}
   const ov=document.getElementById('chatOv');ov.classList.add('show');
   const log=document.getElementById('chatLog');
-  log.innerHTML='<div class="chat-empty">Загружаю переписку…</div>';
+  log.innerHTML='<div class="chat-empty">'+t('chat_loading')+'</div>';
   try{
     const r=await fetch('/api/chat?action=history');
     const d=await r.json();
     if(!r.ok||d.ok===false){log.innerHTML='<div class="chat-empty">'+(d.error||'Ошибка')+'</div>';return}
-    if(!d.idol){log.innerHTML='<div class="chat-empty">Сначала заведи айдола.</div>';return}
-    document.getElementById('chatTitle').textContent='🇰🇷 Урок с '+d.idol.name+(d.idol.name_kr?' · '+d.idol.name_kr:'');
-    log.innerHTML=d.messages.length?d.messages.map(chatBubble).join(''):'<div class="chat-empty">Напиши «привет» или «안녕» — '+d.idol.name+' начнёт урок 💛</div>';
+    if(!d.idol){log.innerHTML='<div class="chat-empty">'+t('chat_need_idol')+'</div>';return}
+    document.getElementById('chatTitle').textContent='🇰🇷 '+t('chat_title')(d.idol.name)+(d.idol.name_kr?' · '+d.idol.name_kr:'');
+    log.innerHTML=d.messages.length?d.messages.map(chatBubble).join(''):'<div class="chat-empty">'+t('chat_first')+'</div>';
     log.scrollTop=log.scrollHeight;
     const inp=document.getElementById('chatText');
     if(prefill){inp.value=prefill}
     inp.focus();
-  }catch(e){log.innerHTML='<div class="chat-empty">Сеть недоступна</div>'}
+  }catch(e){log.innerHTML='<div class="chat-empty">'+t('chat_net')+'</div>'}
 }
 async function sendChat(){
   const inp=document.getElementById('chatText');
@@ -526,9 +527,9 @@ async function sendChat(){
     const r=await fetch('/api/chat?action=send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,lang:getLang()})});
     const d=await r.json();
     document.getElementById('chatTyping')?.remove();
-    if(!r.ok||d.ok===false){log.insertAdjacentHTML('beforeend','<div class="chat-empty">'+(d.error||'Айдол не ответил')+'</div>')}
+    if(!r.ok||d.ok===false){log.insertAdjacentHTML('beforeend','<div class="chat-empty">'+(d.error||t('chat_err'))+'</div>')}
     else{log.insertAdjacentHTML('beforeend',chatBubble(d.reply))}
-  }catch(e){document.getElementById('chatTyping')?.remove();log.insertAdjacentHTML('beforeend','<div class="chat-empty">Сеть недоступна</div>')}
+  }catch(e){document.getElementById('chatTyping')?.remove();log.insertAdjacentHTML('beforeend','<div class="chat-empty">'+t('chat_net')+'</div>')}
   btn.disabled=false;log.scrollTop=log.scrollHeight;inp.focus();
 }
 
@@ -938,9 +939,9 @@ async function loadMyIdol(){
 function renderAuthArea(){
   const el=document.getElementById('authArea');
   if(currentUser){
-    el.innerHTML=`<div class="auth-user"><b>@${currentUser.username||'продюсер'}</b><button class="btn ghost sm" onclick="doLogout()">Выйти</button></div>`;
+    el.innerHTML=`<div class="auth-user"><b>@${currentUser.username||'producer'}</b><button class="btn ghost sm" onclick="doLogout()">${t('au_logout')}</button></div>`;
   }else{
-    el.innerHTML=`<button class="btn ghost sm" onclick="openAuth('login')">Войти</button><button class="btn accent sm" onclick="openAuth('signup')">Регистрация</button>`;
+    el.innerHTML=`<button class="btn ghost sm" onclick="openAuth('login')">${t('au_login')}</button><button class="btn accent sm" onclick="openAuth('signup')">${t('au_signup')}</button>`;
   }
 }
 function openAuth(mode){
@@ -953,13 +954,13 @@ function renderAuthForm(mode,errMsg){
   const box=document.getElementById('authBox');
   const isSignup=mode==='signup';
   box.innerHTML=`
-    <h3>${isSignup?'Регистрация':'Вход'}</h3>
+    <h3>${isSignup?t('au_signup'):t('au_login')}</h3>
     ${errMsg?`<div class="err" style="margin-bottom:12px">${errMsg}</div>`:''}
-    ${isSignup?'<input id="authUsername" placeholder="Имя продюсера" autocomplete="username">':''}
-    <input id="authEmail" type="email" placeholder="Email" autocomplete="email">
-    <input id="authPassword" type="password" placeholder="Пароль (мин. 8 символов)" autocomplete="${isSignup?'new-password':'current-password'}">
-    <button class="btn accent" style="width:100%" id="authSubmitBtn" onclick="submitAuth('${mode}')">${isSignup?'Создать аккаунт':'Войти'}</button>
-    <div class="auth-switch">${isSignup?"Уже есть аккаунт? <a onclick=\"renderAuthForm('login')\">Войти</a>":"Нет аккаунта? <a onclick=\"renderAuthForm('signup')\">Регистрация</a>"}</div>
+    ${isSignup?`<input id="authUsername" placeholder="${t('au_user')}" autocomplete="username">`:''}
+    <input id="authEmail" type="email" placeholder="${t('au_email')}" autocomplete="email">
+    <input id="authPassword" type="password" placeholder="${t('au_pass')}" autocomplete="${isSignup?'new-password':'current-password'}">
+    <button class="btn accent" style="width:100%" id="authSubmitBtn" onclick="submitAuth('${mode}')">${isSignup?t('au_create'):t('au_login')}</button>
+    <div class="auth-switch">${isSignup?`${t('au_have')} <a onclick=\"renderAuthForm('login')\">${t('au_login')}</a>`:`${t('au_no')} <a onclick=\"renderAuthForm('signup')\">${t('au_signup')}</a>`}</div>
   `;
 }
 async function submitAuth(mode){
@@ -988,10 +989,53 @@ async function doLogout(){
   toast('Вы вышли из аккаунта');
 }
 
-// Язык объяснений в чате (по умолчанию английский — целевая аудитория международная)
+// ===== Локализация интерфейса + чата (RU/EN одним переключателем) =====
 function getLang(){return localStorage.getItem('s1_lang')||'en'}
-function setLang(v){localStorage.setItem('s1_lang',v)}
-(function initLang(){const s=document.getElementById('langSel');if(s)s.value=getLang()})();
+function setLang(v){localStorage.setItem('s1_lang',v);location.reload()}
+const T={
+  en:{
+    nav_home:"My idol", footer:"STAGE ONE · learn Korean with an AI idol you pick · your friend and tutor in one",
+    pick_h:"Pick an idol — they become your friend and teach you Korean 🇰🇷", pick_sub:"One idol free, yours forever. Chat every day and learn Korean the fun way.",
+    tab_girls:"Girls", tab_boys:"Boys",
+    concept_suffix:"· your idol tutor", your_korean:"Your Korean", level:"level", days_together:"days together",
+    lesson_start:"Start a lesson", lesson_sub:n=>`${n} teaches you Korean right in the chat`,
+    tile_song:"Break a song", tile_song_sub:"line by line", tile_slang:"Song slang", tile_slang_sub:"real Korean", tile_phrase:"Ask a phrase", tile_phrase_sub:"translation + grammar",
+    seed_song:"Break down this song: ", seed_slang:"Teach me some Korean slang from songs 🙂", seed_phrase:"How do you say in Korean: ",
+    coll_h:"Photocards", coll_note:n=>`Collect looks of ${n} — rare cards drop in packs. Soon.`,
+    close_h:"💞 Your closeness", close_stage:["Just met","Getting closer","Close friends"],
+    close_note:(n,s)=>`${n} speaks to you in <b>${s}</b> — the more you learn, the closer you get, and speech turns friendly.`,
+    speech:["polite 존댓말 (jondaetmal)","존댓말, soon 반말","friendly 반말 (banmal)"],
+    sub_link:"Subscribe · unlimited lessons · $10/mo →",
+    chat_title:n=>`Lesson with ${n}`, chat_ph:"Answer or ask in Korean…",
+    chat_loading:"Loading chat…", chat_first:"Say hi first — your idol will reply 💛", chat_need_idol:"Get an idol first.", chat_err:"Idol didn't reply", chat_net:"Network unavailable",
+    au_signup:"Sign up", au_login:"Log in", au_logout:"Log out", au_user:"Producer name", au_email:"Email", au_pass:"Password (min 8 chars)", au_create:"Create account", au_have:"Already have an account?", au_no:"No account yet?",
+  },
+  ru:{
+    nav_home:"Мой айдол", footer:"STAGE ONE · учи корейский с AI-айдолом, которого выбрал сам · твой друг и преподаватель в одном лице",
+    pick_h:"Выбери айдола — он станет твоим другом и научит тебя корейскому 🇰🇷", pick_sub:"Один айдол бесплатно и навсегда твой. Общайся каждый день — учи корейский играючи.",
+    tab_girls:"Девушки", tab_boys:"Парни",
+    concept_suffix:"· твой айдол-учитель", your_korean:"Твой корейский", level:"уровень", days_together:"дней вместе",
+    lesson_start:"Начать урок", lesson_sub:n=>`${n} учит корейскому прямо в переписке`,
+    tile_song:"Разбор песни", tile_song_sub:"строка за строкой", tile_slang:"Сленг из песен", tile_slang_sub:"живой корейский", tile_phrase:"Спросить фразу", tile_phrase_sub:"перевод + грамматика",
+    seed_song:"Разбери песню: ", seed_slang:"Научи меня корейскому сленгу из песен 🙂", seed_phrase:"Как сказать по-корейски: ",
+    coll_h:"Фотокарточки", coll_note:n=>`Собирай образы ${n} — редкие карточки в паках. Скоро.`,
+    close_h:"💞 Ваша близость", close_stage:["Только познакомились","Сближаетесь","Близкие друзья"],
+    close_note:(n,s)=>`${n} говорит с тобой на <b>${s}</b> — чем больше учишься, тем ближе вы, и речь становится дружеской.`,
+    speech:["вежливом 존댓말 (jondaetmal)","존댓말, скоро перейдёт на 반말","дружеском 반말 (banmal)"],
+    sub_link:"Подписка · безлимит уроков · $10/мес →",
+    chat_title:n=>`Урок с ${n}`, chat_ph:"Ответь или спроси по-корейски…",
+    chat_loading:"Загружаю переписку…", chat_first:"Напиши первым — твой айдол ответит 💛", chat_need_idol:"Сначала заведи айдола.", chat_err:"Айдол не ответил", chat_net:"Сеть недоступна",
+    au_signup:"Регистрация", au_login:"Вход", au_logout:"Выйти", au_user:"Имя продюсера", au_email:"Email", au_pass:"Пароль (мин. 8 символов)", au_create:"Создать аккаунт", au_have:"Уже есть аккаунт?", au_no:"Нет аккаунта?",
+  }
+};
+function t(k){const d=T[getLang()]||T.en;return d[k]!==undefined?d[k]:(T.en[k]!==undefined?T.en[k]:k)}
+function applyStatic(){
+  const s=document.getElementById('langSel');if(s)s.value=getLang();
+  const nav=document.querySelector('.navtab[data-view="cabinet-own"]');if(nav)nav.textContent=t('nav_home');
+  const f=document.querySelector('footer.wrap');if(f)f.innerHTML=t('footer');
+  const ct=document.getElementById('chatText');if(ct)ct.placeholder=t('chat_ph');
+}
+applyStatic();
 
 const authReady=checkAuth();
 boot();
