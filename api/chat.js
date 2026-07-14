@@ -7,7 +7,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { supabase } from "../lib/supabase.js";
 import { readUserId } from "../lib/session.js";
 
-const MODEL = "claude-opus-4-8";
+const MODEL = "claude-haiku-4-5-20251001"; // дёшево+быстро для языкового тьютора на массе
 const HISTORY_LIMIT = 40; // сколько последних сообщений держим в контексте
 
 let anthropic;
