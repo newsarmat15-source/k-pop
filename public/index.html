@@ -13,14 +13,7 @@
 <header><div class="wrap hbar">
   <div class="logo">STAGE<b>ONE</b></div>
   <div class="navtabs">
-    <button class="navtab" data-view="feed">Топ-чарт</button>
-    <button class="navtab" data-view="cabinet-own">Мой продакшн</button>
-    <button class="navtab" data-view="lenta">Лента</button>
-  </div>
-  <div class="step-ind">
-    <span id="si1" class="on">1 · Айдол</span>
-    <span id="si2">2 · Стиль</span>
-    <span id="si3">3 · Клип</span>
+    <button class="navtab on" data-view="cabinet-own">Мой айдол</button>
   </div>
   <div class="auth-area" id="authArea"></div>
 </div></header>
@@ -113,11 +106,19 @@
 </main>
 
 <footer class="wrap">
-  <b>STAGE ONE</b> · прототип · видео — Kling 3.0, песня — ElevenLabs Music, склейка — Kling LipSync (fal.ai) · 15 демо-айдолов
+  <b>STAGE ONE</b> · учи корейский с AI-айдолом, которого выбрал сам · твой друг и преподаватель в одном лице
 </footer>
 
 <div class="ov" id="ov"><div class="result" id="resultBox"></div></div>
 <div class="ov" id="authOv"><div class="result auth-form" id="authBox"></div></div>
+<div class="ov" id="chatOv"><div class="chat-box" id="chatBox">
+  <div class="chat-head"><span id="chatTitle">Чат</span><button class="chat-x" onclick="closeChat()">✕</button></div>
+  <div class="chat-log" id="chatLog"></div>
+  <div class="chat-input">
+    <input id="chatText" placeholder="Ответь или спроси по-корейски…" onkeydown="if(event.key==='Enter')sendChat()">
+    <button class="btn accent" id="chatSend" onclick="sendChat()">→</button>
+  </div>
+</div></div>
 <div class="toast" id="toast"></div>
 
 <script src="/app.js"></script>

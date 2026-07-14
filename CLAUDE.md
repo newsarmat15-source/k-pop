@@ -98,8 +98,10 @@
 
 ## 7. Открытые задачи
 
-1. **Чат с айдолом + голосовые** — не начато, нужен ключ Anthropic API
-2. **Stripe-чекаут и вебхуки** — ключи есть, код не написан
+> **Пивот 13.07:** видео на паузе, ядро продукта сдвигается на **AI-айдол-компаньон (чат) + коллекция фотокарточек**. Видео — редкая награда, не основа. Макет новой структуры сайта: артефакт "StageOne — новая концепция". Чат `api/chat.js` — это надстройка над Claude (`claude-opus-4-8`) с персоной айдола (то, что Сармат и хотел: «кей-поп Кими»).
+
+1. **Чат с айдолом** — ✅ построен (`api/chat.js`, Anthropic SDK, персона из карточки+тренировок, история в `chat_messages`). Нужен env `ANTHROPIC_API_KEY`. Не сделано: голосовые (ElevenLabs TTS), проактивные сообщения по расписанию (нужен PWA/крон), режим «эксперт по K-pop».
+2. **Stripe-чекаут и вебхуки** — ✅ построен (`api/pay.js`: подписка $10/мес, доп.клип $3, доп.айдол $6, вебхук пишет в `subscriptions`). Нужны env `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` (тестовые). Вебхук-endpoint: `/api/pay?action=webhook`. Разовые покупки пока не начисляют ресурс — доделать при связке с UI.
 3. **Замирание кадра ~2с в начале** — не устранено до конца
 4. **Разнообразие локаций** внутри категории — одна сцена на категорию
 5. **Фотокарточки** — таблица есть, логики нет
@@ -131,3 +133,13 @@
 15 портретов, `public/idols/idol1..15.jpg`, 640×640, Midjourney v8 `--style raw`.
 Имена: LUNE, VESPER, IRIS, ONYX, EMBER, KOA, SABLE, HALO, REI, MOMO, ZARA, NARU, KIRA, YUNA, SORA. Все `gender:"girl"`.
 Мужских айдолов пока нет — вкладка «Парни» показывает заглушку.
+
+## graphify
+
+This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
+
+Rules:
+- For codebase questions, first run `graphify query "<question>"` when graphify-out/graph.json exists. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
+- If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
+- Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
+- After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).

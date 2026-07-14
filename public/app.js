@@ -303,7 +303,8 @@ function renderCabinet(chartEntry,readOnly){
     // Витрина айдолов встроена прямо сюда, а не спрятана за отдельной кнопкой —
     // "Мой продакшн" без айдола сразу же предлагает его выбрать.
     body.innerHTML=`<div class="cab-empty">
-      <p>У тебя ещё нет айдола — выбери одного, чтобы открыть продакшн.</p>
+      <h2 class="pick-h">Выбери айдола — он станет твоим другом и научит тебя корейскому 🇰🇷</h2>
+      <p>Один айдол бесплатно и навсегда твой. Общайся каждый день — учи корейский играючи.</p>
     </div>
     <div class="gender-tabs" id="cabGenderTabs">
       <button class="gtab on" data-g="girl">Девушки</button>
@@ -335,77 +336,44 @@ function renderCabinet(chartEntry,readOnly){
   const bioText=isOther?(BIO_SAMPLE[idHash(idol.id,BIO_SAMPLE.length)]):(bioState[idol.id]||'');
 
   body.innerHTML=`
-    ${isOther?`<button class="cab-back" onclick="showView('feed')">← Назад к чарту</button>`:''}
+    ${isOther?`<button class="cab-back" onclick="showView('cabinet-own')">← Назад</button>`:''}
     <div class="cab-top">
       <div class="cab-ph holo-frame"><div class="ph-inner"><img src="${idol.img}"></div></div>
       <div class="cab-info">
         <div class="h2row"><h2>${idol.name}</h2>${AI_BADGE}</div>
         <div class="cab-owner">${isOther?'Продюсер: @'+chartEntry.owner:'твой айдол'} · ${idol.concept}</div>
         <div class="cab-badges">
-          <span class="badge streak">🔥 ${streak} дней подряд</span>
-          <span class="badge league">${league}</span>
-          ${isOther&&viewedIdol.myFollow&&viewedIdol.myFollow.following?`<span class="badge support">💛 ${viewedIdol.myFollow.streak} дн. твоей поддержки</span>`:''}
+          <span class="badge streak">🔥 ${streak} дней вместе</span>
         </div>
-        ${awardsHtml(mockAward)}
+        ${isOther?'':`
+        <button class="btn accent chat-cta" onclick="openChat()">🇰🇷 Начать урок корейского с ${idol.name}</button>
+        <div class="chat-cta-sub">Живая переписка — ${idol.name} учит тебя корейскому как друг</div>
         <div class="stat">
-          <div class="stat-h"><span>Занятия языком</span><b>${isOther?'скрыто для гостей':Math.round(langPct/10)+'/10'}</b></div>
-          ${isOther?'':`<div class="bar"><i style="width:${langPct}%"></i></div>
-          <div class="lang-progress">${langPct>=100?'🎉 100% — доступен клип на 2 языках':'100% откроет клип на 2 языках (сейчас '+langPct+'%)'}</div>`}
-        </div>
-        <div class="stat">
-          <div class="stat-h"><span>Разучено движений</span><b>${movesVal}</b></div>
-          <div class="bar"><i style="width:${Math.min(movesVal*4,100)}%"></i></div>
-        </div>
-        ${isOther?`<div class="fan-path">${supportTierHtml(viewedIdol.myFollow?viewedIdol.myFollow.streak:0)}</div>
-          ${viewedIdol.topSupporter?`<div class="top-supporter">👑 Топ-саппортер: <b>@${viewedIdol.topSupporter.username}</b> — право закрепить одно сообщение айдолу</div>`:''}
-          <div class="vote-pulse">🔴 ${viewedIdol.pulseHour} голосов за последний час</div>`:''}
+          <div class="stat-h"><span>Твой корейский</span><b>уровень ${Math.max(1,Math.round(langPct/10))} · ${langPct}%</b></div>
+          <div class="bar"><i style="width:${langPct}%"></i></div>
+          <div class="lang-progress">${langPct>=100?'🎉 Ты свободно переписываешься по-корейски':'Занимайся каждый день — уровень растёт, а '+idol.name+' переходит на корейский'}</div>
+        </div>`}
+        ${isOther?`
         <div class="cab-actions">
-          ${isOther?`
-            <button class="btn accent" onclick="doVote('${idol.id}')">Голосовать</button>
-            <button class="btn ${viewedIdol.myFollow&&viewedIdol.myFollow.following?'accent':'ghost'}" onclick="doFollow('${idol.id}')">${viewedIdol.myFollow&&viewedIdol.myFollow.following?'Подписан ✓':'Подписаться'}</button>
-          `:`
-            <div class="train-row">
-              <button class="btn ghost sm" id="btnLang" onclick="doTrain('lang')" ${langRest?'disabled':''}>${langRest?'Язык: ещё '+langRest:'Тренировать язык'}</button>
-              <span class="rest-note">отдых 4ч между занятиями</span>
-              <button class="btn ghost sm" id="btnDance" onclick="doTrain('dance')" ${danceRest?'disabled':''}>${danceRest?'Танец: ещё '+danceRest:'Тренировать танец'}</button>
-            </div>
-            <button class="btn accent" onclick="showView('constructor')">+ Снять новый клип</button>
-            <button class="btn ghost sm" onclick="mockAddIdol()">+ Добавить айдола · $10</button>
-          `}
-        </div>
+          <button class="btn accent" onclick="doVote('${idol.id}')">Голосовать</button>
+          <button class="btn ${viewedIdol.myFollow&&viewedIdol.myFollow.following?'accent':'ghost'}" onclick="doFollow('${idol.id}')">${viewedIdol.myFollow&&viewedIdol.myFollow.following?'Подписан ✓':'Подписаться'}</button>
+        </div>`:`
+        <div class="cab-actions">
+          <button class="btn ghost sm" onclick="startCheckout('sub')">Подписка · $10/мес</button>
+          <button class="btn ghost sm" onclick="startCheckout('extra_idol')">+ Ещё айдол · $6</button>
+        </div>`}
       </div>
       <div class="cab-bio">
         <div class="bio-h">О персонаже</div>
         ${isOther?
           `<div class="bio-text">${bioText||'Продюсер пока не добавил описание.'}</div>`:
-          `<textarea class="bio-text" id="bioInput" placeholder="Опиши своего айдола: характер, что любит, коронные движения, к чему стремится…" oninput="bioState['${idol.id}']=this.value">${bioText}</textarea>`}
+          `<textarea class="bio-text" id="bioInput" placeholder="Опиши своего айдола: характер, что любит, к чему стремится… (влияет на то, как она общается)" oninput="bioState['${idol.id}']=this.value">${bioText}</textarea>`}
       </div>
     </div>
 
-    <div class="port-h">Клипы <span class="cnt">${clipsData.length}</span></div>
-    ${clipsData.length?`<div class="port-grid">${clipsData.map(c=>c.status==='done'
-      ?`<a href="${c.video_url}" target="_blank"><img src="${idol.img}" title="Открыть клип"></a>`
-      :c.status==='failed'?`<img src="${idol.img}" style="opacity:.35" title="Генерация не удалась">`
-      :`<img src="${idol.img}" style="opacity:.6" title="Генерируется…">`).join('')}</div>`
-      :`<div class="port-empty">Клипов пока нет — сними первый через "+ Снять новый клип".</div>`}
-
     <div class="port-h">Фотокарточки <span class="cnt">${cards.length}</span></div>
     <div class="port-grid">${cards.map(src=>`<img src="${src}">`).join('')}</div>
-
-    <div class="port-h">Лайв</div>
-    ${isOther?
-      '<div class="port-empty">Полноценный Лайв других пользователей появится позже — экономика ежедневного видео не сходится, версия с дешёвым фото в разработке.</div>':
-      `<div class="live-card">
-        <img src="${idol.img}">
-        <div class="live-body">
-          <div class="live-kind">Сегодня</div>
-          <p>«${LIVE_GREETINGS[idHash(idol.id,LIVE_GREETINGS.length)]}»</p>
-          <button class="btn ghost sm" onclick="mockPushLive('${idol.name}')">Отправить как уведомление (демо)</button>
-        </div>
-      </div>
-      <div class="port-empty">Честно: это фото — заглушка (тот же портрет). В реальной версии — разовый недорогой набор из 15–20 фото на айдола вместо генерации видео каждый день. Платное "оживление" фото в видео — 15–20 Сердечек. Настоящие push-уведомления требуют PWA — пока не построено.</div>`}
-
-    ${isOther?'':'<div class="dbnote">Айдол, тренировки, голоса и подписчики теперь реально хранятся в базе. Сердечки, клипы и лайв — ещё макет, подключим дальше.</div>'}
+    ${isOther?'':`<div class="port-empty">Собирай образы своего айдола — редкие карточки открываются в паках. Скоро.</div>`}
   `;
 }
 function renderCabGrid(){
@@ -491,7 +459,62 @@ async function doFollow(idolId){
   toast(d.following?'Подписка оформлена — стрик поддержки начался':'Отписался — стрик поддержки обнулён');
   await openCabinetFor(idolId);
 }
-function mockAddIdol(){toast('Добавление айдола за $10 — оплата появится вместе с платёжной системой')}
+// Оплата через Stripe (тестовый режим). product: sub | extra_clip | extra_idol.
+async function startCheckout(product){
+  if(!currentUser){openAuth('signup');toast('Сначала зарегистрируйся');return}
+  toast('Открываю оплату…');
+  try{
+    const r=await fetch('/api/pay?action=checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({product})});
+    const d=await r.json();
+    if(!r.ok||!d.url){toast(d.error||'Оплата пока недоступна');return}
+    window.location.href=d.url;
+  }catch(e){toast('Не удалось открыть оплату')}
+}
+
+// Чат с собственным айдолом.
+function closeChat(){document.getElementById('chatOv').classList.remove('show')}
+document.getElementById('chatOv').onclick=e=>{if(e.target.id==='chatOv')closeChat()};
+function chatBubble(m){
+  const mine=m.sender==='owner';
+  return `<div class="chat-msg ${mine?'me':'idol'}"><div class="chat-b">${escapeHtml(m.content)}</div></div>`;
+}
+function escapeHtml(s){return String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))}
+async function openChat(){
+  if(!currentUser){openAuth('signup');return}
+  const ov=document.getElementById('chatOv');ov.classList.add('show');
+  const log=document.getElementById('chatLog');
+  log.innerHTML='<div class="chat-empty">Загружаю переписку…</div>';
+  try{
+    const r=await fetch('/api/chat?action=history');
+    const d=await r.json();
+    if(!r.ok||d.ok===false){log.innerHTML='<div class="chat-empty">'+(d.error||'Ошибка')+'</div>';return}
+    if(!d.idol){log.innerHTML='<div class="chat-empty">Сначала заведи айдола.</div>';return}
+    document.getElementById('chatTitle').textContent='🇰🇷 Урок с '+d.idol.name+(d.idol.name_kr?' · '+d.idol.name_kr:'');
+    log.innerHTML=d.messages.length?d.messages.map(chatBubble).join(''):'<div class="chat-empty">Напиши «привет» или «안녕» — '+d.idol.name+' начнёт урок 💛</div>';
+    log.scrollTop=log.scrollHeight;
+    document.getElementById('chatText').focus();
+  }catch(e){log.innerHTML='<div class="chat-empty">Сеть недоступна</div>'}
+}
+async function sendChat(){
+  const inp=document.getElementById('chatText');
+  const text=inp.value.trim();
+  if(!text)return;
+  const log=document.getElementById('chatLog');
+  const empty=log.querySelector('.chat-empty');if(empty)empty.remove();
+  log.insertAdjacentHTML('beforeend',chatBubble({sender:'owner',content:text}));
+  inp.value='';
+  const btn=document.getElementById('chatSend');btn.disabled=true;
+  log.insertAdjacentHTML('beforeend','<div class="chat-msg idol" id="chatTyping"><div class="chat-b">…</div></div>');
+  log.scrollTop=log.scrollHeight;
+  try{
+    const r=await fetch('/api/chat?action=send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text})});
+    const d=await r.json();
+    document.getElementById('chatTyping')?.remove();
+    if(!r.ok||d.ok===false){log.insertAdjacentHTML('beforeend','<div class="chat-empty">'+(d.error||'Айдол не ответил')+'</div>')}
+    else{log.insertAdjacentHTML('beforeend',chatBubble(d.reply))}
+  }catch(e){document.getElementById('chatTyping')?.remove();log.insertAdjacentHTML('beforeend','<div class="chat-empty">Сеть недоступна</div>')}
+  btn.disabled=false;log.scrollTop=log.scrollHeight;inp.focus();
+}
 
 /* ===================== ЛЕНТА ПОДПИСОК ===================== */
 const FAKE_PRODUCERS=['moonlight_stage','neon_producer','starlight_fan','crystal_prod'];
@@ -556,7 +579,7 @@ async function boot(){
   });
   updateSummary();
   CHART=[];
-  showView('feed');
+  showView('cabinet-own');
 }
 function renderIdolGrid(){
   const g=document.getElementById('grid');
@@ -691,13 +714,13 @@ function toggle(id){
   const perso=document.getElementById('zone-perso');
   if(picked){
     perso.classList.add('show');
-    document.getElementById('si1').classList.remove('on');
-    document.getElementById('si2').classList.add('on');document.getElementById('si3').classList.add('on');
+    document.getElementById('si1')?.classList.remove('on');
+    document.getElementById('si2')?.classList.add('on');document.getElementById('si3')?.classList.add('on');
     perso.scrollIntoView({behavior:'smooth',block:'start'});
   }else{
     perso.classList.remove('show');
-    document.getElementById('si1').classList.add('on');
-    document.getElementById('si2').classList.remove('on');document.getElementById('si3').classList.remove('on');
+    document.getElementById('si1')?.classList.add('on');
+    document.getElementById('si2')?.classList.remove('on');document.getElementById('si3')?.classList.remove('on');
   }
   renderSel();updateSummary();
 }
