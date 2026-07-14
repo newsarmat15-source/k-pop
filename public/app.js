@@ -378,9 +378,12 @@ function renderCabinet(chartEntry,readOnly){
         <div class="coll-note">Собирай образы ${idol.name} — редкие карточки в паках. Скоро.</div>
       </div>
 
-      <details class="bio-box"><summary>О персонаже — настрой характер</summary>
-        <textarea class="bio-text" id="bioInput" placeholder="Характер, что любит, к чему стремится… (влияет на то, как ${idol.name} общается)" oninput="bioState['${idol.id}']=this.value">${bioText}</textarea>
-      </details>
+      <div class="closeness">
+        <div class="close-h">💞 Ваша близость</div>
+        <div class="close-stage">${langPct>=60?'Близкие друзья':langPct>=25?'Сближаетесь':'Только познакомились'}</div>
+        <div class="bar"><i style="width:${Math.max(6,langPct)}%"></i></div>
+        <div class="close-note">${idol.name} говорит с тобой на <b>${langPct>=60?'дружеском 반말 (banmal)':langPct>=25?'존댓말, скоро перейдёт на 반말':'вежливом 존댓말 (jondaetmal)'}</b> — чем больше учишься, тем ближе вы, и речь становится дружеской.</div>
+      </div>
 
       <button class="sub-link" onclick="startCheckout('sub')">Подписка · безлимит уроков · $10/мес →</button>
     </div>
