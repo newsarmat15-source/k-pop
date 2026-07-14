@@ -523,7 +523,7 @@ async function sendChat(){
   log.insertAdjacentHTML('beforeend','<div class="chat-msg idol" id="chatTyping"><div class="chat-b">…</div></div>');
   log.scrollTop=log.scrollHeight;
   try{
-    const r=await fetch('/api/chat?action=send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text})});
+    const r=await fetch('/api/chat?action=send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,lang:getLang()})});
     const d=await r.json();
     document.getElementById('chatTyping')?.remove();
     if(!r.ok||d.ok===false){log.insertAdjacentHTML('beforeend','<div class="chat-empty">'+(d.error||'Айдол не ответил')+'</div>')}
@@ -987,6 +987,11 @@ async function doLogout(){
   renderLangOpts();
   toast('Вы вышли из аккаунта');
 }
+
+// Язык объяснений в чате (по умолчанию английский — целевая аудитория международная)
+function getLang(){return localStorage.getItem('s1_lang')||'en'}
+function setLang(v){localStorage.setItem('s1_lang',v)}
+(function initLang(){const s=document.getElementById('langSel');if(s)s.value=getLang()})();
 
 const authReady=checkAuth();
 boot();

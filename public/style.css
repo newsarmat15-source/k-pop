@@ -191,6 +191,8 @@ main{display:none}main.show{display:block}
 .close-stage{font-size:17px;font-weight:800;margin:6px 0 9px}
 .close-note{font-size:12px;color:var(--muted,#a99cc0);margin-top:9px;line-height:1.45}
 .close-note b{color:var(--champ,#f3d9ac)}
+.lang-sel{background:var(--panel2);color:var(--ink);border:1px solid var(--line);font:inherit;font-size:12.5px;padding:6px 9px;cursor:pointer;margin-left:auto}
+.lang-sel:focus{outline:none;border-color:var(--accent2,#f3d9ac)}
 
 @media(max-width:480px){
   .idol-hero{flex-direction:column;text-align:center;align-items:center}
