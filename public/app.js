@@ -728,11 +728,12 @@ function wbDelete(kr){
 function songsDone(){try{return JSON.parse(localStorage.getItem('so_songs_'+lsnUid())||'[]')}catch(e){return[]}}
 function songsSaveDone(a){localStorage.setItem('so_songs_'+lsnUid(),JSON.stringify(a))}
 function allSongs(){return window.SONGS||[]}
-function closeSongs(){document.getElementById('songOv').classList.remove('show')}
+function closeSongs(){karaStop();document.getElementById('songOv').classList.remove('show')}
 document.getElementById('songOv').onclick=e=>{if(e.target.id==='songOv')closeSongs()};
 
 function openSongs(){
   if(!currentUser){openAuth('signup');return}
+  karaStop();
   document.getElementById('songOv').classList.add('show');
   document.getElementById('songBack').style.visibility='hidden';
   document.getElementById('songTitle').textContent=t('songs_h');
@@ -751,56 +752,121 @@ function openSongs(){
   document.getElementById('songBody').scrollTop=0;
 }
 
+// ---- Караоке-движок: подсветка по таймкодам + авто-пауза в конце куплета ----
+function karaBuild(song){
+  const off=parseFloat(localStorage.getItem('so_songoff_'+song.id)||'0')||0;
+  const verses=song.verses.map(v=>{
+    const lines=v.lines.map((ln,i)=>({...ln,end:(i+1<v.lines.length?v.lines[i+1].t:v.end)}));
+    return {...v,lines,start:lines[0].t};
+  });
+  return {song,verses,vIdx:0,paused:false,continuous:false,userOffset:off,videoOffset:song.videoOffset||0,
+    get off(){return this.videoOffset+this.userOffset},player:null,timer:null,saved:{}};
+}
+
 function openSong(id){
   const song=allSongs().find(s=>s.id===id);if(!song)return;
-  window._song={song,idx:0,saved:{}};
+  karaStop();
+  window._kara=karaBuild(song);
   document.getElementById('songOv').classList.add('show');
   document.getElementById('songBack').style.visibility='visible';
   document.getElementById('songTitle').textContent=song.title;
   document.getElementById('songBody').innerHTML=`
-    <div class="song-video"><iframe src="https://www.youtube.com/embed/${song.ytId}" title="${escapeHtml(song.title)}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>
-    <a class="song-yt" href="https://www.youtube.com/watch?v=${song.ytId}" target="_blank" rel="noopener">${t('song_open_yt')} ↗</a>
-    <div class="song-teacher-note">${t('song_guide')}</div>
-    <div class="song-lines" id="songLines"></div>
-    <div class="song-ctrl" id="songCtrl"></div>`;
-  renderSongLines();
+    <div class="kara">
+      <div class="song-video"><div id="ytPlayer"></div></div>
+      <div class="kara-hint">${t('kara_hint')}</div>
+      <div class="kara-lines" id="karaLines"></div>
+      <div class="kara-pause" id="karaPause" style="display:none"></div>
+      <div class="kara-bar">
+        <div class="kara-cal">${t('kara_sync')} <button onclick="karaOffset(-0.3)">−</button><span id="karaOff"></span><button onclick="karaOffset(0.3)">+</button></div>
+        <label class="kara-toggle"><input type="checkbox" id="karaCont" onchange="karaToggleCont()"> ${t('kara_cont')}</label>
+      </div>
+    </div>`;
   document.getElementById('songBody').scrollTop=0;
+  updateKaraOffLabel();
+  renderKaraVerse();
+  loadYT(()=>{
+    const K=window._kara;if(!K)return;
+    K.player=new YT.Player('ytPlayer',{videoId:song.ytId,playerVars:{playsinline:1,rel:0,modestbranding:1},events:{}});
+    K.timer=setInterval(karaTick,120);
+  });
 }
 
-function renderSongLines(){
-  const {song,idx,saved}=window._song;const L=getLang();
-  const shown=song.lines.slice(0,idx+1).map((ln,i)=>`
-    <div class="song-line">
-      <div class="sl-kr">${escapeHtml(ln.kr)}</div>
-      <div class="sl-rom">${escapeHtml(ln.rom)}</div>
-      <div class="sl-tr">${escapeHtml(ln.tr[L])}</div>
-      <div class="sl-note">💡 ${ln.note[L]}</div>
-      ${ln.vocab?`<button class="sl-save ${saved[i]?'on':''}" ${saved[i]?'disabled':''} onclick="songSave(${i})">${saved[i]?t('song_saved'):t('song_save')(ln.vocab.slang?t('wb_slang'):t('wb_words'))}</button>`:''}
-    </div>`).join('');
-  document.getElementById('songLines').innerHTML=shown;
-  const last=idx>=song.lines.length-1;
-  document.getElementById('songCtrl').innerHTML=last
-    ? `<button class="btn accent song-next" onclick="songComplete()">${t('song_finish')}</button>`
-    : `<button class="btn accent song-next" onclick="songNext()">${t('song_next')} (${idx+1}/${song.lines.length})</button>`;
-  // прокрутить к последней строке
-  const lines=document.getElementById('songLines');
-  if(lines.lastElementChild)lines.lastElementChild.scrollIntoView({behavior:'smooth',block:'nearest'});
+function loadYT(cb){
+  if(window.YT&&window.YT.Player)return cb();
+  const prev=window.onYouTubeIframeAPIReady;
+  window.onYouTubeIframeAPIReady=function(){if(prev)try{prev()}catch(e){}cb()};
+  if(!document.getElementById('ytapi')){const s=document.createElement('script');s.id='ytapi';s.src='https://www.youtube.com/iframe_api';document.head.appendChild(s);}
 }
 
-function songNext(){window._song.idx=Math.min(window._song.idx+1,window._song.song.lines.length-1);renderSongLines()}
+function karaStop(){
+  const K=window._kara;if(!K)return;
+  if(K.timer)clearInterval(K.timer);
+  try{K.player&&K.player.destroy&&K.player.destroy()}catch(e){}
+  window._kara=null;
+}
 
-function songSave(i){
-  const ln=window._song.song.lines[i];if(!ln.vocab)return;
-  const voc=lsnVocab();
-  if(!voc.some(v=>v.kr===ln.vocab.kr)){
-    voc.push({...ln.vocab,from:'song'});lsnSaveVocab(voc);
+function karaTick(){
+  const K=window._kara;if(!K||!K.player||!K.player.getCurrentTime)return;
+  if(K.paused)return;
+  const t=K.player.getCurrentTime()-K.off;
+  let v=K.verses[K.vIdx];
+  if(t<v.start-0.5){const vi=K.verses.findIndex(x=>t>=x.start&&t<x.end);if(vi!==-1&&vi!==K.vIdx){K.vIdx=vi;renderKaraVerse();v=K.verses[K.vIdx];}}
+  if(t>=v.end-0.04){
+    if(K.continuous){if(K.vIdx<K.verses.length-1){K.vIdx++;renderKaraVerse();}return;}
+    K.player.pauseVideo();K.paused=true;showVersePause();return;
   }
-  window._song.saved[i]=true;renderSongLines();
-  toast(t('song_save_toast'));
+  if(t<v.start)return updateKaraHighlight(-1,0);
+  const lines=v.lines;let li=0;for(let i=0;i<lines.length;i++){if(t>=lines[i].t)li=i;}
+  const ln=lines[li];const prog=Math.max(0,Math.min(1,(t-ln.t)/((ln.end-ln.t)||1)));
+  updateKaraHighlight(li,prog);
 }
+
+function renderKaraVerse(){
+  const K=window._kara;const v=K.verses[K.vIdx];
+  document.getElementById('karaLines').innerHTML=v.lines.map((ln,i)=>`
+    <div class="kl" data-i="${i}">
+      <div class="kl-kr">${escapeHtml(ln.kr)}</div>
+      <div class="kl-rom">${escapeHtml(ln.rom||'')}</div>
+    </div>`).join('');
+  document.getElementById('karaPause').style.display='none';
+}
+
+function updateKaraHighlight(li,prog){
+  const box=document.getElementById('karaLines');if(!box)return;
+  [...box.children].forEach((el,i)=>{
+    el.classList.toggle('on',i===li);
+    el.classList.toggle('done',i<li);
+    if(i===li)el.style.setProperty('--p',Math.round(prog*100)+'%');else el.style.removeProperty('--p');
+  });
+}
+
+function showVersePause(){
+  const K=window._kara;const v=K.verses[K.vIdx];const L=getLang();
+  const last=K.vIdx>=K.verses.length-1;
+  const vocab=v.vocab||[];
+  const p=document.getElementById('karaPause');
+  p.style.display='block';
+  p.innerHTML=`
+    <div class="kp-h">${t('kara_verse')} ${K.vIdx+1}/${K.verses.length}</div>
+    ${v.tr?`<div class="kp-tr">${v.tr[L]}</div>`:''}
+    ${v.note?`<div class="kp-note">💡 ${v.note[L]}</div>`:''}
+    ${vocab.length?`<div class="kp-vocab">${vocab.map((w,i)=>`<button class="kp-word ${K.saved[K.vIdx+'_'+i]?'on':''}" ${K.saved[K.vIdx+'_'+i]?'disabled':''} onclick="karaSave(${i})">${K.saved[K.vIdx+'_'+i]?'✓ ':'+ '}${escapeHtml(w.kr)}</button>`).join('')}</div>`:''}
+    <div class="kp-ctrl">
+      <button class="kp-btn ghost" onclick="karaRepeat()">↻ ${t('kara_repeat')}</button>
+      ${last?`<button class="btn accent kp-btn" onclick="songComplete()">${t('song_finish')}</button>`:`<button class="btn accent kp-btn" onclick="karaNext()">${t('kara_nextv')} ⏭</button>`}
+    </div>`;
+}
+
+function karaRepeat(){const K=window._kara,v=K.verses[K.vIdx];K.paused=false;document.getElementById('karaPause').style.display='none';K.player.seekTo(v.start+K.off,true);K.player.playVideo();}
+function karaNext(){const K=window._kara;if(K.vIdx<K.verses.length-1)K.vIdx++;const v=K.verses[K.vIdx];K.paused=false;renderKaraVerse();K.player.seekTo(v.start+K.off,true);K.player.playVideo();}
+function karaToggleCont(){const K=window._kara;K.continuous=document.getElementById('karaCont').checked;if(K.continuous&&K.paused){K.paused=false;document.getElementById('karaPause').style.display='none';K.player.playVideo();}}
+function karaOffset(d){const K=window._kara;K.userOffset=Math.round((K.userOffset+d)*10)/10;localStorage.setItem('so_songoff_'+K.song.id,K.userOffset);updateKaraOffLabel();}
+function updateKaraOffLabel(){const K=window._kara;const el=document.getElementById('karaOff');if(el)el.textContent=(K.userOffset>0?'+':'')+K.userOffset.toFixed(1)+'s';}
+function karaSave(i){const K=window._kara,v=K.verses[K.vIdx],w=(v.vocab||[])[i];if(!w)return;const voc=lsnVocab();if(!voc.some(x=>x.kr===w.kr)){voc.push({...w,from:'song'});lsnSaveVocab(voc);}K.saved[K.vIdx+'_'+i]=true;showVersePause();toast(t('song_save_toast'));}
 
 function songComplete(){
-  const id=window._song.song.id;const done=songsDone();
+  const K=window._kara;if(!K)return;
+  const id=K.song.id;const done=songsDone();
   if(!done.includes(id)){done.push(id);songsSaveDone(done)}
   toast(t('song_done_toast'));
   openSongs();
@@ -1354,6 +1420,7 @@ const T={
     wb_empty_words:"No words yet — finish lessons and they’ll pile up here automatically.", wb_empty_slang:"No slang yet — it’ll collect from song breakdowns. You can add your own too.",
     wb_hint_words:"📘 auto from lessons · ✍️ added by you", wb_hint_slang:"🎵 from songs · ✍️ added by you",
     songs_h:"Break a song", songs_intro:"Pick a song. Your idol walks you through it line by line — meaning, grammar and slang.", songs_empty:"No songs yet.", songs_done_h:"Songs you’ve done", song_guide:"Play the video, then step through the lyrics line by line below.", song_next:"Next line", song_finish:"Finish song ✓", song_save:tab=>`+ ${tab}`, song_saved:"Saved ✓", song_save_toast:"Saved to your Workbook", song_done_toast:"Song complete 🎉", song_open_yt:"Open on YouTube",
+    kara_hint:"Press play — lyrics light up in time. At each verse end the song pauses for the breakdown.", kara_sync:"Sync", kara_cont:"Don’t stop", kara_verse:"Verse", kara_repeat:"Repeat verse", kara_nextv:"Next verse",
     onb_title:"How it all works", onb_tour:"Show me around →", onb_ok:"Got it", onb_next:"Next", onb_done:"Done",
     tile_song:"Break a song", tile_song_sub:"line by line", tile_slang:"Song slang", tile_slang_sub:"real Korean", tile_phrase:"Ask a phrase", tile_phrase_sub:"translation + grammar",
     seed_song:"Break down this song: ", seed_slang:"Teach me some Korean slang from songs 🙂", seed_phrase:"How do you say in Korean: ",
@@ -1379,6 +1446,7 @@ const T={
     wb_empty_words:"Пока пусто — проходи уроки, и слова сами накопятся здесь.", wb_empty_slang:"Пока пусто — сленг накопится из разборов песен. Можно добавить и своё.",
     wb_hint_words:"📘 авто с уроков · ✍️ добавил ты", wb_hint_slang:"🎵 из песен · ✍️ добавил ты",
     songs_h:"Разбор песни", songs_intro:"Выбери песню. Айдол разберёт её строка за строкой — смысл, грамматику и сленг.", songs_empty:"Пока нет песен.", songs_done_h:"Пройденные песни", song_guide:"Включи видео, а затем разбирай текст строку за строкой ниже.", song_next:"Следующая строка", song_finish:"Завершить песню ✓", song_save:tab=>`+ в ${tab}`, song_saved:"Сохранено ✓", song_save_toast:"Сохранено в Рабочую тетрадь", song_done_toast:"Песня пройдена 🎉", song_open_yt:"Открыть на YouTube",
+    kara_hint:"Нажми play — строки подсветятся в такт. В конце каждого куплета песня встанет на паузу для разбора.", kara_sync:"Синхрон", kara_cont:"Не останавливать", kara_verse:"Куплет", kara_repeat:"Повторить куплет", kara_nextv:"Следующий куплет",
     onb_title:"Как здесь всё устроено", onb_tour:"Показать по экрану →", onb_ok:"Понятно", onb_next:"Далее", onb_done:"Готово",
     tile_song:"Разбор песни", tile_song_sub:"строка за строкой", tile_slang:"Сленг из песен", tile_slang_sub:"живой корейский", tile_phrase:"Спросить фразу", tile_phrase_sub:"перевод + грамматика",
     seed_song:"Разбери песню: ", seed_slang:"Научи меня корейскому сленгу из песен 🙂", seed_phrase:"Как сказать по-корейски: ",

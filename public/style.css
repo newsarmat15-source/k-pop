@@ -317,6 +317,34 @@ main{display:none}main.show{display:block}
 .song-ctrl{margin-top:4px}
 .song-next{width:100%;justify-content:center;margin-left:0}
 
+/* ===== КАРАОКЕ-РАЗБОР ===== */
+.kara-hint{font-size:11.5px;color:var(--dim,#7d6f97);margin:10px 0 14px;line-height:1.4}
+.kara-lines{display:flex;flex-direction:column;gap:9px;margin-bottom:12px}
+.kl{text-align:center;transition:transform .15s}
+.kl.on{transform:scale(1.05)}
+.kl-kr{font-size:18px;font-weight:700;line-height:1.4;color:var(--dim,#7d6f97);display:inline-block;max-width:100%}
+.kl.done .kl-kr{color:var(--accent2)}
+.kl.on .kl-kr{background:linear-gradient(90deg,var(--accent2) var(--p,0%),var(--dim,#7d6f97) var(--p,0%));-webkit-background-clip:text;background-clip:text;color:transparent}
+.kl-rom{font-size:11px;color:var(--dim,#7d6f97);font-style:italic;margin-top:2px}
+.kl.on .kl-rom{color:var(--muted,#a99cc0)}
+.kara-pause{background:var(--panel,rgba(52,38,78,.42));border:1px solid var(--accent2);padding:14px;margin-bottom:12px}
+.kp-h{font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--champ,#f3d9ac);margin-bottom:8px}
+.kp-tr{font-size:14.5px;line-height:1.5;color:var(--ink);margin-bottom:10px}
+.kp-note{font-size:13px;line-height:1.5;color:var(--muted,#a99cc0);background:rgba(243,217,172,.07);border:1px solid rgba(243,217,172,.2);padding:9px 11px;margin-bottom:10px}
+.kp-vocab{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.kp-word{background:none;border:1px solid var(--accent2);color:var(--accent2);font:inherit;font-size:13px;padding:5px 10px;cursor:pointer}
+.kp-word.on{border-color:#7cc88c;color:#7cc88c;cursor:default}
+.kp-ctrl{display:flex;gap:8px}
+.kp-btn{flex:1;justify-content:center;margin-left:0;padding:11px;font-size:14px;text-align:center}
+.kp-btn.ghost{background:none;border:1px solid var(--line);color:var(--muted,#a99cc0);cursor:pointer}
+.kp-btn.ghost:hover{border-color:var(--accent2);color:var(--accent2)}
+.kara-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:12px}
+.kara-cal{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--dim,#7d6f97)}
+.kara-cal button{width:26px;height:26px;background:var(--panel2);border:1px solid var(--line);color:var(--ink);font-size:15px;cursor:pointer;line-height:1}
+.kara-cal button:hover{border-color:var(--accent2)}
+.kara-cal span{min-width:36px;text-align:center}
+.kara-toggle{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted,#a99cc0);cursor:pointer}
+
 /* ===== ОНБОРДИНГ ===== */
 .onb-card{position:relative;background:var(--bg2);border:1px solid var(--accent2);width:min(88vw,420px);max-height:78vh;overflow-y:auto;padding:24px 20px 20px;box-shadow:0 24px 70px -20px #000}
 .onb-x{position:absolute;top:10px;right:12px}
