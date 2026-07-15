@@ -329,7 +329,9 @@ function renderCabinet(chartEntry,readOnly){
   const movesVal=isOther?viewedIdol.movesLearned:(myTraining?myTraining.dance_moves_learned:0);
   const mockAward=isOther?{weeksAtTop:0,fastRise:false,allTimeVotes:viewedIdol.votes}:{weeksAtTop:2,fastRise:false,allTimeVotes:movesVal*57+340};
   const clipsData=isOther?(viewedIdol.clips||[]):myClips;
-  const cards=Array.from({length:4}).map(()=>idol.img);
+  // Фотокарточки: открывается по мере прогресса. Старт — 1 открыта, остальные заблюрены (интрига).
+  const TOTAL_CARDS=8;
+  const unlockedCards=Math.min(TOTAL_CARDS,1+Math.ceil((langPct/100)*(TOTAL_CARDS-1)));
 
   const langRest=fmtRest(myTraining&&myTraining.language_cooldown_until?new Date(myTraining.language_cooldown_until).getTime()-Date.now():0);
   const danceRest=fmtRest(myTraining&&myTraining.dance_cooldown_until?new Date(myTraining.dance_cooldown_until).getTime()-Date.now():0);
@@ -374,8 +376,10 @@ function renderCabinet(chartEntry,readOnly){
       </div>
 
       <div class="coll">
-        <div class="coll-h">${t('coll_h')} <span>${cards.length}</span></div>
-        <div class="coll-grid">${cards.map(src=>`<img src="${src}">`).join('')}</div>
+        <div class="coll-h">${t('coll_h')} <span>${unlockedCards}/${TOTAL_CARDS}</span></div>
+        <div class="coll-grid">${Array.from({length:TOTAL_CARDS}).map((_,i)=>i<unlockedCards
+          ?`<img src="${idol.img}" alt="">`
+          :`<div class="card-locked"><span class="cl-lock">🔒</span></div>`).join('')}</div>
         <div class="coll-note">${t('coll_note')(idol.name)}</div>
       </div>
 
@@ -1019,14 +1023,14 @@ const T={
     lesson_start:"Start a lesson", lesson_sub:n=>`${n} teaches you Korean right in the chat`,
     tile_song:"Break a song", tile_song_sub:"line by line", tile_slang:"Song slang", tile_slang_sub:"real Korean", tile_phrase:"Ask a phrase", tile_phrase_sub:"translation + grammar",
     seed_song:"Break down this song: ", seed_slang:"Teach me some Korean slang from songs 🙂", seed_phrase:"How do you say in Korean: ",
-    coll_h:"Photocards", coll_note:n=>`Collect looks of ${n} — rare cards drop in packs. Soon.`,
+    coll_h:"Photocards", coll_note:n=>`New ${n} cards unlock as you finish lessons and quizzes — keep going to reveal them all.`,
     close_h:"💞 Your closeness", close_stage:["Just met","Getting closer","Close friends"],
     close_note:(n,s)=>`${n} speaks to you in <b>${s}</b> — the more you learn, the closer you get, and speech turns friendly.`,
     speech:["polite 존댓말 (jondaetmal)","존댓말, soon 반말","friendly 반말 (banmal)"],
     sub_link:"Subscribe · unlimited lessons · $10/mo →",
     chat_title:n=>`Lesson with ${n}`, chat_ph:"Answer or ask in Korean…",
     chat_loading:"Loading chat…", chat_first:"Say hi first — your idol will reply 💛", chat_need_idol:"Get an idol first.", chat_err:"Idol didn't reply", chat_net:"Network unavailable",
-    au_signup:"Sign up", au_login:"Log in", au_logout:"Log out", au_user:"Producer name", au_email:"Email", au_pass:"Password (min 8 chars)", au_create:"Create account", au_have:"Already have an account?", au_no:"No account yet?",
+    au_signup:"Sign up", au_login:"Log in", au_logout:"Log out", au_user:"Name", au_email:"Email", au_pass:"Password (min 8 chars)", au_create:"Create account", au_have:"Already have an account?", au_no:"No account yet?",
     forgot_link:"Forgot password?", forgot_h:"Reset password", forgot_send:"Send reset link", forgot_sent:"If that email exists, we sent a reset link. Check your inbox.", back_login:"← Back to log in",
   },
   ru:{
@@ -1037,14 +1041,14 @@ const T={
     lesson_start:"Начать урок", lesson_sub:n=>`${n} учит корейскому прямо в переписке`,
     tile_song:"Разбор песни", tile_song_sub:"строка за строкой", tile_slang:"Сленг из песен", tile_slang_sub:"живой корейский", tile_phrase:"Спросить фразу", tile_phrase_sub:"перевод + грамматика",
     seed_song:"Разбери песню: ", seed_slang:"Научи меня корейскому сленгу из песен 🙂", seed_phrase:"Как сказать по-корейски: ",
-    coll_h:"Фотокарточки", coll_note:n=>`Собирай образы ${n} — редкие карточки в паках. Скоро.`,
+    coll_h:"Фотокарточки", coll_note:n=>`Новые карточки ${n} открываются за пройденные уроки и проверочные — учись, чтобы открыть все.`,
     close_h:"💞 Ваша близость", close_stage:["Только познакомились","Сближаетесь","Близкие друзья"],
     close_note:(n,s)=>`${n} говорит с тобой на <b>${s}</b> — чем больше учишься, тем ближе вы, и речь становится дружеской.`,
     speech:["вежливом 존댓말 (jondaetmal)","존댓말, скоро перейдёт на 반말","дружеском 반말 (banmal)"],
     sub_link:"Подписка · безлимит уроков · $10/мес →",
     chat_title:n=>`Урок с ${n}`, chat_ph:"Ответь или спроси по-корейски…",
     chat_loading:"Загружаю переписку…", chat_first:"Напиши первым — твой айдол ответит 💛", chat_need_idol:"Сначала заведи айдола.", chat_err:"Айдол не ответил", chat_net:"Сеть недоступна",
-    au_signup:"Регистрация", au_login:"Вход", au_logout:"Выйти", au_user:"Имя продюсера", au_email:"Email", au_pass:"Пароль (мин. 8 символов)", au_create:"Создать аккаунт", au_have:"Уже есть аккаунт?", au_no:"Нет аккаунта?",
+    au_signup:"Регистрация", au_login:"Вход", au_logout:"Выйти", au_user:"Имя", au_email:"Email", au_pass:"Пароль (мин. 8 символов)", au_create:"Создать аккаунт", au_have:"Уже есть аккаунт?", au_no:"Нет аккаунта?",
     forgot_link:"Забыли пароль?", forgot_h:"Сброс пароля", forgot_send:"Отправить ссылку", forgot_sent:"Если такой email есть — мы отправили ссылку для сброса. Проверь почту.", back_login:"← Назад ко входу",
   }
 };
