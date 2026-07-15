@@ -293,6 +293,29 @@ main{display:none}main.show{display:block}
 .wb-del{background:none;border:none;color:var(--dim,#7d6f97);cursor:pointer;font-size:13px;padding:2px 4px;line-height:1}
 .wb-del:hover{color:#d97f7f}
 .wb-empty{text-align:center;color:var(--dim,#7d6f97);font-size:13px;padding:28px 12px;line-height:1.5}
+
+/* ===== РАЗБОР ПЕСНИ ===== */
+.song-intro{font-size:13.5px;line-height:1.5;color:var(--muted,#a99cc0);margin-bottom:14px}
+.song-item{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:var(--panel,rgba(52,38,78,.42));border:1px solid var(--line);color:var(--ink);padding:12px 14px;cursor:pointer;transition:.15s;margin-bottom:8px}
+.song-item:hover{border-color:var(--accent2);transform:translateX(2px)}
+.song-item.done{border-color:rgba(120,200,140,.4)}
+.song-item.done .lsn-badge{color:#7cc88c}
+.song-video{position:relative;width:100%;padding-bottom:56.25%;margin-bottom:14px;background:#000;border:1px solid var(--line)}
+.song-video iframe{position:absolute;inset:0;width:100%;height:100%}
+.song-yt{display:inline-block;font-size:12px;color:var(--accent2);text-decoration:none;margin:-8px 0 12px}
+.song-yt:hover{text-decoration:underline}
+.song-teacher-note{font-size:12px;color:var(--dim,#7d6f97);margin-bottom:14px}
+.song-lines{display:flex;flex-direction:column;gap:12px;margin-bottom:14px}
+.song-line{background:var(--panel,rgba(52,38,78,.42));border:1px solid var(--line);border-left:3px solid var(--accent2);padding:12px 14px}
+.sl-kr{font-size:19px;font-weight:700;color:var(--ink);line-height:1.4}
+.sl-rom{font-size:12.5px;color:var(--dim,#7d6f97);font-style:italic;margin-top:2px}
+.sl-tr{font-size:14.5px;color:var(--muted,#a99cc0);margin-top:6px}
+.sl-note{font-size:13px;line-height:1.5;color:var(--muted,#a99cc0);margin-top:8px;background:rgba(243,217,172,.07);border:1px solid rgba(243,217,172,.2);padding:9px 11px}
+.sl-save{margin-top:10px;background:none;border:1px solid var(--accent2);color:var(--accent2);font:inherit;font-size:12.5px;padding:6px 12px;cursor:pointer;transition:.12s}
+.sl-save:hover{background:rgba(217,128,171,.14)}
+.sl-save.on{border-color:#7cc88c;color:#7cc88c;cursor:default}
+.song-ctrl{margin-top:4px}
+.song-next{width:100%;justify-content:center;margin-left:0}
 .result{background:var(--bg2);border:1px solid var(--line);max-width:460px;width:100%;overflow:hidden}
 .result .rv{aspect-ratio:9/16;background:#000;position:relative;max-height:70vh}
 .result video{width:100%;height:100%;object-fit:contain;background:#000}

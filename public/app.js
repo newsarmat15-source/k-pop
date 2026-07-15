@@ -370,7 +370,7 @@ function renderCabinet(chartEntry,readOnly){
       </button>
 
       <div class="tiles">
-        <button class="tile" onclick="openChat(t('seed_song'))"><span class="t-emoji">🎵</span><b>${t('tile_song')}</b><small>${t('tile_song_sub')}</small></button>
+        <button class="tile" onclick="openSongs()"><span class="t-emoji">🎵</span><b>${t('tile_song')}</b><small>${t('tile_song_sub')}</small></button>
         <button class="tile" onclick="openWorkbook()"><span class="t-emoji">📓</span><b>${t('tile_wb')}</b><small>${t('tile_wb_sub')}</small></button>
         <button class="tile" onclick="openChat(t('seed_phrase'))"><span class="t-emoji">💬</span><b>${t('tile_phrase')}</b><small>${t('tile_phrase_sub')}</small></button>
       </div>
@@ -720,6 +720,88 @@ function wbDelete(kr){
   const voc=lsnVocab().filter(v=>v.kr!==kr);
   lsnSaveVocab(voc);
   renderWorkbook();
+}
+
+/* ===================== РАЗБОР ПЕСНИ ===================== */
+function songsDone(){try{return JSON.parse(localStorage.getItem('so_songs_'+lsnUid())||'[]')}catch(e){return[]}}
+function songsSaveDone(a){localStorage.setItem('so_songs_'+lsnUid(),JSON.stringify(a))}
+function allSongs(){return window.SONGS||[]}
+function closeSongs(){document.getElementById('songOv').classList.remove('show')}
+document.getElementById('songOv').onclick=e=>{if(e.target.id==='songOv')closeSongs()};
+
+function openSongs(){
+  if(!currentUser){openAuth('signup');return}
+  document.getElementById('songOv').classList.add('show');
+  document.getElementById('songBack').style.visibility='hidden';
+  document.getElementById('songTitle').textContent=t('songs_h');
+  const done=songsDone();const L=getLang();
+  const cards=allSongs().map(s=>{
+    const isDone=done.includes(s.id);
+    return `<button class="song-item ${isDone?'done':''}" onclick="openSong('${s.id}')">
+      <span class="lsn-badge">${isDone?'✓':'🎵'}</span>
+      <span class="lsn-txt"><b>${escapeHtml(s.title)}</b><small>${escapeHtml(s.artist)} · ${s.level?s.level[L]:''}</small></span>
+    </button>`;
+  }).join('')||`<div class="wb-empty">${t('songs_empty')}</div>`;
+  document.getElementById('songBody').innerHTML=`
+    <div class="song-intro">${t('songs_intro')}</div>
+    <div class="lsn-list">${cards}</div>
+    <div class="lsn-unit">${t('songs_done_h')} · ${done.length}/${allSongs().length}</div>`;
+  document.getElementById('songBody').scrollTop=0;
+}
+
+function openSong(id){
+  const song=allSongs().find(s=>s.id===id);if(!song)return;
+  window._song={song,idx:0,saved:{}};
+  document.getElementById('songOv').classList.add('show');
+  document.getElementById('songBack').style.visibility='visible';
+  document.getElementById('songTitle').textContent=song.title;
+  document.getElementById('songBody').innerHTML=`
+    <div class="song-video"><iframe src="https://www.youtube.com/embed/${song.ytId}" title="${escapeHtml(song.title)}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>
+    <a class="song-yt" href="https://www.youtube.com/watch?v=${song.ytId}" target="_blank" rel="noopener">${t('song_open_yt')} ↗</a>
+    <div class="song-teacher-note">${t('song_guide')}</div>
+    <div class="song-lines" id="songLines"></div>
+    <div class="song-ctrl" id="songCtrl"></div>`;
+  renderSongLines();
+  document.getElementById('songBody').scrollTop=0;
+}
+
+function renderSongLines(){
+  const {song,idx,saved}=window._song;const L=getLang();
+  const shown=song.lines.slice(0,idx+1).map((ln,i)=>`
+    <div class="song-line">
+      <div class="sl-kr">${escapeHtml(ln.kr)}</div>
+      <div class="sl-rom">${escapeHtml(ln.rom)}</div>
+      <div class="sl-tr">${escapeHtml(ln.tr[L])}</div>
+      <div class="sl-note">💡 ${ln.note[L]}</div>
+      ${ln.vocab?`<button class="sl-save ${saved[i]?'on':''}" ${saved[i]?'disabled':''} onclick="songSave(${i})">${saved[i]?t('song_saved'):t('song_save')(ln.vocab.slang?t('wb_slang'):t('wb_words'))}</button>`:''}
+    </div>`).join('');
+  document.getElementById('songLines').innerHTML=shown;
+  const last=idx>=song.lines.length-1;
+  document.getElementById('songCtrl').innerHTML=last
+    ? `<button class="btn accent song-next" onclick="songComplete()">${t('song_finish')}</button>`
+    : `<button class="btn accent song-next" onclick="songNext()">${t('song_next')} (${idx+1}/${song.lines.length})</button>`;
+  // прокрутить к последней строке
+  const lines=document.getElementById('songLines');
+  if(lines.lastElementChild)lines.lastElementChild.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+function songNext(){window._song.idx=Math.min(window._song.idx+1,window._song.song.lines.length-1);renderSongLines()}
+
+function songSave(i){
+  const ln=window._song.song.lines[i];if(!ln.vocab)return;
+  const voc=lsnVocab();
+  if(!voc.some(v=>v.kr===ln.vocab.kr)){
+    voc.push({...ln.vocab,from:'song'});lsnSaveVocab(voc);
+  }
+  window._song.saved[i]=true;renderSongLines();
+  toast(t('song_save_toast'));
+}
+
+function songComplete(){
+  const id=window._song.song.id;const done=songsDone();
+  if(!done.includes(id)){done.push(id);songsSaveDone(done)}
+  toast(t('song_done_toast'));
+  openSongs();
 }
 
 /* ===================== ЛЕНТА ПОДПИСОК ===================== */
@@ -1211,6 +1293,7 @@ const T={
     wb_h:"Workbook", wb_words:"Words", wb_slang:"Slang", wb_del:"Remove", wb_mean_ph:"meaning", wb_need_kr:"Type the Korean word", wb_dup:"Already in your workbook",
     wb_empty_words:"No words yet — finish lessons and they’ll pile up here automatically.", wb_empty_slang:"No slang yet — it’ll collect from song breakdowns. You can add your own too.",
     wb_hint_words:"📘 auto from lessons · ✍️ added by you", wb_hint_slang:"🎵 from songs · ✍️ added by you",
+    songs_h:"Break a song", songs_intro:"Pick a song. Your idol walks you through it line by line — meaning, grammar and slang.", songs_empty:"No songs yet.", songs_done_h:"Songs you’ve done", song_guide:"Play the video, then step through the lyrics line by line below.", song_next:"Next line", song_finish:"Finish song ✓", song_save:tab=>`+ ${tab}`, song_saved:"Saved ✓", song_save_toast:"Saved to your Workbook", song_done_toast:"Song complete 🎉", song_open_yt:"Open on YouTube",
     tile_song:"Break a song", tile_song_sub:"line by line", tile_slang:"Song slang", tile_slang_sub:"real Korean", tile_phrase:"Ask a phrase", tile_phrase_sub:"translation + grammar",
     seed_song:"Break down this song: ", seed_slang:"Teach me some Korean slang from songs 🙂", seed_phrase:"How do you say in Korean: ",
     coll_h:"Photocards", coll_note:n=>`New ${n} cards unlock as you finish lessons and quizzes — keep going to reveal them all.`,
@@ -1234,6 +1317,7 @@ const T={
     wb_h:"Рабочая тетрадь", wb_words:"Слова", wb_slang:"Сленг", wb_del:"Удалить", wb_mean_ph:"перевод", wb_need_kr:"Впиши корейское слово", wb_dup:"Уже есть в тетради",
     wb_empty_words:"Пока пусто — проходи уроки, и слова сами накопятся здесь.", wb_empty_slang:"Пока пусто — сленг накопится из разборов песен. Можно добавить и своё.",
     wb_hint_words:"📘 авто с уроков · ✍️ добавил ты", wb_hint_slang:"🎵 из песен · ✍️ добавил ты",
+    songs_h:"Разбор песни", songs_intro:"Выбери песню. Айдол разберёт её строка за строкой — смысл, грамматику и сленг.", songs_empty:"Пока нет песен.", songs_done_h:"Пройденные песни", song_guide:"Включи видео, а затем разбирай текст строку за строкой ниже.", song_next:"Следующая строка", song_finish:"Завершить песню ✓", song_save:tab=>`+ в ${tab}`, song_saved:"Сохранено ✓", song_save_toast:"Сохранено в Рабочую тетрадь", song_done_toast:"Песня пройдена 🎉", song_open_yt:"Открыть на YouTube",
     tile_song:"Разбор песни", tile_song_sub:"строка за строкой", tile_slang:"Сленг из песен", tile_slang_sub:"живой корейский", tile_phrase:"Спросить фразу", tile_phrase_sub:"перевод + грамматика",
     seed_song:"Разбери песню: ", seed_slang:"Научи меня корейскому сленгу из песен 🙂", seed_phrase:"Как сказать по-корейски: ",
     coll_h:"Фотокарточки", coll_note:n=>`Новые карточки ${n} открываются за пройденные уроки и проверочные — учись, чтобы открыть все.`,
