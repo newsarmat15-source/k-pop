@@ -781,6 +781,7 @@ function openSong(id){
   document.getElementById('songBody').innerHTML=`
     <div class="kara">
       <div class="song-video"><div id="ytPlayer"></div></div>
+      <a class="song-yt" href="https://www.youtube.com/watch?v=${song.ytId}" target="_blank" rel="noopener">${t('song_open_yt')} ↗</a>
       <div class="kara-hint">${t('kara_hint')}</div>
       <div class="kara-lines" id="karaLines"></div>
       <div class="kara-pause" id="karaPause" style="display:none"></div>
@@ -793,7 +794,7 @@ function openSong(id){
   renderKaraVerse();
   loadYT(()=>{
     const K=window._kara;if(!K)return;
-    K.player=new YT.Player('ytPlayer',{videoId:song.ytId,playerVars:{playsinline:1,rel:0,modestbranding:1},events:{}});
+    K.player=new YT.Player('ytPlayer',{videoId:song.ytId,host:'https://www.youtube-nocookie.com',playerVars:{playsinline:1,rel:0,modestbranding:1,origin:location.origin},events:{}});
     K.timer=setInterval(karaTick,120);
   });
 }
