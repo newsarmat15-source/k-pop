@@ -350,6 +350,7 @@ function renderCabinet(chartEntry,readOnly){
       </div>
     </div>` : `
     <div class="home">
+      <button class="onb-help" onclick="openOnb()" title="?">?</button>
       <div class="idol-hero">
         <div class="idol-ph holo-frame"><div class="ph-inner"><img src="${idol.img}"></div></div>
         <div class="idol-meta">
@@ -393,6 +394,7 @@ function renderCabinet(chartEntry,readOnly){
       <button class="sub-link" onclick="startCheckout('sub')">${t('sub_link')}</button>
     </div>
   `;
+  if(!isOther)maybeOnboard();
 }
 function renderCabGrid(){
   const g=document.getElementById('cabGrid');
@@ -803,6 +805,64 @@ function songComplete(){
   toast(t('song_done_toast'));
   openSongs();
 }
+
+/* ===================== ОНБОРДИНГ (памятка + гид-подсветка) ===================== */
+const ONB_ROWS=[
+  {ic:'📘', ru:'Уроки — учи корейский с нуля, шаг за шагом', en:'Lessons — learn Korean from zero, step by step'},
+  {ic:'📓', ru:'Рабочая тетрадь — слова с уроков и песен копятся сами', en:'Workbook — words from lessons and songs pile up on their own'},
+  {ic:'🎵', ru:'Разбор песни — айдол разбирает клип строка за строкой', en:'Song breakdown — your idol breaks a video down line by line'},
+  {ic:'💬', ru:'Чат с айдолом — он держится за пройденные слова, чтобы ты понимал, и подкидывает новые', en:'Chat — he keeps to words you’ve learned so you follow, and slips in new ones'},
+  {ic:'🔥', ru:'Ближе с каждым уроком — общение теплеет по мере прогресса', en:'Closer every lesson — the more you learn, the warmer he talks'},
+  {ic:'🎴', ru:'Карточки — открываются за пройденные уроки и проверочные', en:'Photocards — unlock as you finish lessons and quizzes'}
+];
+const TOUR_STEPS=[
+  {sel:'.lesson-cta', ru:'Отсюда начинаются уроки корейского.', en:'Korean lessons start here.'},
+  {sel:'.tiles .tile:nth-child(1)', ru:'Разбирай клипы строка за строкой.', en:'Break songs down line by line.'},
+  {sel:'.tiles .tile:nth-child(2)', ru:'Твои слова и сленг копятся здесь.', en:'Your words and slang collect here.'},
+  {sel:'.tiles .tile:nth-child(3)', ru:'Спроси айдола о чём угодно.', en:'Ask your idol anything.'},
+  {sel:'.closeness', ru:'Чем больше учишься — тем ближе айдол.', en:'The more you learn, the closer your idol gets.'},
+  {sel:'.coll', ru:'Карточки открываются за твой прогресс.', en:'Cards unlock as you progress.'}
+];
+function onbKey(){return 'so_onboarded_'+lsnUid()}
+function maybeOnboard(){if(!currentUser||!myIdol)return;if(localStorage.getItem(onbKey()))return;setTimeout(openOnb,450)}
+function closeOnb(){document.getElementById('onbOv').classList.remove('show');localStorage.setItem(onbKey(),'1')}
+document.getElementById('onbOv').onclick=e=>{if(e.target.id==='onbOv')closeOnb()};
+function openOnb(){
+  const L=getLang();
+  document.getElementById('onbBody').innerHTML=`
+    <div class="onb-title">${t('onb_title')}</div>
+    <div class="onb-rows">${ONB_ROWS.map(r=>`<div class="onb-row"><span class="onb-ic">${r.ic}</span><span>${r[L]}</span></div>`).join('')}</div>
+    <div class="onb-actions">
+      <button class="btn accent onb-tour" onclick="closeOnb();startTour()">${t('onb_tour')}</button>
+      <button class="onb-ok" onclick="closeOnb()">${t('onb_ok')}</button>
+    </div>`;
+  document.getElementById('onbOv').classList.add('show');
+}
+
+let _tourI=0;
+function startTour(){_tourI=0;document.getElementById('tourLayer').classList.add('on');tourShow()}
+function tourShow(){
+  const step=TOUR_STEPS[_tourI];
+  const el=step&&document.querySelector(step.sel);
+  if(!el){if(_tourI<TOUR_STEPS.length-1){_tourI++;return tourShow()}return endTour()}
+  el.scrollIntoView({block:'center',behavior:'smooth'});
+  setTimeout(()=>positionTour(el,step),280);
+}
+function positionTour(el,step){
+  const r=el.getBoundingClientRect(),pad=8;
+  const hole=document.getElementById('tourHole');
+  hole.style.top=(r.top-pad)+'px';hole.style.left=(r.left-pad)+'px';
+  hole.style.width=(r.width+pad*2)+'px';hole.style.height=(r.height+pad*2)+'px';
+  const tip=document.getElementById('tourTip');
+  document.getElementById('ttText').textContent=step[getLang()];
+  document.getElementById('ttCount').textContent=(_tourI+1)+'/'+TOUR_STEPS.length;
+  document.getElementById('ttNext').textContent=_tourI>=TOUR_STEPS.length-1?t('onb_done'):t('onb_next');
+  tip.style.left='50%';tip.style.transform='translateX(-50%)';
+  if(r.bottom+150<window.innerHeight){tip.style.top=(r.bottom+pad+10)+'px';tip.style.bottom='auto'}
+  else{tip.style.top='auto';tip.style.bottom=(window.innerHeight-r.top+pad+10)+'px'}
+}
+function tourNext(){_tourI++;if(_tourI>=TOUR_STEPS.length)return endTour();tourShow()}
+function endTour(){document.getElementById('tourLayer').classList.remove('on')}
 
 /* ===================== ЛЕНТА ПОДПИСОК ===================== */
 const FAKE_PRODUCERS=['moonlight_stage','neon_producer','starlight_fan','crystal_prod'];
@@ -1294,6 +1354,7 @@ const T={
     wb_empty_words:"No words yet — finish lessons and they’ll pile up here automatically.", wb_empty_slang:"No slang yet — it’ll collect from song breakdowns. You can add your own too.",
     wb_hint_words:"📘 auto from lessons · ✍️ added by you", wb_hint_slang:"🎵 from songs · ✍️ added by you",
     songs_h:"Break a song", songs_intro:"Pick a song. Your idol walks you through it line by line — meaning, grammar and slang.", songs_empty:"No songs yet.", songs_done_h:"Songs you’ve done", song_guide:"Play the video, then step through the lyrics line by line below.", song_next:"Next line", song_finish:"Finish song ✓", song_save:tab=>`+ ${tab}`, song_saved:"Saved ✓", song_save_toast:"Saved to your Workbook", song_done_toast:"Song complete 🎉", song_open_yt:"Open on YouTube",
+    onb_title:"How it all works", onb_tour:"Show me around →", onb_ok:"Got it", onb_next:"Next", onb_done:"Done",
     tile_song:"Break a song", tile_song_sub:"line by line", tile_slang:"Song slang", tile_slang_sub:"real Korean", tile_phrase:"Ask a phrase", tile_phrase_sub:"translation + grammar",
     seed_song:"Break down this song: ", seed_slang:"Teach me some Korean slang from songs 🙂", seed_phrase:"How do you say in Korean: ",
     coll_h:"Photocards", coll_note:n=>`New ${n} cards unlock as you finish lessons and quizzes — keep going to reveal them all.`,
@@ -1318,6 +1379,7 @@ const T={
     wb_empty_words:"Пока пусто — проходи уроки, и слова сами накопятся здесь.", wb_empty_slang:"Пока пусто — сленг накопится из разборов песен. Можно добавить и своё.",
     wb_hint_words:"📘 авто с уроков · ✍️ добавил ты", wb_hint_slang:"🎵 из песен · ✍️ добавил ты",
     songs_h:"Разбор песни", songs_intro:"Выбери песню. Айдол разберёт её строка за строкой — смысл, грамматику и сленг.", songs_empty:"Пока нет песен.", songs_done_h:"Пройденные песни", song_guide:"Включи видео, а затем разбирай текст строку за строкой ниже.", song_next:"Следующая строка", song_finish:"Завершить песню ✓", song_save:tab=>`+ в ${tab}`, song_saved:"Сохранено ✓", song_save_toast:"Сохранено в Рабочую тетрадь", song_done_toast:"Песня пройдена 🎉", song_open_yt:"Открыть на YouTube",
+    onb_title:"Как здесь всё устроено", onb_tour:"Показать по экрану →", onb_ok:"Понятно", onb_next:"Далее", onb_done:"Готово",
     tile_song:"Разбор песни", tile_song_sub:"строка за строкой", tile_slang:"Сленг из песен", tile_slang_sub:"живой корейский", tile_phrase:"Спросить фразу", tile_phrase_sub:"перевод + грамматика",
     seed_song:"Разбери песню: ", seed_slang:"Научи меня корейскому сленгу из песен 🙂", seed_phrase:"Как сказать по-корейски: ",
     coll_h:"Фотокарточки", coll_note:n=>`Новые карточки ${n} открываются за пройденные уроки и проверочные — учись, чтобы открыть все.`,

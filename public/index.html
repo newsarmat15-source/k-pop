@@ -147,6 +147,17 @@
   </div>
   <div class="lesson-body" id="songBody"></div>
 </div></div>
+<div class="ov" id="onbOv"><div class="onb-card" id="onbCard">
+  <button class="chat-x onb-x" onclick="closeOnb()">✕</button>
+  <div class="onb-body" id="onbBody"></div>
+</div></div>
+<div class="tour-layer" id="tourLayer" onclick="tourNext()">
+  <div class="tour-hole" id="tourHole"></div>
+  <div class="tour-tip" id="tourTip" onclick="event.stopPropagation()">
+    <div class="tt-text" id="ttText"></div>
+    <div class="tt-row"><span id="ttCount"></span><button class="btn accent tt-next" onclick="tourNext()" id="ttNext">Далее</button></div>
+  </div>
+</div>
 <div class="toast" id="toast"></div>
 
 <script src="/curriculum.js"></script>

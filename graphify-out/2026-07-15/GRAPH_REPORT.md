@@ -1,16 +1,16 @@
 # Graph Report - StageOne  (2026-07-15)
 
 ## Corpus Check
-- 67 files · ~349,859 words
+- 67 files · ~350,120 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 500 nodes · 834 edges · 60 communities (34 shown, 26 thin omitted)
+- 506 nodes · 853 edges · 60 communities (34 shown, 26 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 4 edges (avg confidence: 0.54)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `e30e8da1`
+- Built from commit: `f781c564`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -78,14 +78,14 @@
 ## God Nodes (most connected - your core abstractions)
 1. `readUserId()` - 22 edges
 2. `supabase()` - 22 edges
-3. `toast()` - 13 edges
+3. `toast()` - 14 edges
 4. `StageOne — прогресс по этапам` - 12 edges
 5. `StageOne — проектный документ` - 12 edges
 6. `fetchWithRetry()` - 12 edges
 7. `renderCabinet()` - 11 edges
 8. `finishLesson()` - 11 edges
-9. `handler()` - 11 edges
-10. `showView()` - 10 edges
+9. `openAuth()` - 11 edges
+10. `handler()` - 11 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `handleGenerate()` --calls--> `readUserId()`  [EXTRACTED]
@@ -160,8 +160,8 @@ Cohesion: 0.48
 Nodes (11): downloadTo(), fetchVideoResult(), generateVideo15s(), log(), main(), pollUntilComplete(), runSyncLipsync(), sleep() (+3 more)
 
 ### Community 14 - "finishLesson"
-Cohesion: 0.42
-Nodes (9): allLessons(), finishLesson(), lessonPct(), lsnDone(), lsnSaveDone(), lsnSaveVocab(), lsnUid(), lsnVocab() (+1 more)
+Cohesion: 0.29
+Nodes (13): allLessons(), finishLesson(), lessonPct(), lsnDone(), lsnSaveDone(), lsnSaveVocab(), lsnUid(), lsnVocab() (+5 more)
 
 ### Community 15 - "Project Migration & Consolidation"
 Cohesion: 0.20
@@ -224,8 +224,8 @@ Cohesion: 0.43
 Nodes (7): client(), config, handleCheckout(), handler(), handleWebhook(), PRODUCTS, rawBody()
 
 ### Community 52 - "toast"
-Cohesion: 0.19
-Nodes (17): claimIdol(), doFollow(), doTrain(), doVote(), fmtRest(), idHash(), loadChart(), mockPushLive() (+9 more)
+Cohesion: 0.18
+Nodes (18): claimIdol(), doFollow(), doTrain(), doVote(), fmtRest(), idHash(), loadChart(), mockPushLive() (+10 more)
 
 ### Community 72 - "renderLangOpts"
 Cohesion: 0.33
@@ -254,7 +254,7 @@ _Questions this graph is uniquely positioned to answer:_
 - **What connects `state`, `LANG_CODE`, `LANG_COLOR` to the rest of the system?**
   _184 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Frontend App Logic (app.js)` be split into smaller, more focused modules?**
-  _Cohesion score 0.07058823529411765 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.06825396825396825 - nodes in this community are weakly interconnected._
 - **Should `Auth & Clip API Handlers` be split into smaller, more focused modules?**
   _Cohesion score 0.059887005649717516 - nodes in this community are weakly interconnected._
 - **Should `Dance Move System (pipeline.js)` be split into smaller, more focused modules?**
