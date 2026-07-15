@@ -1,16 +1,16 @@
 # Graph Report - StageOne  (2026-07-15)
 
 ## Corpus Check
-- 66 files · ~347,247 words
+- 66 files · ~347,702 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 543 nodes · 836 edges · 77 communities (39 shown, 38 thin omitted)
+- 547 nodes · 828 edges · 76 communities (38 shown, 38 thin omitted)
 - Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 14 edges (avg confidence: 0.79)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `d5746e3e`
+- Built from commit: `622d1eb1`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -91,11 +91,10 @@
 - showView
 - submitAuth
 - generate
-- showView
 
 ## God Nodes (most connected - your core abstractions)
-1. `supabase()` - 26 edges
-2. `readUserId()` - 24 edges
+1. `readUserId()` - 22 edges
+2. `supabase()` - 22 edges
 3. `toast()` - 12 edges
 4. `StageOne — проектный документ` - 12 edges
 5. `fetchWithRetry()` - 12 edges
@@ -110,12 +109,12 @@
   README.md → PROGRESS.md
 - `Japanese Lyrics Transcript (last.txt)` --conceptually_related_to--> `Language Selector (KO/EN/JA/ZH) + Bilingual Unlock`  [AMBIGUOUS]
   graphify-out/transcripts/last.txt → PROGRESS.md
-- `handleGenerate()` --calls--> `readUserId()`  [EXTRACTED]
-  api/pipeline.js → lib/session.js
-- `handleLipsync()` --calls--> `readUserId()`  [EXTRACTED]
-  api/pipeline.js → lib/session.js
-- `handleSong()` --calls--> `readUserId()`  [EXTRACTED]
-  api/pipeline.js → lib/session.js
+- `handleCreate()` --calls--> `readUserId()`  [EXTRACTED]
+  api/clip.js → lib/session.js
+- `handleUpdate()` --calls--> `readUserId()`  [EXTRACTED]
+  api/clip.js → lib/session.js
+- `handleVote()` --calls--> `readUserId()`  [EXTRACTED]
+  api/engage.js → lib/session.js
 
 ## Import Cycles
 - None detected.
@@ -124,19 +123,19 @@
 - **Files comprising the StageOne_app_v2.4 codebase** — full_dialogue_2026_07_08_stageone_app_v2_4, full_dialogue_2026_07_08_api_generate_js, full_dialogue_2026_07_08_api_result_js, full_dialogue_2026_07_08_api_status_js, full_dialogue_2026_07_08_public_index_html, full_dialogue_2026_07_08_idols_json [INFERRED 0.85]
 - **QA Render Samples (video/audio URLs + Whisper Transcripts)** — review_rap_final_url, review_song_climax_url, review_song_ko_url, review_song_rap_url, review_withsound_url, review_rms, graphify_out_transcripts_rap_final, graphify_out_transcripts_song_climax, graphify_out_transcripts_song_ko, graphify_out_transcripts_rap_song, graphify_out_transcripts_withsound [INFERRED 0.85]
 
-## Communities (77 total, 38 thin omitted)
+## Communities (76 total, 38 thin omitted)
 
 ### Community 0 - "Frontend App Logic (app.js)"
 Cohesion: 0.07
-Nodes (26): authReady, awardsHtml(), BIO_SAMPLE, bioState, CLIP, CLIP_COLOR, CLIP_ICON, DANCE (+18 more)
+Nodes (30): authReady, awardsHtml(), BIO_SAMPLE, bioState, CLIP, CLIP_COLOR, CLIP_ICON, DANCE (+22 more)
 
 ### Community 1 - "Auth & Clip API Handlers"
-Cohesion: 0.07
-Nodes (43): handleLogin(), handleLogout(), handleMe(), handler(), handleSignup(), handleCreate(), handleList(), handler() (+35 more)
+Cohesion: 0.06
+Nodes (38): handleCreate(), handleList(), handler(), handleUpdate(), handleChart(), handleFollow(), handler(), handleTrain() (+30 more)
 
 ### Community 2 - "Dance Move System (pipeline.js)"
 Cohesion: 0.10
-Nodes (43): BOY_REGISTER, BOY_TEXTURE, BOY_TIMBRE, buildClipMoves(), CLIP, DANCE_GENDER, DANCE_LEGACY, detectSilences() (+35 more)
+Nodes (44): BOY_REGISTER, BOY_TEXTURE, BOY_TIMBRE, buildClipMoves(), CLIP, DANCE_GENDER, DANCE_LEGACY, detectSilences() (+36 more)
 
 ### Community 3 - "Kling Stack & Orchestration Decisions"
 Cohesion: 0.12
@@ -151,12 +150,12 @@ Cohesion: 0.15
 Nodes (13): AI-Friend-in-Phone Strategy, api/create-idol.js, api/signup.js, login.js, logout.js, me.js, China AI Anthropomorphic Interaction Law, DB Schema (profiles/idols/training_stats/clips/photocards/votes/follows/chat_messages/subscriptions), Density Fix: Badges/Tags/Counters, E2E Test Scripts (test-auth-flow, test-follow-streak, test-vote-train), api/train.js, vote.js, chart.js, follow.js, clip-create/list/update.js, idol.js (+5 more)
 
 ### Community 6 - "test-follow-streak.mjs"
-Cohesion: 0.29
-Nodes (4): cookie, r1, r2, r3
+Cohesion: 0.12
+Nodes (13): createSessionCookie(), sign(), cookie, db, ownerCookie, r1, r2, r3 (+5 more)
 
 ### Community 7 - "Vote/Training Integration Test"
-Cohesion: 0.13
-Nodes (12): db, ownerCookie, r1, r2, r3, r4, r5, r6 (+4 more)
+Cohesion: 0.46
+Nodes (7): handleForgot(), handleLogin(), handleLogout(), handleMe(), handler(), handleReset(), handleSignup()
 
 ### Community 8 - "Clips Integration Test"
 Cohesion: 0.15
@@ -259,28 +258,24 @@ Cohesion: 0.43
 Nodes (7): client(), config, handleCheckout(), handler(), handleWebhook(), PRODUCTS, rawBody()
 
 ### Community 52 - "toast"
-Cohesion: 0.22
-Nodes (14): claimIdol(), doFollow(), doTrain(), doVote(), fmtRest(), idHash(), mockPushLive(), openAuth() (+6 more)
+Cohesion: 0.20
+Nodes (16): claimIdol(), doFollow(), doVote(), fmtRest(), idHash(), loadChart(), mockPushLive(), openAuth() (+8 more)
 
 ### Community 72 - "renderLangOpts"
 Cohesion: 0.29
-Nodes (12): bilingualUnlocked(), boot(), buildOpts(), langSwatch(), nativeGenres(), renderBilingualBox(), renderDanceOpts(), renderLangOpts() (+4 more)
+Nodes (11): boot(), buildOpts(), nativeGenres(), renderDanceOpts(), renderIdolGrid(), renderSel(), renderSongOpts(), svgIcon() (+3 more)
 
 ### Community 73 - "showView"
 Cohesion: 0.25
 Nodes (8): applyStatic(), chatBubble(), escapeHtml(), fmtMsg(), getLang(), openChat(), sendChat(), T
 
 ### Community 74 - "submitAuth"
-Cohesion: 0.33
-Nodes (7): checkAuth(), closeAuthOv(), doLogout(), loadMyIdol(), renderAuthArea(), renderAuthForm(), submitAuth()
+Cohesion: 0.21
+Nodes (12): bilingualUnlocked(), checkAuth(), closeAuthOv(), doLogout(), doTrain(), langSwatch(), loadMyIdol(), renderAuthArea() (+4 more)
 
 ### Community 75 - "generate"
 Cohesion: 0.33
 Nodes (6): errBox(), generate(), generateOneSegment(), lbl(), pollJob(), stepsHtml()
-
-### Community 76 - "showView"
-Cohesion: 0.25
-Nodes (8): loadChart(), renderChart(), renderIdolGrid(), renderLenta(), renderLentaTeaser(), renderSel(), showView(), toggle()
 
 ## Ambiguous Edges - Review These
 - `Japanese Lyrics Transcript (last.txt)` → `Language Selector (KO/EN/JA/ZH) + Bilingual Unlock`  [AMBIGUOUS]
@@ -296,15 +291,15 @@ _Questions this graph is uniquely positioned to answer:_
 
 - **What is the exact relationship between `Japanese Lyrics Transcript (last.txt)` and `Language Selector (KO/EN/JA/ZH) + Bilingual Unlock`?**
   _Edge tagged AMBIGUOUS (relation: conceptually_related_to) - confidence is low._
-- **Why does `supabase()` connect `Auth & Clip API Handlers` to `Clips Integration Test`, `test-follow-streak.mjs`, `Vote/Training Integration Test`?**
-  _High betweenness centrality (0.026) - this node is a cross-community bridge._
-- **Why does `readUserId()` connect `Auth & Clip API Handlers` to `Dance Move System (pipeline.js)`?**
-  _High betweenness centrality (0.020) - this node is a cross-community bridge._
+- **Why does `supabase()` connect `Auth & Clip API Handlers` to `Clips Integration Test`, `test-follow-streak.mjs`?**
+  _High betweenness centrality (0.024) - this node is a cross-community bridge._
+- **Why does `readUserId()` connect `Dance Move System (pipeline.js)` to `Auth & Clip API Handlers`, `test-follow-streak.mjs`?**
+  _High betweenness centrality (0.018) - this node is a cross-community bridge._
 - **What connects `IDOLS`, `state`, `SONG` to the rest of the system?**
   _227 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Frontend App Logic (app.js)` be split into smaller, more focused modules?**
-  _Cohesion score 0.07096774193548387 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.06554621848739496 - nodes in this community are weakly interconnected._
 - **Should `Auth & Clip API Handlers` be split into smaller, more focused modules?**
-  _Cohesion score 0.07130333138515488 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.05656565656565657 - nodes in this community are weakly interconnected._
 - **Should `Dance Move System (pipeline.js)` be split into smaller, more focused modules?**
-  _Cohesion score 0.0966183574879227 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.10083256244218317 - nodes in this community are weakly interconnected._

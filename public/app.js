@@ -325,7 +325,7 @@ function renderCabinet(chartEntry,readOnly){
   const idolCreatedAt=isOther?viewedIdol.idol.created_at:myIdol.created_at;
   const streak=idolCreatedAt?Math.max(1,Math.floor((Date.now()-new Date(idolCreatedAt).getTime())/86400000)+1):1;
   const league=isOther?viewedIdol.idol.league:myIdol.league;
-  const langPct=isOther?0:(myTraining?myTraining.language_pct:0);
+  const langPct=isOther?0:Math.max((myTraining?myTraining.language_pct:0),Math.round(lessonPct()));
   const movesVal=isOther?viewedIdol.movesLearned:(myTraining?myTraining.dance_moves_learned:0);
   const mockAward=isOther?{weeksAtTop:0,fastRise:false,allTimeVotes:viewedIdol.votes}:{weeksAtTop:2,fastRise:false,allTimeVotes:movesVal*57+340};
   const clipsData=isOther?(viewedIdol.clips||[]):myClips;
@@ -363,7 +363,7 @@ function renderCabinet(chartEntry,readOnly){
         </div>
       </div>
 
-      <button class="lesson-cta" onclick="openChat()">
+      <button class="lesson-cta" onclick="openLessons()">
         <span class="lc-emoji">🇰🇷</span>
         <span class="lc-text"><b>${t('lesson_start')}</b><small>${t('lesson_sub')(idol.name)}</small></span>
         <span class="lc-arrow">→</span>
@@ -535,6 +535,133 @@ async function sendChat(){
     else{log.insertAdjacentHTML('beforeend',chatBubble(d.reply))}
   }catch(e){document.getElementById('chatTyping')?.remove();log.insertAdjacentHTML('beforeend','<div class="chat-empty">'+t('chat_net')+'</div>')}
   btn.disabled=false;log.scrollTop=log.scrollHeight;inp.focus();
+}
+
+/* ===================== УРОК-ФУНДАМЕНТ ===================== */
+// Прогресс уроков и словарь копятся локально (server-sync — следующий шаг).
+function lsnUid(){return (currentUser&&currentUser.id)||'guest'}
+function lsnDone(){try{return JSON.parse(localStorage.getItem('so_done_'+lsnUid())||'[]')}catch(e){return[]}}
+function lsnSaveDone(arr){localStorage.setItem('so_done_'+lsnUid(),JSON.stringify(arr))}
+function lsnVocab(){try{return JSON.parse(localStorage.getItem('so_vocab_'+lsnUid())||'[]')}catch(e){return[]}}
+function lsnSaveVocab(arr){localStorage.setItem('so_vocab_'+lsnUid(),JSON.stringify(arr))}
+function allLessons(){return (window.CURRICULUM?window.CURRICULUM.units:[]).flatMap(u=>u.lessons.map(l=>({...l,unit:u})))}
+function lessonPct(){const all=allLessons();if(!all.length)return 0;return lsnDone().length/all.length*100}
+function optLabel(o){return typeof o==='string'?o:o[getLang()]}
+
+function closeLessons(){document.getElementById('lessonOv').classList.remove('show')}
+document.getElementById('lessonOv').onclick=e=>{if(e.target.id==='lessonOv')closeLessons()};
+
+function openLessons(){
+  if(!currentUser){openAuth('signup');return}
+  document.getElementById('lessonOv').classList.add('show');
+  document.getElementById('lsnBack').style.visibility='hidden';
+  document.getElementById('lessonTitle').textContent=t('lessons_h');
+  const done=lsnDone();
+  const flat=allLessons();
+  // Урок открыт, если он пройден ИЛИ это следующий по очереди (последовательная разблокировка).
+  const firstLockedIdx=flat.findIndex(l=>!done.includes(l.id));
+  let html='';
+  (window.CURRICULUM?window.CURRICULUM.units:[]).forEach(u=>{
+    html+=`<div class="lsn-unit">${u.title[getLang()]}</div><div class="lsn-list">`;
+    u.lessons.forEach(l=>{
+      const idx=flat.findIndex(x=>x.id===l.id);
+      const isDone=done.includes(l.id);
+      const unlocked=isDone||idx===firstLockedIdx||firstLockedIdx===-1;
+      const cls=isDone?'done':unlocked?'':'locked';
+      const badge=isDone?'✓':unlocked?'▶':'🔒';
+      html+=`<button class="lsn-item ${cls}" ${unlocked?`onclick="openLesson('${l.id}')"`:'disabled'}>
+        <span class="lsn-badge">${badge}</span>
+        <span class="lsn-txt"><b>${l.title[getLang()]}</b><small>${(l.goal&&l.goal[getLang()])||''}</small></span>
+      </button>`;
+    });
+    html+='</div>';
+  });
+  const pct=Math.round(lessonPct());
+  html=`<div class="lsn-progress"><div class="lsn-pbar"><i style="width:${pct}%"></i></div><span>${done.length}/${flat.length} · ${pct}%</span></div>`+html;
+  document.getElementById('lessonBody').innerHTML=html;
+  document.getElementById('lessonBody').scrollTop=0;
+}
+
+function renderBlock(b){
+  const L=getLang();
+  if(b.type==='hangul')return `<div class="lb-hangul"><span class="lb-char">${b.char}</span><span class="lb-rom">${b.rom}</span><span class="lb-mean">${b[L]}</span></div>`;
+  if(b.type==='example')return `<div class="lb-ex"><span class="lb-kr">${b.kr}</span><span class="lb-rom">${b.rom}</span><span class="lb-mean">${b[L]}</span></div>`;
+  if(b.type==='tip')return `<div class="lb-tip">💡 ${b[L]}</div>`;
+  return `<div class="lb-text">${b[L]}</div>`;
+}
+
+function openLesson(id){
+  const lesson=allLessons().find(l=>l.id===id);
+  if(!lesson)return;
+  document.getElementById('lessonOv').classList.add('show');
+  document.getElementById('lsnBack').style.visibility='visible';
+  document.getElementById('lessonTitle').textContent=lesson.title[getLang()];
+  const blocks=lesson.blocks.map(renderBlock).join('');
+  const quiz=(lesson.quiz||[]).map((q,qi)=>`
+    <div class="lq" data-qi="${qi}">
+      <div class="lq-q">${qi+1}. ${q.q[getLang()]}</div>
+      <div class="lq-opts">${q.opts.map((o,oi)=>`<button class="lq-opt" onclick="pickQuiz(${qi},${oi})" data-oi="${oi}">${optLabel(o)}</button>`).join('')}</div>
+    </div>`).join('');
+  window._lsnCur=lesson; window._lsnAns={};
+  document.getElementById('lessonBody').innerHTML=`
+    <div class="lsn-goal">🎯 ${(lesson.goal&&lesson.goal[getLang()])||''}</div>
+    <div class="lsn-teacher">${blocks}</div>
+    <div class="lsn-vocab-note">${t('lsn_vocab_note')(lesson.vocab.length)}</div>
+    <div class="lsn-quiz-h">${t('lsn_quiz_h')}</div>
+    ${quiz}
+    <div class="lsn-quiz-msg" id="lsnQuizMsg"></div>
+    <button class="btn accent lsn-finish" id="lsnFinish" onclick="finishLesson()">${t('lsn_check')}</button>
+    <button class="lsn-ask" onclick="askTeacher()">${t('lsn_ask')}</button>`;
+  document.getElementById('lessonBody').scrollTop=0;
+}
+
+function pickQuiz(qi,oi){
+  window._lsnAns[qi]=oi;
+  document.querySelectorAll(`.lq[data-qi="${qi}"] .lq-opt`).forEach(b=>b.classList.toggle('sel',+b.dataset.oi===oi));
+}
+
+function finishLesson(){
+  const lesson=window._lsnCur;if(!lesson)return;
+  const quiz=lesson.quiz||[];
+  const msg=document.getElementById('lsnQuizMsg');
+  // все вопросы отвечены?
+  for(let i=0;i<quiz.length;i++){if(window._lsnAns[i]===undefined){msg.className='lsn-quiz-msg warn';msg.textContent=t('lsn_answer_all');return}}
+  // проверка
+  let wrong=0;
+  quiz.forEach((q,qi)=>{
+    const ok=window._lsnAns[qi]===q.answer;
+    if(!ok)wrong++;
+    document.querySelectorAll(`.lq[data-qi="${qi}"] .lq-opt`).forEach(b=>{
+      const oi=+b.dataset.oi;
+      b.classList.toggle('correct',oi===q.answer);
+      b.classList.toggle('wrong',oi===window._lsnAns[qi]&&oi!==q.answer);
+    });
+  });
+  if(wrong>0){msg.className='lsn-quiz-msg warn';msg.textContent=t('lsn_wrong')(wrong);return}
+  // успех → завершаем
+  const done=lsnDone();
+  if(!done.includes(lesson.id)){
+    done.push(lesson.id);lsnSaveDone(done);
+    // слова → в словарь (без дублей)
+    const voc=lsnVocab();const have=new Set(voc.map(v=>v.kr));
+    lesson.vocab.forEach(v=>{if(!have.has(v.kr))voc.push({...v,from:'lesson'})});
+    lsnSaveVocab(voc);
+  }
+  msg.className='lsn-quiz-msg ok';msg.textContent=t('lsn_passed');
+  const fin=document.getElementById('lsnFinish');
+  fin.textContent=t('lsn_next');fin.onclick=()=>{
+    const flat=allLessons();const idx=flat.findIndex(l=>l.id===lesson.id);
+    const next=flat[idx+1];
+    if(next&&!lsnDone().includes(next.id))openLesson(next.id);else openLessons();
+  };
+  toast(t('lsn_toast'));
+  if(typeof renderCabinet==='function'&&myIdol)try{renderCabinet(null)}catch(e){}
+}
+
+function askTeacher(){
+  const lesson=window._lsnCur;
+  closeLessons();
+  openChat(lesson?t('lsn_ask_seed')(lesson.title[getLang()]):'');
 }
 
 /* ===================== ЛЕНТА ПОДПИСОК ===================== */
@@ -1020,7 +1147,8 @@ const T={
     pick_h:"Pick an idol — they become your friend and teach you Korean 🇰🇷", pick_sub:"One idol free, yours forever. Chat every day and learn Korean the fun way.",
     tab_girls:"Girls", tab_boys:"Boys",
     concept_suffix:"· your idol tutor", your_korean:"Your Korean", level:"level", days_together:"days together",
-    lesson_start:"Start a lesson", lesson_sub:n=>`${n} teaches you Korean right in the chat`,
+    lesson_start:"Start a lesson", lesson_sub:n=>`${n} teaches you Korean, step by step`,
+    lessons_h:"Lessons", lsn_vocab_note:n=>`${n} new words will be saved to your Workbook`, lsn_quiz_h:"Check yourself", lsn_check:"Check answers", lsn_ask:"Ask the teacher a question", lsn_answer_all:"Answer every question first.", lsn_wrong:n=>`${n} wrong — look again and retry.`, lsn_passed:"All correct! Lesson complete 🎉", lsn_next:"Next lesson →", lsn_toast:"Lesson done · words saved · card progress +", lsn_ask_seed:tt=>`I have a question about the lesson "${tt}": `,
     tile_song:"Break a song", tile_song_sub:"line by line", tile_slang:"Song slang", tile_slang_sub:"real Korean", tile_phrase:"Ask a phrase", tile_phrase_sub:"translation + grammar",
     seed_song:"Break down this song: ", seed_slang:"Teach me some Korean slang from songs 🙂", seed_phrase:"How do you say in Korean: ",
     coll_h:"Photocards", coll_note:n=>`New ${n} cards unlock as you finish lessons and quizzes — keep going to reveal them all.`,
@@ -1038,7 +1166,8 @@ const T={
     pick_h:"Выбери айдола — он станет твоим другом и научит тебя корейскому 🇰🇷", pick_sub:"Один айдол бесплатно и навсегда твой. Общайся каждый день — учи корейский играючи.",
     tab_girls:"Девушки", tab_boys:"Парни",
     concept_suffix:"· твой айдол-учитель", your_korean:"Твой корейский", level:"уровень", days_together:"дней вместе",
-    lesson_start:"Начать урок", lesson_sub:n=>`${n} учит корейскому прямо в переписке`,
+    lesson_start:"Начать урок", lesson_sub:n=>`${n} учит корейскому — шаг за шагом`,
+    lessons_h:"Уроки", lsn_vocab_note:n=>`${n} новых слов сохранятся в Рабочую тетрадь`, lsn_quiz_h:"Проверь себя", lsn_check:"Проверить", lsn_ask:"Задать вопрос учителю", lsn_answer_all:"Сначала ответь на все вопросы.", lsn_wrong:n=>`Ошибок: ${n} — посмотри ещё раз и попробуй снова.`, lsn_passed:"Всё верно! Урок пройден 🎉", lsn_next:"Следующий урок →", lsn_toast:"Урок пройден · слова сохранены · прогресс карточек +", lsn_ask_seed:tt=>`У меня вопрос по уроку «${tt}»: `,
     tile_song:"Разбор песни", tile_song_sub:"строка за строкой", tile_slang:"Сленг из песен", tile_slang_sub:"живой корейский", tile_phrase:"Спросить фразу", tile_phrase_sub:"перевод + грамматика",
     seed_song:"Разбери песню: ", seed_slang:"Научи меня корейскому сленгу из песен 🙂", seed_phrase:"Как сказать по-корейски: ",
     coll_h:"Фотокарточки", coll_note:n=>`Новые карточки ${n} открываются за пройденные уроки и проверочные — учись, чтобы открыть все.`,

@@ -50,9 +50,9 @@
     "semantic_hash": "df2f625042838eb0893dad78ef2654ca"
   },
   "api/auth.js": {
-    "mtime": 1783648120.3296635,
-    "ast_hash": "1a6e917bc95c5604f1749c1407737ff1",
-    "semantic_hash": "1a6e917bc95c5604f1749c1407737ff1"
+    "mtime": 1784071672.7510283,
+    "ast_hash": "b898607c913c3edc83eff0eb0c5f074d",
+    "semantic_hash": ""
   },
   "api/clip.js": {
     "mtime": 1783648161.3406851,
@@ -100,8 +100,8 @@
     "semantic_hash": ""
   },
   "public/app.js": {
-    "mtime": 1784071343.3197217,
-    "ast_hash": "527238f86ae8d6bf2d8d8970dcad4e43",
+    "mtime": 1784071740.6684687,
+    "ast_hash": "f8abd2e917f8a6fce1a863ee39edbb4d",
     "semantic_hash": ""
   },
   "public/idols.json": {
@@ -587,6 +587,11 @@
   "clips/claude-tests/song_seg2.mp3": {
     "mtime": 1783928257.7716396,
     "ast_hash": "72f50be73f7a5c144fad04fecbee39c1",
+    "semantic_hash": ""
+  },
+  "public/reset.html": {
+    "mtime": 1784071696.2154713,
+    "ast_hash": "9a7a311fe17e74cc1d40fbb05f8b41b8",
     "semantic_hash": ""
   }
 }

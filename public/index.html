@@ -123,8 +123,17 @@
     <button class="btn accent" id="chatSend" onclick="sendChat()">→</button>
   </div>
 </div></div>
+<div class="ov" id="lessonOv"><div class="lesson-box" id="lessonBox">
+  <div class="lesson-head">
+    <button class="lsn-back" id="lsnBack" onclick="openLessons()">←</button>
+    <span id="lessonTitle">Уроки</span>
+    <button class="chat-x" onclick="closeLessons()">✕</button>
+  </div>
+  <div class="lesson-body" id="lessonBody"></div>
+</div></div>
 <div class="toast" id="toast"></div>
 
+<script src="/curriculum.js"></script>
 <script src="/app.js"></script>
 </body>
 </html>
