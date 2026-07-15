@@ -269,6 +269,30 @@ main{display:none}main.show{display:block}
 .lsn-finish.accent{margin-left:0}
 .lsn-ask{display:block;width:100%;text-align:center;background:none;border:1px solid var(--line);color:var(--muted,#a99cc0);padding:10px;font:inherit;font-size:13px;cursor:pointer}
 .lsn-ask:hover{border-color:var(--accent2);color:var(--accent2)}
+
+/* ===== РАБОЧАЯ ТЕТРАДЬ ===== */
+.wb-tabs{display:flex;border-bottom:1px solid var(--line)}
+.wb-tab{flex:1;background:none;border:none;border-bottom:2px solid transparent;color:var(--dim,#7d6f97);font:inherit;font-size:13.5px;font-weight:600;padding:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px}
+.wb-tab span{font-size:11px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:1px 7px}
+.wb-tab.on{color:var(--accent2);border-bottom-color:var(--accent2)}
+.wb-add{display:flex;gap:7px;margin-bottom:8px}
+.wb-add input{background:var(--panel2);border:1px solid var(--line);color:var(--ink);font:inherit;font-size:14px;padding:9px 11px}
+.wb-add input:focus{outline:none;border-color:var(--accent2)}
+#wbKr{width:40%}
+#wbMean{flex:1}
+.wb-add input#wbKr{font-size:16px}
+.wb-addbtn{padding:9px 15px;font-size:17px;margin-left:0}
+.wb-hint{font-size:11px;color:var(--dim,#7d6f97);margin-bottom:14px}
+.wb-list{display:flex;flex-direction:column;gap:6px}
+.wb-row{display:flex;align-items:center;gap:10px;background:var(--panel,rgba(52,38,78,.42));border:1px solid var(--line);padding:10px 12px}
+.wb-word{min-width:34%;display:flex;flex-direction:column;gap:1px}
+.wb-word b{font-size:16px;color:var(--ink)}
+.wb-word i{font-size:11px;color:var(--dim,#7d6f97)}
+.wb-mean{flex:1;font-size:13.5px;color:var(--muted,#a99cc0)}
+.wb-src{font-size:13px;opacity:.8}
+.wb-del{background:none;border:none;color:var(--dim,#7d6f97);cursor:pointer;font-size:13px;padding:2px 4px;line-height:1}
+.wb-del:hover{color:#d97f7f}
+.wb-empty{text-align:center;color:var(--dim,#7d6f97);font-size:13px;padding:28px 12px;line-height:1.5}
 .result{background:var(--bg2);border:1px solid var(--line);max-width:460px;width:100%;overflow:hidden}
 .result .rv{aspect-ratio:9/16;background:#000;position:relative;max-height:70vh}
 .result video{width:100%;height:100%;object-fit:contain;background:#000}

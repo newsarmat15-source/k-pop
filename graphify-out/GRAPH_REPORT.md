@@ -1,16 +1,16 @@
 # Graph Report - StageOne  (2026-07-15)
 
 ## Corpus Check
-- 66 files · ~347,731 words
+- 67 files · ~349,859 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 484 nodes · 782 edges · 58 communities (32 shown, 26 thin omitted)
-- Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 3 edges (avg confidence: 0.55)
+- 500 nodes · 834 edges · 60 communities (34 shown, 26 thin omitted)
+- Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 4 edges (avg confidence: 0.54)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `e9b872fb`
+- Built from commit: `e30e8da1`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -29,10 +29,12 @@
 - Vocal Isolation Test
 - Multi-Segment Test
 - Sync LipSync Test
+- finishLesson
 - Project Migration & Consolidation
 - DB Client & Migrations
 - Independent Segments Test
 - Dev Server (dev-server.mjs)
+- toggle
 - Local Server (local-server.mjs)
 - Generate Endpoint Test
 - Vercel Dispatcher Pattern
@@ -72,19 +74,18 @@
 - renderLangOpts
 - showView
 - submitAuth
-- generate
 
 ## God Nodes (most connected - your core abstractions)
 1. `readUserId()` - 22 edges
 2. `supabase()` - 22 edges
-3. `StageOne — прогресс по этапам` - 12 edges
-4. `toast()` - 12 edges
+3. `toast()` - 13 edges
+4. `StageOne — прогресс по этапам` - 12 edges
 5. `StageOne — проектный документ` - 12 edges
 6. `fetchWithRetry()` - 12 edges
-7. `handler()` - 11 edges
-8. `showView()` - 10 edges
-9. `handleSong()` - 10 edges
-10. `renderCabinet()` - 9 edges
+7. `renderCabinet()` - 11 edges
+8. `finishLesson()` - 11 edges
+9. `handler()` - 11 edges
+10. `showView()` - 10 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `handleGenerate()` --calls--> `readUserId()`  [EXTRACTED]
@@ -104,15 +105,15 @@
 ## Hyperedges (group relationships)
 - **Files comprising the StageOne_app_v2.4 codebase** — full_dialogue_2026_07_08_stageone_app_v2_4, full_dialogue_2026_07_08_api_generate_js, full_dialogue_2026_07_08_api_result_js, full_dialogue_2026_07_08_api_status_js, full_dialogue_2026_07_08_public_index_html, full_dialogue_2026_07_08_idols_json [INFERRED 0.85]
 
-## Communities (58 total, 26 thin omitted)
+## Communities (60 total, 26 thin omitted)
 
 ### Community 0 - "Frontend App Logic (app.js)"
 Cohesion: 0.07
 Nodes (30): authReady, awardsHtml(), BIO_SAMPLE, bioState, CLIP, CLIP_COLOR, CLIP_ICON, DANCE (+22 more)
 
 ### Community 1 - "Auth & Clip API Handlers"
-Cohesion: 0.05
-Nodes (47): handleCreate(), handleList(), handler(), handleUpdate(), handleChart(), handleFollow(), handler(), handleTrain() (+39 more)
+Cohesion: 0.06
+Nodes (40): handleCreate(), handleList(), handler(), handleUpdate(), handleChart(), handleFollow(), handler(), handleTrain() (+32 more)
 
 ### Community 2 - "Dance Move System (pipeline.js)"
 Cohesion: 0.10
@@ -128,15 +129,15 @@ Nodes (12): StageOne — прогресс по этапам, Закрыто, П�
 
 ### Community 6 - "test-follow-streak.mjs"
 Cohesion: 0.13
-Nodes (11): cookie, db, ownerCookie, r1, r2, r3, r4, r5 (+3 more)
+Nodes (12): db, ownerCookie, r1, r2, r3, r4, r5, r6 (+4 more)
 
 ### Community 7 - "Vote/Training Integration Test"
 Cohesion: 0.46
 Nodes (7): handleForgot(), handleLogin(), handleLogout(), handleMe(), handler(), handleReset(), handleSignup()
 
 ### Community 8 - "Clips Integration Test"
-Cohesion: 0.29
-Nodes (4): cookie, r1, r2, r3
+Cohesion: 0.15
+Nodes (10): cookie, db, intruderCookie, r1, r2, r3, r4, r5 (+2 more)
 
 ### Community 9 - "Multi-Segment Resume Test"
 Cohesion: 0.44
@@ -158,6 +159,10 @@ Nodes (11): downloadTo(), fetchVideoResult(), generateVideoSegment(), log(), mai
 Cohesion: 0.48
 Nodes (11): downloadTo(), fetchVideoResult(), generateVideo15s(), log(), main(), pollUntilComplete(), runSyncLipsync(), sleep() (+3 more)
 
+### Community 14 - "finishLesson"
+Cohesion: 0.42
+Nodes (9): allLessons(), finishLesson(), lessonPct(), lsnDone(), lsnSaveDone(), lsnSaveVocab(), lsnUid(), lsnVocab() (+1 more)
+
 ### Community 15 - "Project Migration & Consolidation"
 Cohesion: 0.20
 Nodes (10): api/generate.js (mentioned in v2.4 codebase), api/result.js (mentioned in v2.4 codebase), api/status.js (mentioned in v2.4 codebase), CLAUDE.md (special auto-loaded context file for Claude Code), StageOne_ПОЛНЫЙ_ДИАЛОГ.md (exported dialogue bridge doc from Claude.ai), git version control (to be initialized to stop Downloads version sprawl v2.2/v2.3/v2.4), idols.json + 15 portraits (mentioned in v2.4 codebase), C:\Users\user\Projects\StageOne (target project folder consolidating scattered Downloads versions, git-tracked) (+2 more)
@@ -173,6 +178,10 @@ Nodes (9): downloadTo(), fetchVideoResult(), generateVideoSegment(), log(), main
 ### Community 18 - "Dev Server (dev-server.mjs)"
 Cohesion: 0.28
 Nodes (8): __dirname, handleApi(), MIME, PUBLIC, ROOT, send(), server, serveStatic()
+
+### Community 19 - "toggle"
+Cohesion: 0.29
+Nodes (7): IDOLS, pickQuiz(), renderIdolGrid(), renderLenta(), renderLentaTeaser(), renderSel(), toggle()
 
 ### Community 22 - "Local Server (local-server.mjs)"
 Cohesion: 0.29
@@ -215,27 +224,23 @@ Cohesion: 0.43
 Nodes (7): client(), config, handleCheckout(), handler(), handleWebhook(), PRODUCTS, rawBody()
 
 ### Community 52 - "toast"
-Cohesion: 0.20
-Nodes (16): claimIdol(), doFollow(), doVote(), fmtRest(), idHash(), loadChart(), mockPushLive(), openAuth() (+8 more)
+Cohesion: 0.19
+Nodes (17): claimIdol(), doFollow(), doTrain(), doVote(), fmtRest(), idHash(), loadChart(), mockPushLive() (+9 more)
 
 ### Community 72 - "renderLangOpts"
-Cohesion: 0.29
-Nodes (11): boot(), buildOpts(), nativeGenres(), renderDanceOpts(), renderIdolGrid(), renderSel(), renderSongOpts(), svgIcon() (+3 more)
+Cohesion: 0.33
+Nodes (10): boot(), buildOpts(), lbl(), nativeGenres(), renderDanceOpts(), renderSongOpts(), SONG, svgIcon() (+2 more)
 
 ### Community 73 - "showView"
-Cohesion: 0.25
-Nodes (8): applyStatic(), chatBubble(), escapeHtml(), fmtMsg(), getLang(), openChat(), sendChat(), T
+Cohesion: 0.19
+Nodes (13): applyStatic(), askTeacher(), chatBubble(), closeLessons(), escapeHtml(), fmtMsg(), getLang(), openChat() (+5 more)
 
 ### Community 74 - "submitAuth"
-Cohesion: 0.21
-Nodes (12): bilingualUnlocked(), checkAuth(), closeAuthOv(), doLogout(), doTrain(), langSwatch(), loadMyIdol(), renderAuthArea() (+4 more)
-
-### Community 75 - "generate"
-Cohesion: 0.33
-Nodes (6): errBox(), generate(), generateOneSegment(), lbl(), pollJob(), stepsHtml()
+Cohesion: 0.23
+Nodes (12): bilingualUnlocked(), checkAuth(), closeAuthOv(), doLogout(), langSwatch(), LANGUAGE, loadMyIdol(), renderAuthArea() (+4 more)
 
 ## Knowledge Gaps
-- **186 isolated node(s):** `Этап 1 — 07.07.2026 — Стратегия и первая сборка (в обычном Claude)`, `Этап 2 — 08.07.2026 — Диагностика Seedance, выбор видео-платформы`, `Этап 3 — 08.07.2026 — Легальный вокал`, `Этап 4 — 08.07.2026 — Пересборка кода под новый пайплайн`, `Этап 5 — 08.07.2026 — Решение по LipSync, доводка танца, ретраи` (+181 more)
+- **183 isolated node(s):** `state`, `LANG_CODE`, `LANG_COLOR`, `CLIP`, `DANCE` (+178 more)
   These have ≤1 connection - possible missing edges or undocumented components.
 - **26 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
@@ -243,15 +248,15 @@ Nodes (6): errBox(), generate(), generateOneSegment(), lbl(), pollJob(), stepsHt
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `supabase()` connect `Auth & Clip API Handlers` to `Clips Integration Test`, `test-follow-streak.mjs`?**
-  _High betweenness centrality (0.030) - this node is a cross-community bridge._
+  _High betweenness centrality (0.028) - this node is a cross-community bridge._
 - **Why does `readUserId()` connect `Auth & Clip API Handlers` to `Dance Move System (pipeline.js)`?**
-  _High betweenness centrality (0.023) - this node is a cross-community bridge._
-- **What connects `Этап 1 — 07.07.2026 — Стратегия и первая сборка (в обычном Claude)`, `Этап 2 — 08.07.2026 — Диагностика Seedance, выбор видео-платформы`, `Этап 3 — 08.07.2026 — Легальный вокал` to the rest of the system?**
-  _187 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _High betweenness centrality (0.021) - this node is a cross-community bridge._
+- **What connects `state`, `LANG_CODE`, `LANG_COLOR` to the rest of the system?**
+  _184 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Frontend App Logic (app.js)` be split into smaller, more focused modules?**
-  _Cohesion score 0.06554621848739496 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.07058823529411765 - nodes in this community are weakly interconnected._
 - **Should `Auth & Clip API Handlers` be split into smaller, more focused modules?**
-  _Cohesion score 0.05128205128205128 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.059887005649717516 - nodes in this community are weakly interconnected._
 - **Should `Dance Move System (pipeline.js)` be split into smaller, more focused modules?**
   _Cohesion score 0.0966183574879227 - nodes in this community are weakly interconnected._
 - **Should `NPM Dependencies` be split into smaller, more focused modules?**

@@ -371,7 +371,7 @@ function renderCabinet(chartEntry,readOnly){
 
       <div class="tiles">
         <button class="tile" onclick="openChat(t('seed_song'))"><span class="t-emoji">🎵</span><b>${t('tile_song')}</b><small>${t('tile_song_sub')}</small></button>
-        <button class="tile" onclick="openChat(t('seed_slang'))"><span class="t-emoji">🗣️</span><b>${t('tile_slang')}</b><small>${t('tile_slang_sub')}</small></button>
+        <button class="tile" onclick="openWorkbook()"><span class="t-emoji">📓</span><b>${t('tile_wb')}</b><small>${t('tile_wb_sub')}</small></button>
         <button class="tile" onclick="openChat(t('seed_phrase'))"><span class="t-emoji">💬</span><b>${t('tile_phrase')}</b><small>${t('tile_phrase_sub')}</small></button>
       </div>
 
@@ -662,6 +662,64 @@ function askTeacher(){
   const lesson=window._lsnCur;
   closeLessons();
   openChat(lesson?t('lsn_ask_seed')(lesson.title[getLang()]):'');
+}
+
+/* ===================== РАБОЧАЯ ТЕТРАДЬ ===================== */
+// Читает тот же реестр слов, что копят уроки (so_vocab_<uid>).
+// slang:true → вкладка «Сленг» (из песен / вручную), иначе → «Слова».
+function closeWorkbook(){document.getElementById('wbOv').classList.remove('show')}
+document.getElementById('wbOv').onclick=e=>{if(e.target.id==='wbOv')closeWorkbook()};
+
+function openWorkbook(tab){
+  if(!currentUser){openAuth('signup');return}
+  window._wbTab=tab||window._wbTab||'words';
+  document.getElementById('wbOv').classList.add('show');
+  document.getElementById('wbTitle').textContent='📓 '+t('wb_h');
+  renderWorkbook();
+}
+
+function renderWorkbook(){
+  const L=getLang();
+  const voc=lsnVocab();
+  const isSlang=window._wbTab==='slang';
+  const list=voc.filter(v=>!!v.slang===isSlang);
+  document.getElementById('wbTabs').innerHTML=`
+    <button class="wb-tab ${!isSlang?'on':''}" onclick="switchWb('words')">${t('wb_words')} <span>${voc.filter(v=>!v.slang).length}</span></button>
+    <button class="wb-tab ${isSlang?'on':''}" onclick="switchWb('slang')">${t('wb_slang')} <span>${voc.filter(v=>!!v.slang).length}</span></button>`;
+  const items=list.length?list.map((v,i)=>`
+    <div class="wb-row">
+      <div class="wb-word"><b>${escapeHtml(v.kr)}</b>${v.rom?`<i>${escapeHtml(v.rom)}</i>`:''}</div>
+      <div class="wb-mean">${escapeHtml(v[L]||v.ru||v.en||'')}</div>
+      <div class="wb-src">${v.from==='lesson'?'📘':v.from==='song'?'🎵':'✍️'}</div>
+      <button class="wb-del" title="${t('wb_del')}" onclick="wbDelete(${JSON.stringify(v.kr).replace(/"/g,'&quot;')})">✕</button>
+    </div>`).join(''):`<div class="wb-empty">${isSlang?t('wb_empty_slang'):t('wb_empty_words')}</div>`;
+  document.getElementById('wbBody').innerHTML=`
+    <div class="wb-add">
+      <input id="wbKr" placeholder="한국어" maxlength="40">
+      <input id="wbMean" placeholder="${t('wb_mean_ph')}" maxlength="60">
+      <button class="btn accent wb-addbtn" onclick="wbAddWord()">+</button>
+    </div>
+    <div class="wb-hint">${isSlang?t('wb_hint_slang'):t('wb_hint_words')}</div>
+    <div class="wb-list">${items}</div>`;
+}
+
+function switchWb(tab){window._wbTab=tab;renderWorkbook()}
+
+function wbAddWord(){
+  const kr=document.getElementById('wbKr').value.trim();
+  const mean=document.getElementById('wbMean').value.trim();
+  if(!kr){toast(t('wb_need_kr'));return}
+  const voc=lsnVocab();
+  if(voc.some(v=>v.kr===kr)){toast(t('wb_dup'));return}
+  voc.push({kr,rom:'',ru:mean,en:mean,from:'manual',slang:window._wbTab==='slang'});
+  lsnSaveVocab(voc);
+  renderWorkbook();
+}
+
+function wbDelete(kr){
+  const voc=lsnVocab().filter(v=>v.kr!==kr);
+  lsnSaveVocab(voc);
+  renderWorkbook();
 }
 
 /* ===================== ЛЕНТА ПОДПИСОК ===================== */
@@ -1149,6 +1207,10 @@ const T={
     concept_suffix:"· your idol tutor", your_korean:"Your Korean", level:"level", days_together:"days together",
     lesson_start:"Start a lesson", lesson_sub:n=>`${n} teaches you Korean, step by step`,
     lessons_h:"Lessons", lsn_vocab_note:n=>`${n} new words will be saved to your Workbook`, lsn_quiz_h:"Check yourself", lsn_check:"Check answers", lsn_ask:"Ask the teacher a question", lsn_answer_all:"Answer every question first.", lsn_wrong:n=>`${n} wrong — look again and retry.`, lsn_passed:"All correct! Lesson complete 🎉", lsn_next:"Next lesson →", lsn_toast:"Lesson done · words saved · card progress +", lsn_ask_seed:tt=>`I have a question about the lesson "${tt}": `,
+    tile_wb:"Workbook", tile_wb_sub:"your words & slang",
+    wb_h:"Workbook", wb_words:"Words", wb_slang:"Slang", wb_del:"Remove", wb_mean_ph:"meaning", wb_need_kr:"Type the Korean word", wb_dup:"Already in your workbook",
+    wb_empty_words:"No words yet — finish lessons and they’ll pile up here automatically.", wb_empty_slang:"No slang yet — it’ll collect from song breakdowns. You can add your own too.",
+    wb_hint_words:"📘 auto from lessons · ✍️ added by you", wb_hint_slang:"🎵 from songs · ✍️ added by you",
     tile_song:"Break a song", tile_song_sub:"line by line", tile_slang:"Song slang", tile_slang_sub:"real Korean", tile_phrase:"Ask a phrase", tile_phrase_sub:"translation + grammar",
     seed_song:"Break down this song: ", seed_slang:"Teach me some Korean slang from songs 🙂", seed_phrase:"How do you say in Korean: ",
     coll_h:"Photocards", coll_note:n=>`New ${n} cards unlock as you finish lessons and quizzes — keep going to reveal them all.`,
@@ -1168,6 +1230,10 @@ const T={
     concept_suffix:"· твой айдол-учитель", your_korean:"Твой корейский", level:"уровень", days_together:"дней вместе",
     lesson_start:"Начать урок", lesson_sub:n=>`${n} учит корейскому — шаг за шагом`,
     lessons_h:"Уроки", lsn_vocab_note:n=>`${n} новых слов сохранятся в Рабочую тетрадь`, lsn_quiz_h:"Проверь себя", lsn_check:"Проверить", lsn_ask:"Задать вопрос учителю", lsn_answer_all:"Сначала ответь на все вопросы.", lsn_wrong:n=>`Ошибок: ${n} — посмотри ещё раз и попробуй снова.`, lsn_passed:"Всё верно! Урок пройден 🎉", lsn_next:"Следующий урок →", lsn_toast:"Урок пройден · слова сохранены · прогресс карточек +", lsn_ask_seed:tt=>`У меня вопрос по уроку «${tt}»: `,
+    tile_wb:"Рабочая тетрадь", tile_wb_sub:"твои слова и сленг",
+    wb_h:"Рабочая тетрадь", wb_words:"Слова", wb_slang:"Сленг", wb_del:"Удалить", wb_mean_ph:"перевод", wb_need_kr:"Впиши корейское слово", wb_dup:"Уже есть в тетради",
+    wb_empty_words:"Пока пусто — проходи уроки, и слова сами накопятся здесь.", wb_empty_slang:"Пока пусто — сленг накопится из разборов песен. Можно добавить и своё.",
+    wb_hint_words:"📘 авто с уроков · ✍️ добавил ты", wb_hint_slang:"🎵 из песен · ✍️ добавил ты",
     tile_song:"Разбор песни", tile_song_sub:"строка за строкой", tile_slang:"Сленг из песен", tile_slang_sub:"живой корейский", tile_phrase:"Спросить фразу", tile_phrase_sub:"перевод + грамматика",
     seed_song:"Разбери песню: ", seed_slang:"Научи меня корейскому сленгу из песен 🙂", seed_phrase:"Как сказать по-корейски: ",
     coll_h:"Фотокарточки", coll_note:n=>`Новые карточки ${n} открываются за пройденные уроки и проверочные — учись, чтобы открыть все.`,

@@ -13,10 +13,13 @@
   "11": "Vocal Isolation Test",
   "12": "Multi-Segment Test",
   "13": "Sync LipSync Test",
+  "14": "finishLesson",
   "15": "Project Migration & Consolidation",
   "16": "DB Client & Migrations",
   "17": "Independent Segments Test",
   "18": "Dev Server (dev-server.mjs)",
+  "19": "toggle",
+  "20": "curriculum.js",
   "22": "Local Server (local-server.mjs)",
   "23": "Generate Endpoint Test",
   "24": "Vercel Dispatcher Pattern",
@@ -55,6 +58,5 @@
   "67": "Idol Portrait: REI",
   "72": "renderLangOpts",
   "73": "showView",
-  "74": "submitAuth",
-  "75": "generate"
+  "74": "submitAuth"
 }
