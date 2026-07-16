@@ -807,8 +807,8 @@ function openSongs(){
     <div class="song-intro">${t('songs_intro')}</div>
     <input class="song-search" id="songSearch" oninput="onSongSearchInput()" placeholder="🔎 ${t('song_search')}" autocomplete="off">
     <div class="song-search-hint">${t('song_search_hint')}</div>
-    <div id="songList"></div>
-    <div id="songOnline"></div>`;
+    <div id="songOnline"></div>
+    <div id="songList"></div>`;
   document.getElementById('songBody').scrollTop=0;
   renderSongList();
 }
