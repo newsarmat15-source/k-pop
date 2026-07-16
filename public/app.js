@@ -121,11 +121,12 @@ async function showView(name){
     toast('Сначала зарегистрируйся — это займёт полминуты');
     return;
   }
-  const elId = name.indexOf('cabinet')===0 ? 'view-cabinet' : 'view-'+name;
+  const elId = (name==='roster'||name.indexOf('cabinet')===0) ? 'view-cabinet' : 'view-'+name;
   document.querySelectorAll('main').forEach(m=>m.classList.remove('show'));
   document.getElementById(elId).classList.add('show');
   document.querySelectorAll('.navtab').forEach(t=>t.classList.toggle('on',t.dataset.view===name));
   if(name==='cabinet-own'){renderCabinet(null)}
+  if(name==='roster'){renderRoster()}
   if(name==='lenta'){renderLenta()}
   if(name==='feed'){loadChart().then(renderChart)}
   window.scrollTo({top:0,behavior:'instant'});
@@ -300,26 +301,12 @@ function renderCabinet(chartEntry,readOnly){
   document.querySelectorAll('.navtab').forEach(t=>t.classList.toggle('on',t.dataset.view==='cabinet-own'&&!isOther));
 
   if(!idol){
-    // Витрина айдолов встроена прямо сюда, а не спрятана за отдельной кнопкой —
-    // "Мой продакшн" без айдола сразу же предлагает его выбрать.
+    // Нет своего айдола — короткий призыв уйти на вкладку «Айдолы» (сама витрина живёт там).
     body.innerHTML=`<div class="cab-empty">
-      <h2 class="pick-h">${t('pick_h')}</h2>
-      <p>${t('pick_sub')}</p>
-    </div>
-    <div class="gender-tabs" id="cabGenderTabs">
-      <button class="gtab on" data-g="girl">${t('tab_girls')}</button>
-      <button class="gtab" data-g="boy">${t('tab_boys')}</button>
-    </div>
-    <div class="grid" id="cabGrid"></div>`;
-    renderCabGrid();
-    [...document.querySelectorAll('#cabGenderTabs .gtab')].forEach(t=>{
-      t.onclick=()=>{
-        state.genderTab=t.dataset.g;
-        [...document.querySelectorAll('#cabGenderTabs .gtab')].forEach(x=>x.classList.remove('on'));
-        t.classList.add('on');
-        renderCabGrid();
-      };
-    });
+      <h2 class="pick-h">${t('no_idol_h')}</h2>
+      <p>${t('no_idol_sub')}</p>
+      <button class="btn accent no-idol-btn" onclick="showView('roster')">${t('no_idol_btn')}</button>
+    </div>`;
     return;
   }
   const idolCreatedAt=isOther?viewedIdol.idol.created_at:myIdol.created_at;
@@ -373,7 +360,7 @@ function renderCabinet(chartEntry,readOnly){
       <div class="tiles">
         <button class="tile" onclick="openSongs()"><span class="t-emoji">🎵</span><b>${t('tile_song')}</b><small>${t('tile_song_sub')}</small></button>
         <button class="tile" onclick="openWorkbook()"><span class="t-emoji">📓</span><b>${t('tile_wb')}</b><small>${t('tile_wb_sub')}</small></button>
-        <button class="tile" onclick="openChat(t('seed_phrase'))"><span class="t-emoji">💬</span><b>${t('tile_phrase')}</b><small>${t('tile_phrase_sub')}</small></button>
+        <button class="tile" onclick="openChat()"><span class="t-emoji">💬</span><b>${t('tile_phrase')}</b><small>${t('tile_phrase_sub')}</small></button>
       </div>
 
       <div class="coll">
@@ -395,6 +382,27 @@ function renderCabinet(chartEntry,readOnly){
     </div>
   `;
   if(!isOther)maybeOnboard();
+}
+function renderRoster(){
+  const body=document.getElementById('cabBody');
+  body.innerHTML=`<div class="cab-empty">
+    <h2 class="pick-h">${t('pick_h')}</h2>
+    <p>${t('pick_sub')}</p>
+  </div>
+  <div class="gender-tabs" id="cabGenderTabs">
+    <button class="gtab ${state.genderTab!=='boy'?'on':''}" data-g="girl">${t('tab_girls')}</button>
+    <button class="gtab ${state.genderTab==='boy'?'on':''}" data-g="boy">${t('tab_boys')}</button>
+  </div>
+  <div class="grid" id="cabGrid"></div>`;
+  renderCabGrid();
+  [...document.querySelectorAll('#cabGenderTabs .gtab')].forEach(tb=>{
+    tb.onclick=()=>{
+      state.genderTab=tb.dataset.g;
+      [...document.querySelectorAll('#cabGenderTabs .gtab')].forEach(x=>x.classList.remove('on'));
+      tb.classList.add('on');
+      renderCabGrid();
+    };
+  });
 }
 function renderCabGrid(){
   const g=document.getElementById('cabGrid');
@@ -421,7 +429,7 @@ async function claimIdol(c){
   if(!r.ok||d.ok===false){toast(d.error||'Не получилось создать айдола');return}
   myIdol={...d.idol,img:d.idol.portrait_url};
   myTraining=d.training;
-  renderCabinet(null);
+  showView('cabinet-own');
   renderLangOpts();
   toast('Твой айдол теперь — '+c.name+' 🎉');
 }
@@ -539,6 +547,21 @@ async function sendChat(){
   btn.disabled=false;log.scrollTop=log.scrollHeight;inp.focus();
 }
 
+/* ===================== ОЗВУЧКА (корейский голос) ===================== */
+// Браузерный TTS. На iOS есть корейский голос (Yuna), на Android — Google 한국어.
+function speak(txt){
+  if(!txt||!window.speechSynthesis)return;
+  try{
+    const u=new SpeechSynthesisUtterance(txt);
+    u.lang='ko-KR';u.rate=0.85;
+    const ko=(window.speechSynthesis.getVoices()||[]).find(v=>(v.lang||'').toLowerCase().startsWith('ko'));
+    if(ko)u.voice=ko;
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(u);
+  }catch(e){}
+}
+if(window.speechSynthesis)try{window.speechSynthesis.getVoices()}catch(e){}
+
 /* ===================== УРОК-ФУНДАМЕНТ ===================== */
 // Прогресс уроков и словарь копятся локально (server-sync — следующий шаг).
 function lsnUid(){return (currentUser&&currentUser.id)||'guest'}
@@ -586,8 +609,8 @@ function openLessons(){
 
 function renderBlock(b){
   const L=getLang();
-  if(b.type==='hangul')return `<div class="lb-hangul"><span class="lb-char">${b.char}</span><span class="lb-rom">${b.rom}</span><span class="lb-mean">${b[L]}</span></div>`;
-  if(b.type==='example')return `<div class="lb-ex"><span class="lb-kr">${b.kr}</span><span class="lb-rom">${b.rom}</span><span class="lb-mean">${b[L]}</span></div>`;
+  if(b.type==='hangul')return `<div class="lb-hangul"><span class="lb-char">${b.char}</span><span class="lb-rom">${b.rom}</span><span class="lb-mean">${b[L]}</span><button class="say" onclick="speak(${JSON.stringify(b.char).replace(/"/g,'&quot;')})">🔊</button></div>`;
+  if(b.type==='example')return `<div class="lb-ex"><span class="lb-kr">${b.kr}</span><span class="lb-rom">${b.rom}</span><span class="lb-mean">${b[L]}</span><button class="say" onclick="speak(${JSON.stringify(b.kr).replace(/"/g,'&quot;')})">🔊</button></div>`;
   if(b.type==='tip')return `<div class="lb-tip">💡 ${b[L]}</div>`;
   return `<div class="lb-text">${b[L]}</div>`;
 }
@@ -692,6 +715,7 @@ function renderWorkbook(){
     <div class="wb-row">
       <div class="wb-word"><b>${escapeHtml(v.kr)}</b>${v.rom?`<i>${escapeHtml(v.rom)}</i>`:''}</div>
       <div class="wb-mean">${escapeHtml(v[L]||v.ru||v.en||'')}</div>
+      <button class="wb-say" title="🔊" onclick="speak(${JSON.stringify(v.kr).replace(/"/g,'&quot;')})">🔊</button>
       <div class="wb-src">${v.from==='lesson'?'📘':v.from==='song'?'🎵':'✍️'}</div>
       <button class="wb-del" title="${t('wb_del')}" onclick="wbDelete(${JSON.stringify(v.kr).replace(/"/g,'&quot;')})">✕</button>
     </div>`).join(''):`<div class="wb-empty">${isSlang?t('wb_empty_slang'):t('wb_empty_words')}</div>`;
@@ -1434,7 +1458,7 @@ function getLang(){return localStorage.getItem('s1_lang')||'en'}
 function setLang(v){localStorage.setItem('s1_lang',v);location.reload()}
 const T={
   en:{
-    nav_home:"My idol", footer:"STAGE ONE · learn Korean with an AI idol you pick · your friend and tutor in one",
+    nav_home:"My idol", nav_idols:"Idols", no_idol_h:"You don’t have an idol yet", no_idol_sub:"Pick an idol — he becomes your tutor and friend.", no_idol_btn:"Pick an idol →", footer:"STAGE ONE · learn Korean with an AI idol you pick · your friend and tutor in one",
     pick_h:"Pick an idol — they become your friend and teach you Korean 🇰🇷", pick_sub:"One idol free, yours forever. Chat every day and learn Korean the fun way.",
     tab_girls:"Girls", tab_boys:"Boys",
     concept_suffix:"· your idol tutor", your_korean:"Your Korean", level:"level", days_together:"days together",
@@ -1447,7 +1471,7 @@ const T={
     songs_h:"Break a song", songs_intro:"Pick a song — your idol walks you through it line by line.", songs_empty:"No songs yet.", songs_done_h:"Songs you’ve done", song_search:"Search a song", song_none:q=>`“${q}” isn’t here yet. Soon you’ll add any song — we’ll pull lyrics, translation and sync automatically.`, song_botnote:"Asks to sign in? That’s YouTube’s bot-check (worse on VPN) →", song_guide:"Play the video, then step through the lyrics line by line below.", song_next:"Next line", song_finish:"Finish song ✓", song_save:tab=>`+ ${tab}`, song_saved:"Saved ✓", song_save_toast:"Saved to your Workbook", song_done_toast:"Song complete 🎉", song_open_yt:"Open on YouTube",
     kara_hint:"Press play — words light up in time. At each verse end it pauses for the breakdown. If the highlight drifts from the clip, tap “Sync” exactly when you hear the verse’s first word.", kara_synctap:"Sync", kara_syncdone:"Synced to the clip ✓", kara_cont:"Don’t stop", kara_verse:"Verse", kara_repeat:"Repeat verse", kara_nextv:"Next verse",
     onb_title:"How it all works", onb_tour:"Show me around →", onb_ok:"Got it", onb_next:"Next", onb_done:"Done",
-    tile_song:"Break a song", tile_song_sub:"line by line", tile_slang:"Song slang", tile_slang_sub:"real Korean", tile_phrase:"Ask a phrase", tile_phrase_sub:"translation + grammar",
+    tile_song:"Break a song", tile_song_sub:"line by line", tile_slang:"Song slang", tile_slang_sub:"real Korean", tile_phrase:"Chat with your idol", tile_phrase_sub:"just talk, in Korean",
     seed_song:"Break down this song: ", seed_slang:"Teach me some Korean slang from songs 🙂", seed_phrase:"How do you say in Korean: ",
     coll_h:"Photocards", coll_note:n=>`New ${n} cards unlock as you finish lessons and quizzes — keep going to reveal them all.`,
     close_h:"💞 Your closeness", close_stage:["Just met","Getting closer","Close friends"],
@@ -1460,7 +1484,7 @@ const T={
     forgot_link:"Forgot password?", forgot_h:"Reset password", forgot_send:"Send reset link", forgot_sent:"If that email exists, we sent a reset link. Check your inbox.", back_login:"← Back to log in",
   },
   ru:{
-    nav_home:"Мой айдол", footer:"STAGE ONE · учи корейский с AI-айдолом, которого выбрал сам · твой друг и преподаватель в одном лице",
+    nav_home:"Мой айдол", nav_idols:"Айдолы", no_idol_h:"У тебя ещё нет айдола", no_idol_sub:"Выбери айдола — он станет твоим учителем и другом.", no_idol_btn:"Выбрать айдола →", footer:"STAGE ONE · учи корейский с AI-айдолом, которого выбрал сам · твой друг и преподаватель в одном лице",
     pick_h:"Выбери айдола — он станет твоим другом и научит тебя корейскому 🇰🇷", pick_sub:"Один айдол бесплатно и навсегда твой. Общайся каждый день — учи корейский играючи.",
     tab_girls:"Девушки", tab_boys:"Парни",
     concept_suffix:"· твой айдол-учитель", your_korean:"Твой корейский", level:"уровень", days_together:"дней вместе",
@@ -1473,7 +1497,7 @@ const T={
     songs_h:"Разбор песни", songs_intro:"Выбери песню — айдол разберёт её строка за строкой.", songs_empty:"Пока нет песен.", songs_done_h:"Пройденные песни", song_search:"Поиск песни", song_none:q=>`«${q}» пока нет. Скоро можно будет добавить любую — текст, перевод и синхрон соберём автоматически.`, song_botnote:"Просит войти? Это бот-чек YouTube (чаще на VPN) →", song_guide:"Включи видео, а затем разбирай текст строку за строкой ниже.", song_next:"Следующая строка", song_finish:"Завершить песню ✓", song_save:tab=>`+ в ${tab}`, song_saved:"Сохранено ✓", song_save_toast:"Сохранено в Рабочую тетрадь", song_done_toast:"Песня пройдена 🎉", song_open_yt:"Открыть на YouTube",
     kara_hint:"Нажми play — слова подсвечиваются в такт. В конце куплета — пауза для разбора. Если подсветка не совпадает с клипом — жми «Синхрон» ровно когда слышишь первое слово куплета.", kara_synctap:"Синхрон", kara_syncdone:"Синхронизировано ✓", kara_cont:"Не останавливать", kara_verse:"Куплет", kara_repeat:"Повторить куплет", kara_nextv:"Следующий куплет",
     onb_title:"Как здесь всё устроено", onb_tour:"Показать по экрану →", onb_ok:"Понятно", onb_next:"Далее", onb_done:"Готово",
-    tile_song:"Разбор песни", tile_song_sub:"строка за строкой", tile_slang:"Сленг из песен", tile_slang_sub:"живой корейский", tile_phrase:"Спросить фразу", tile_phrase_sub:"перевод + грамматика",
+    tile_song:"Разбор песни", tile_song_sub:"строка за строкой", tile_slang:"Сленг из песен", tile_slang_sub:"живой корейский", tile_phrase:"Чат с айдолом", tile_phrase_sub:"живое общение",
     seed_song:"Разбери песню: ", seed_slang:"Научи меня корейскому сленгу из песен 🙂", seed_phrase:"Как сказать по-корейски: ",
     coll_h:"Фотокарточки", coll_note:n=>`Новые карточки ${n} открываются за пройденные уроки и проверочные — учись, чтобы открыть все.`,
     close_h:"💞 Ваша близость", close_stage:["Только познакомились","Сближаетесь","Близкие друзья"],
@@ -1490,6 +1514,7 @@ function t(k){const d=T[getLang()]||T.en;return d[k]!==undefined?d[k]:(T.en[k]!=
 function applyStatic(){
   const s=document.getElementById('langSel');if(s)s.value=getLang();
   const nav=document.querySelector('.navtab[data-view="cabinet-own"]');if(nav)nav.textContent=t('nav_home');
+  const navi=document.querySelector('.navtab[data-view="roster"]');if(navi)navi.textContent=t('nav_idols');
   const f=document.querySelector('footer.wrap');if(f)f.innerHTML=t('footer');
   const ct=document.getElementById('chatText');if(ct)ct.placeholder=t('chat_ph');
 }

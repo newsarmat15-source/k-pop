@@ -11,8 +11,10 @@
    Круглые бейджи/аватарки/пилюли тоже переведены в квадраты. Иконки-иллюстрации наград
    (диск/комета/бриллиант) — единственное исключение, это графика трофея, а не элемент интерфейса. */
 *{box-sizing:border-box;margin:0;padding:0}
+html{overflow-x:hidden}
 body{background:radial-gradient(120% 80% at 50% -10%,#2c2044 0%,var(--bg) 55%);
-  color:var(--ink);font-family:"Segoe UI",system-ui,-apple-system,sans-serif;min-height:100vh;-webkit-font-smoothing:antialiased}
+  color:var(--ink);font-family:"Segoe UI",system-ui,-apple-system,sans-serif;min-height:100vh;-webkit-font-smoothing:antialiased;max-width:100%;overflow-x:hidden}
+img,iframe,video{max-width:100%}
 .wrap{max-width:1120px;margin:0 auto;padding:0 20px}
 header{position:sticky;top:0;z-index:40;backdrop-filter:blur(14px);background:rgba(21,15,30,.82);border-bottom:1px solid var(--line)}
 .hbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px 22px;min-height:60px;padding-block:10px}
@@ -39,11 +41,12 @@ header{position:sticky;top:0;z-index:40;backdrop-filter:blur(14px);background:rg
   -webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
   -webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none}
 @keyframes holoshift2{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
-.navtabs{display:flex;gap:4px;margin-left:8px}
-.navtab{background:transparent;border:0;color:var(--dim);font:inherit;font-size:13px;font-weight:700;letter-spacing:.04em;
-  padding:8px 14px;cursor:pointer;transition:.15s}
-.navtab:hover{color:var(--ink)}
-.navtab.on{background:var(--panel2);color:var(--accent2);border:1px solid var(--line)}
+.navtabs{display:flex;gap:6px;margin-left:8px}
+.navtab{background:var(--panel);border:1px solid var(--line);color:var(--mut,#c7b3da);font:inherit;font-size:15px;font-weight:700;letter-spacing:.03em;
+  padding:11px 18px;cursor:pointer;transition:.15s}
+.navtab:hover{color:var(--ink);border-color:var(--accent2)}
+.navtab.on{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#3a1a2c;border-color:transparent}
+.no-idol-btn{margin:18px auto 0;display:block}
 .step-ind{margin-left:auto;display:flex;gap:8px;font-size:12px;color:var(--dim)}
 .step-ind span{padding:5px 12px;border:1px solid var(--line)}
 .step-ind span.on{color:var(--accent);border-color:var(--accent2)}
@@ -292,6 +295,10 @@ main{display:none}main.show{display:block}
 .wb-src{font-size:13px;opacity:.8}
 .wb-del{background:none;border:none;color:var(--dim,#7d6f97);cursor:pointer;font-size:13px;padding:2px 4px;line-height:1}
 .wb-del:hover{color:#d97f7f}
+.wb-say{background:none;border:none;color:var(--accent2);font-size:15px;cursor:pointer;padding:2px 5px;line-height:1}
+.wb-say:hover{opacity:.7}
+.say{margin-left:auto;align-self:center;background:none;border:1px solid var(--line);color:var(--accent2);font-size:14px;cursor:pointer;padding:3px 9px;line-height:1;flex-shrink:0}
+.say:hover{border-color:var(--accent2)}
 .wb-empty{text-align:center;color:var(--dim,#7d6f97);font-size:13px;padding:28px 12px;line-height:1.5}
 
 /* ===== РАЗБОР ПЕСНИ ===== */
@@ -404,13 +411,13 @@ footer{border-top:1px solid var(--line);margin-top:50px;padding:26px 0;text-alig
 footer b{color:var(--accent)}
 @media(max-width:900px){.step-ind{display:none}}
 @media(max-width:640px){
-  .navtabs{gap:2px;margin-left:0}
-  .navtab{padding:8px 9px;font-size:12px}
+  .navtabs{gap:5px;margin-left:0}
+  .navtab{padding:10px 14px;font-size:14px}
   .hbar{gap:8px 12px}
 }
 @media(max-width:420px){
   .logo{font-size:13px}
-  .navtab{padding:6px 7px;font-size:11px}
+  .navtab{padding:9px 12px;font-size:13px}
 }
 .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);background:var(--panel2);border:1px solid var(--gold);
   color:var(--ink);padding:12px 22px;font-size:13px;font-weight:700;opacity:0;pointer-events:none;transition:.25s;z-index:80;box-shadow:0 12px 30px -10px rgba(0,0,0,.6)}
