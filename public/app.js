@@ -737,19 +737,28 @@ function openSongs(){
   document.getElementById('songOv').classList.add('show');
   document.getElementById('songBack').style.visibility='hidden';
   document.getElementById('songTitle').textContent=t('songs_h');
-  const done=songsDone();const L=getLang();
-  const cards=allSongs().map(s=>{
+  document.getElementById('songBody').innerHTML=`
+    <div class="song-intro">${t('songs_intro')}</div>
+    <input class="song-search" id="songSearch" oninput="renderSongList()" placeholder="🔎 ${t('song_search')}" autocomplete="off">
+    <div id="songList"></div>`;
+  document.getElementById('songBody').scrollTop=0;
+  renderSongList();
+}
+
+function renderSongList(){
+  const box=document.getElementById('songList');if(!box)return;
+  const L=getLang();const done=songsDone();
+  const q=(document.getElementById('songSearch')&&document.getElementById('songSearch').value||'').trim().toLowerCase();
+  const list=allSongs().filter(s=>!q||(s.title+' '+s.artist).toLowerCase().includes(q));
+  const cards=list.map(s=>{
     const isDone=done.includes(s.id);
     return `<button class="song-item ${isDone?'done':''}" onclick="openSong('${s.id}')">
       <span class="lsn-badge">${isDone?'✓':'🎵'}</span>
       <span class="lsn-txt"><b>${escapeHtml(s.title)}</b><small>${escapeHtml(s.artist)} · ${s.level?s.level[L]:''}</small></span>
     </button>`;
-  }).join('')||`<div class="wb-empty">${t('songs_empty')}</div>`;
-  document.getElementById('songBody').innerHTML=`
-    <div class="song-intro">${t('songs_intro')}</div>
-    <div class="lsn-list">${cards}</div>
+  }).join('');
+  box.innerHTML=`<div class="lsn-list">${cards||`<div class="song-none">${q?t('song_none')(escapeHtml(q)):t('songs_empty')}</div>`}</div>
     <div class="lsn-unit">${t('songs_done_h')} · ${done.length}/${allSongs().length}</div>`;
-  document.getElementById('songBody').scrollTop=0;
 }
 
 // ---- Караоке-движок: подсветка по таймкодам + авто-пауза в конце куплета ----
@@ -781,7 +790,10 @@ function openSong(id){
     <div class="kara">
       <div class="song-top">
         <div class="song-video"><div id="ytPlayer"></div></div>
-        <a class="song-yt" href="https://www.youtube.com/watch?v=${song.ytId}" target="_blank" rel="noopener">${t('song_open_yt')} ↗</a>
+        <div class="song-vfoot">
+          <span class="song-botnote">${t('song_botnote')}</span>
+          <a class="song-yt" href="https://www.youtube.com/watch?v=${song.ytId}" target="_blank" rel="noopener">${t('song_open_yt')} ↗</a>
+        </div>
       </div>
       <div class="kara-lines" id="karaLines"></div>
       <div class="kara-pause" id="karaPause" style="display:none"></div>
@@ -1432,7 +1444,7 @@ const T={
     wb_h:"Workbook", wb_words:"Words", wb_slang:"Slang", wb_del:"Remove", wb_mean_ph:"meaning", wb_need_kr:"Type the Korean word", wb_dup:"Already in your workbook",
     wb_empty_words:"No words yet — finish lessons and they’ll pile up here automatically.", wb_empty_slang:"No slang yet — it’ll collect from song breakdowns. You can add your own too.",
     wb_hint_words:"📘 auto from lessons · ✍️ added by you", wb_hint_slang:"🎵 from songs · ✍️ added by you",
-    songs_h:"Break a song", songs_intro:"Pick a song. Your idol walks you through it line by line — meaning, grammar and slang.", songs_empty:"No songs yet.", songs_done_h:"Songs you’ve done", song_guide:"Play the video, then step through the lyrics line by line below.", song_next:"Next line", song_finish:"Finish song ✓", song_save:tab=>`+ ${tab}`, song_saved:"Saved ✓", song_save_toast:"Saved to your Workbook", song_done_toast:"Song complete 🎉", song_open_yt:"Open on YouTube",
+    songs_h:"Break a song", songs_intro:"Pick a song — your idol walks you through it line by line.", songs_empty:"No songs yet.", songs_done_h:"Songs you’ve done", song_search:"Search a song", song_none:q=>`“${q}” isn’t here yet. Soon you’ll add any song — we’ll pull lyrics, translation and sync automatically.`, song_botnote:"Asks to sign in? That’s YouTube’s bot-check (worse on VPN) →", song_guide:"Play the video, then step through the lyrics line by line below.", song_next:"Next line", song_finish:"Finish song ✓", song_save:tab=>`+ ${tab}`, song_saved:"Saved ✓", song_save_toast:"Saved to your Workbook", song_done_toast:"Song complete 🎉", song_open_yt:"Open on YouTube",
     kara_hint:"Press play — words light up in time. At each verse end it pauses for the breakdown. If the highlight drifts from the clip, tap “Sync” exactly when you hear the verse’s first word.", kara_synctap:"Sync", kara_syncdone:"Synced to the clip ✓", kara_cont:"Don’t stop", kara_verse:"Verse", kara_repeat:"Repeat verse", kara_nextv:"Next verse",
     onb_title:"How it all works", onb_tour:"Show me around →", onb_ok:"Got it", onb_next:"Next", onb_done:"Done",
     tile_song:"Break a song", tile_song_sub:"line by line", tile_slang:"Song slang", tile_slang_sub:"real Korean", tile_phrase:"Ask a phrase", tile_phrase_sub:"translation + grammar",
@@ -1458,7 +1470,7 @@ const T={
     wb_h:"Рабочая тетрадь", wb_words:"Слова", wb_slang:"Сленг", wb_del:"Удалить", wb_mean_ph:"перевод", wb_need_kr:"Впиши корейское слово", wb_dup:"Уже есть в тетради",
     wb_empty_words:"Пока пусто — проходи уроки, и слова сами накопятся здесь.", wb_empty_slang:"Пока пусто — сленг накопится из разборов песен. Можно добавить и своё.",
     wb_hint_words:"📘 авто с уроков · ✍️ добавил ты", wb_hint_slang:"🎵 из песен · ✍️ добавил ты",
-    songs_h:"Разбор песни", songs_intro:"Выбери песню. Айдол разберёт её строка за строкой — смысл, грамматику и сленг.", songs_empty:"Пока нет песен.", songs_done_h:"Пройденные песни", song_guide:"Включи видео, а затем разбирай текст строку за строкой ниже.", song_next:"Следующая строка", song_finish:"Завершить песню ✓", song_save:tab=>`+ в ${tab}`, song_saved:"Сохранено ✓", song_save_toast:"Сохранено в Рабочую тетрадь", song_done_toast:"Песня пройдена 🎉", song_open_yt:"Открыть на YouTube",
+    songs_h:"Разбор песни", songs_intro:"Выбери песню — айдол разберёт её строка за строкой.", songs_empty:"Пока нет песен.", songs_done_h:"Пройденные песни", song_search:"Поиск песни", song_none:q=>`«${q}» пока нет. Скоро можно будет добавить любую — текст, перевод и синхрон соберём автоматически.`, song_botnote:"Просит войти? Это бот-чек YouTube (чаще на VPN) →", song_guide:"Включи видео, а затем разбирай текст строку за строкой ниже.", song_next:"Следующая строка", song_finish:"Завершить песню ✓", song_save:tab=>`+ в ${tab}`, song_saved:"Сохранено ✓", song_save_toast:"Сохранено в Рабочую тетрадь", song_done_toast:"Песня пройдена 🎉", song_open_yt:"Открыть на YouTube",
     kara_hint:"Нажми play — слова подсвечиваются в такт. В конце куплета — пауза для разбора. Если подсветка не совпадает с клипом — жми «Синхрон» ровно когда слышишь первое слово куплета.", kara_synctap:"Синхрон", kara_syncdone:"Синхронизировано ✓", kara_cont:"Не останавливать", kara_verse:"Куплет", kara_repeat:"Повторить куплет", kara_nextv:"Следующий куплет",
     onb_title:"Как здесь всё устроено", onb_tour:"Показать по экрану →", onb_ok:"Понятно", onb_next:"Далее", onb_done:"Готово",
     tile_song:"Разбор песни", tile_song_sub:"строка за строкой", tile_slang:"Сленг из песен", tile_slang_sub:"живой корейский", tile_phrase:"Спросить фразу", tile_phrase_sub:"перевод + грамматика",

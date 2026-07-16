@@ -295,7 +295,13 @@ main{display:none}main.show{display:block}
 .wb-empty{text-align:center;color:var(--dim,#7d6f97);font-size:13px;padding:28px 12px;line-height:1.5}
 
 /* ===== РАЗБОР ПЕСНИ ===== */
-.song-intro{font-size:13.5px;line-height:1.5;color:var(--muted,#a99cc0);margin-bottom:14px}
+.song-intro{font-size:13.5px;line-height:1.5;color:var(--muted,#a99cc0);margin-bottom:12px}
+.song-search{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--ink);font:inherit;font-size:14px;padding:11px 13px;margin-bottom:14px}
+.song-search:focus{outline:none;border-color:var(--accent2)}
+.song-none{text-align:center;color:var(--dim,#7d6f97);font-size:13px;padding:22px 12px;line-height:1.5}
+.song-vfoot{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:8px}
+.song-botnote{font-size:11px;color:var(--dim,#7d6f97);line-height:1.35}
+.song-vfoot .song-yt{margin:0;white-space:nowrap;flex-shrink:0;font-weight:600}
 .song-item{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:var(--panel,rgba(52,38,78,.42));border:1px solid var(--line);color:var(--ink);padding:12px 14px;cursor:pointer;transition:.15s;margin-bottom:8px}
 .song-item:hover{border-color:var(--accent2);transform:translateX(2px)}
 .song-item.done{border-color:rgba(120,200,140,.4)}
