@@ -308,6 +308,7 @@ main{display:none}main.show{display:block}
 .song-none{text-align:center;color:var(--dim,#7d6f97);font-size:13px;padding:22px 12px;line-height:1.5}
 .song-vfoot{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:8px}
 .song-botnote{font-size:11px;color:var(--dim,#7d6f97);line-height:1.35}
+.song-fail{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:18px;font-size:13px;line-height:1.5;color:var(--mut,#c7b3da);background:var(--panel,#241b34)}
 .song-vfoot .song-yt{margin:0;white-space:nowrap;flex-shrink:0;font-weight:600}
 .song-item{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:var(--panel,rgba(52,38,78,.42));border:1px solid var(--line);color:var(--ink);padding:12px 14px;cursor:pointer;transition:.15s;margin-bottom:8px}
 .song-item:hover{border-color:var(--accent2);transform:translateX(2px)}

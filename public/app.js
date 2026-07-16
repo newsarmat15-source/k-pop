@@ -800,7 +800,7 @@ function karaBuild(song){
     return {...v,lines,start:lines[0].t};
   });
   return {song,verses,vIdx:0,paused:false,continuous:false,videoOffset:song.videoOffset||0,
-    get off(){return this.videoOffset},player:null,timer:null,saved:{},tok:[],lastLine:null};
+    get off(){return this.videoOffset},player:null,timer:null,saved:{},tok:[],lastLine:null,ready:false,readyTimer:null};
 }
 
 function openSong(id){
@@ -829,7 +829,11 @@ function openSong(id){
   renderKaraVerse();
   loadYT(()=>{
     const K=window._kara;if(!K)return;
-    K.player=new YT.Player('ytPlayer',{videoId:song.ytId,host:'https://www.youtube-nocookie.com',playerVars:{playsinline:1,rel:0,modestbranding:1,origin:location.origin},events:{}});
+    K.player=new YT.Player('ytPlayer',{videoId:song.ytId,playerVars:{playsinline:1,rel:0,origin:location.origin},events:{
+      onReady:()=>{K.ready=true;if(K.readyTimer){clearTimeout(K.readyTimer);K.readyTimer=null}},
+      onError:()=>karaVideoFail()
+    }});
+    K.readyTimer=setTimeout(()=>{if(window._kara===K&&!K.ready)karaVideoFail()},9000);
     K.timer=setInterval(karaTick,120);
   });
 }
@@ -844,8 +848,15 @@ function loadYT(cb){
 function karaStop(){
   const K=window._kara;if(!K)return;
   if(K.timer)clearInterval(K.timer);
+  if(K.readyTimer)clearTimeout(K.readyTimer);
   try{K.player&&K.player.destroy&&K.player.destroy()}catch(e){}
   window._kara=null;
+}
+function karaVideoFail(){
+  const K=window._kara;if(!K)return;
+  if(K.readyTimer){clearTimeout(K.readyTimer);K.readyTimer=null}
+  const v=document.querySelector('.song-video');
+  if(v)v.innerHTML=`<div class="song-fail">${t('song_fail')}</div>`;
 }
 
 function karaTick(){
@@ -1468,7 +1479,7 @@ const T={
     wb_h:"Workbook", wb_words:"Words", wb_slang:"Slang", wb_del:"Remove", wb_mean_ph:"meaning", wb_need_kr:"Type the Korean word", wb_dup:"Already in your workbook",
     wb_empty_words:"No words yet — finish lessons and they’ll pile up here automatically.", wb_empty_slang:"No slang yet — it’ll collect from song breakdowns. You can add your own too.",
     wb_hint_words:"📘 auto from lessons · ✍️ added by you", wb_hint_slang:"🎵 from songs · ✍️ added by you",
-    songs_h:"Break a song", songs_intro:"Pick a song — your idol walks you through it line by line.", songs_empty:"No songs yet.", songs_done_h:"Songs you’ve done", song_search:"Search a song", song_none:q=>`“${q}” isn’t here yet. Soon you’ll add any song — we’ll pull lyrics, translation and sync automatically.`, song_botnote:"Asks to sign in? That’s YouTube’s bot-check (worse on VPN) →", song_guide:"Play the video, then step through the lyrics line by line below.", song_next:"Next line", song_finish:"Finish song ✓", song_save:tab=>`+ ${tab}`, song_saved:"Saved ✓", song_save_toast:"Saved to your Workbook", song_done_toast:"Song complete 🎉", song_open_yt:"Open on YouTube",
+    songs_h:"Break a song", songs_intro:"Pick a song — your idol walks you through it line by line.", songs_empty:"No songs yet.", songs_done_h:"Songs you’ve done", song_search:"Search a song", song_none:q=>`“${q}” isn’t here yet. Soon you’ll add any song — we’ll pull lyrics, translation and sync automatically.`, song_botnote:"Asks to sign in? That’s YouTube’s bot-check (worse on VPN) →", song_fail:"The clip couldn’t load — open it on YouTube below 👇 (the breakdown still works)", song_guide:"Play the video, then step through the lyrics line by line below.", song_next:"Next line", song_finish:"Finish song ✓", song_save:tab=>`+ ${tab}`, song_saved:"Saved ✓", song_save_toast:"Saved to your Workbook", song_done_toast:"Song complete 🎉", song_open_yt:"Open on YouTube",
     kara_hint:"Press play — words light up in time. At each verse end it pauses for the breakdown. If the highlight drifts from the clip, tap “Sync” exactly when you hear the verse’s first word.", kara_synctap:"Sync", kara_syncdone:"Synced to the clip ✓", kara_cont:"Don’t stop", kara_verse:"Verse", kara_repeat:"Repeat verse", kara_nextv:"Next verse",
     onb_title:"How it all works", onb_tour:"Show me around →", onb_ok:"Got it", onb_next:"Next", onb_done:"Done",
     tile_song:"Break a song", tile_song_sub:"line by line", tile_slang:"Song slang", tile_slang_sub:"real Korean", tile_phrase:"Chat with your idol", tile_phrase_sub:"just talk, in Korean",
@@ -1494,7 +1505,7 @@ const T={
     wb_h:"Рабочая тетрадь", wb_words:"Слова", wb_slang:"Сленг", wb_del:"Удалить", wb_mean_ph:"перевод", wb_need_kr:"Впиши корейское слово", wb_dup:"Уже есть в тетради",
     wb_empty_words:"Пока пусто — проходи уроки, и слова сами накопятся здесь.", wb_empty_slang:"Пока пусто — сленг накопится из разборов песен. Можно добавить и своё.",
     wb_hint_words:"📘 авто с уроков · ✍️ добавил ты", wb_hint_slang:"🎵 из песен · ✍️ добавил ты",
-    songs_h:"Разбор песни", songs_intro:"Выбери песню — айдол разберёт её строка за строкой.", songs_empty:"Пока нет песен.", songs_done_h:"Пройденные песни", song_search:"Поиск песни", song_none:q=>`«${q}» пока нет. Скоро можно будет добавить любую — текст, перевод и синхрон соберём автоматически.`, song_botnote:"Просит войти? Это бот-чек YouTube (чаще на VPN) →", song_guide:"Включи видео, а затем разбирай текст строку за строкой ниже.", song_next:"Следующая строка", song_finish:"Завершить песню ✓", song_save:tab=>`+ в ${tab}`, song_saved:"Сохранено ✓", song_save_toast:"Сохранено в Рабочую тетрадь", song_done_toast:"Песня пройдена 🎉", song_open_yt:"Открыть на YouTube",
+    songs_h:"Разбор песни", songs_intro:"Выбери песню — айдол разберёт её строка за строкой.", songs_empty:"Пока нет песен.", songs_done_h:"Пройденные песни", song_search:"Поиск песни", song_none:q=>`«${q}» пока нет. Скоро можно будет добавить любую — текст, перевод и синхрон соберём автоматически.`, song_botnote:"Просит войти? Это бот-чек YouTube (чаще на VPN) →", song_fail:"Клип не загрузился — открой его на YouTube ниже 👇 (разбор всё равно работает)", song_guide:"Включи видео, а затем разбирай текст строку за строкой ниже.", song_next:"Следующая строка", song_finish:"Завершить песню ✓", song_save:tab=>`+ в ${tab}`, song_saved:"Сохранено ✓", song_save_toast:"Сохранено в Рабочую тетрадь", song_done_toast:"Песня пройдена 🎉", song_open_yt:"Открыть на YouTube",
     kara_hint:"Нажми play — слова подсвечиваются в такт. В конце куплета — пауза для разбора. Если подсветка не совпадает с клипом — жми «Синхрон» ровно когда слышишь первое слово куплета.", kara_synctap:"Синхрон", kara_syncdone:"Синхронизировано ✓", kara_cont:"Не останавливать", kara_verse:"Куплет", kara_repeat:"Повторить куплет", kara_nextv:"Следующий куплет",
     onb_title:"Как здесь всё устроено", onb_tour:"Показать по экрану →", onb_ok:"Понятно", onb_next:"Далее", onb_done:"Готово",
     tile_song:"Разбор песни", tile_song_sub:"строка за строкой", tile_slang:"Сленг из песен", tile_slang_sub:"живой корейский", tile_phrase:"Чат с айдолом", tile_phrase_sub:"живое общение",
