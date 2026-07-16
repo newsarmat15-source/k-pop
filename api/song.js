@@ -10,24 +10,35 @@ export const config = { maxDuration: 60 };
 const MODEL = "anthropic/claude-haiku-4.5";
 const MAX_LINES = 8; // первые ~2 куплета — держим латентность/размер разумными
 
-async function lrclibSearch(q) {
-  const r = await fetch("https://lrclib.net/api/search?q=" + encodeURIComponent(q), {
-    headers: { "User-Agent": "StageOne (korean learning app)" },
-  });
+// Автоподсказки — iTunes Search API (бесплатный, прощает частичный ввод, знает корейский).
+async function itunesSuggest(q) {
+  const r = await fetch(
+    "https://itunes.apple.com/search?media=music&entity=song&limit=10&term=" + encodeURIComponent(q),
+    { headers: { "User-Agent": "StageOne" } }
+  );
   if (!r.ok) return [];
-  const arr = await r.json().catch(() => []);
-  return (arr || [])
-    .filter((x) => x.syncedLyrics && !x.instrumental)
-    .slice(0, 8)
-    .map((x) => ({ id: x.id, title: x.trackName || x.name, artist: x.artistName, duration: x.duration }));
+  const d = await r.json().catch(() => ({}));
+  const seen = new Set();
+  const out = [];
+  for (const x of d.results || []) {
+    const key = (x.artistName + "|" + x.trackName).toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push({ title: x.trackName, artist: x.artistName });
+    if (out.length >= 7) break;
+  }
+  return out;
 }
 
-async function lrclibGetById(id) {
-  const r = await fetch("https://lrclib.net/api/get/" + encodeURIComponent(id), {
+// Текст с таймингами — lrclib. Ищем запись с синхро-текстом И корейским.
+async function lrclibFind(artist, track) {
+  const r = await fetch("https://lrclib.net/api/search?q=" + encodeURIComponent(artist + " " + track), {
     headers: { "User-Agent": "StageOne (korean learning app)" },
   });
   if (!r.ok) return null;
-  return await r.json().catch(() => null);
+  const arr = await r.json().catch(() => []);
+  const ok = (arr || []).filter((x) => x.syncedLyrics && !x.instrumental && /[가-힣]/.test(x.syncedLyrics || ""));
+  return ok[0] || null;
 }
 
 // LRC → [{t, kr}] (только строки с корейским)
@@ -98,11 +109,12 @@ async function youtubeId(query) {
 }
 
 async function handleBuild(req, res) {
-  const id = (req.query.id || "").trim();
-  if (!id) return res.status(400).json({ error: "id обязателен" });
+  const artist = (req.query.artist || "").trim();
+  const track = (req.query.track || "").trim();
+  if (!artist || !track) return res.status(400).json({ error: "artist и track обязательны" });
 
-  const rec = await lrclibGetById(id);
-  if (!rec || !rec.syncedLyrics) return res.status(404).json({ error: "Синхро-текст не найден для этой песни" });
+  const rec = await lrclibFind(artist, track);
+  if (!rec || !rec.syncedLyrics) return res.status(404).json({ error: "Для этой песни нет синхро-текста с корейским" });
 
   const allLines = parseSynced(rec.syncedLyrics);
   if (!allLines.length) return res.status(422).json({ error: "В песне нет корейского текста" });
@@ -163,7 +175,7 @@ export default async function handler(req, res) {
     if (action === "search") {
       const q = (req.query.q || "").trim();
       if (q.length < 2) return res.status(200).json({ ok: true, results: [] });
-      return res.status(200).json({ ok: true, results: await lrclibSearch(q) });
+      return res.status(200).json({ ok: true, results: await itunesSuggest(q) });
     }
     if (action === "build") return await handleBuild(req, res);
     return res.status(400).json({ error: "Неизвестный action" });

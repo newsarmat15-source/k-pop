@@ -337,7 +337,7 @@ function renderCabinet(chartEntry,readOnly){
       </div>
     </div>` : `
     <div class="home">
-      <button class="onb-help" onclick="openOnb()" title="?">?</button>
+      <button class="onb-help" onclick="openOnb()" title="${t('onb_title')}">i</button>
       <div class="idol-hero">
         <div class="idol-ph holo-frame"><div class="ph-inner"><img src="${idol.img}"></div></div>
         <div class="idol-meta">
@@ -837,12 +837,12 @@ function onSongSearchInput(){
   const q=(document.getElementById('songSearch')&&document.getElementById('songSearch').value||'').trim();
   const o=document.getElementById('songOnline');
   if(q.length<2){if(o)o.innerHTML='';return;}
-  _songSearchTimer=setTimeout(()=>songSearchOnline(q),550);
+  _songSearchTimer=setTimeout(()=>songSearchOnline(q),300);
 }
 function songOnlineMsg(cls,txt){const b=document.getElementById('songOnline');if(b)b.innerHTML=`<div class="song-online-h">${t('song_online_h')}</div><div class="song-none ${cls||''}">${txt}</div>`;}
 async function songSearchOnline(q){
   const box=document.getElementById('songOnline');if(!box)return;
-  songOnlineMsg('','⏳ '+t('song_searching'));
+  songOnlineMsg('','<span class="spinner sm"></span> '+t('song_searching'));
   try{
     const r=await fetch('/api/song?action=search&q='+encodeURIComponent(q));
     let d={};try{d=await r.json()}catch(e){}
@@ -852,18 +852,18 @@ async function songSearchOnline(q){
     const res=(d.results||[]).filter(x=>!have.has(((x.title||'')+(x.artist||'')).toLowerCase())).slice(0,6);
     if(!res.length){songOnlineMsg('',t('song_search_empty'));return;}
     box.innerHTML=`<div class="song-online-h">${t('song_online_h')}</div>`+res.map(x=>`
-      <button class="song-item add" onclick="addSong(${x.id},this)">
+      <button class="song-item add" onclick="addSong(${JSON.stringify(x.artist).replace(/"/g,'&quot;')},${JSON.stringify(x.title).replace(/"/g,'&quot;')},this)">
         <span class="lsn-badge">➕</span>
         <span class="lsn-txt"><b>${escapeHtml(x.title)}</b><small>${escapeHtml(x.artist)}</small></span>
       </button>`).join('');
   }catch(e){songOnlineMsg('warn',t('song_net'));}
 }
-async function addSong(id,btn){
+async function addSong(artist,track,btn){
   const badge=btn&&btn.querySelector('.lsn-badge');
-  if(btn){btn.disabled=true;if(badge)badge.textContent='⏳';}
-  toast(t('song_building'));
+  if(btn){btn.disabled=true;if(badge)badge.innerHTML='<span class="spinner sm"></span>';}
+  songOnlineMsg('','<span class="spinner sm"></span> '+t('song_building'));
   try{
-    const r=await fetch('/api/song?action=build&id='+encodeURIComponent(id));
+    const r=await fetch('/api/song?action=build&artist='+encodeURIComponent(artist)+'&track='+encodeURIComponent(track));
     const d=await r.json();
     if(!r.ok||d.ok===false||!d.song){toast(d.error||t('song_build_fail'));if(btn){btn.disabled=false;if(badge)badge.textContent='➕';}return;}
     saveUserSong(d.song);
@@ -1494,6 +1494,7 @@ function openAuth(mode){
 }
 function closeAuthOv(){document.getElementById('authOv').classList.remove('show')}
 document.getElementById('authOv').onclick=e=>{if(e.target.id==='authOv')closeAuthOv()};
+function togglePass(id,btn){const el=document.getElementById(id);if(!el)return;const show=el.type==='password';el.type=show?'text':'password';if(btn)btn.textContent=show?'🙈':'👁';}
 function renderAuthForm(mode,errMsg){
   const box=document.getElementById('authBox');
   const isSignup=mode==='signup';
@@ -1502,7 +1503,7 @@ function renderAuthForm(mode,errMsg){
     ${errMsg?`<div class="err" style="margin-bottom:12px">${errMsg}</div>`:''}
     ${isSignup?`<input id="authUsername" placeholder="${t('au_user')}" autocomplete="username">`:''}
     <input id="authEmail" type="email" placeholder="${t('au_email')}" autocomplete="email">
-    <input id="authPassword" type="password" placeholder="${t('au_pass')}" autocomplete="${isSignup?'new-password':'current-password'}">
+    <div class="pass-wrap"><input id="authPassword" type="password" placeholder="${t('au_pass')}" autocomplete="${isSignup?'new-password':'current-password'}"><button type="button" class="pass-eye" onclick="togglePass('authPassword',this)" aria-label="show password">👁</button></div>
     <button class="btn accent" style="width:100%" id="authSubmitBtn" onclick="submitAuth('${mode}')">${isSignup?t('au_create'):t('au_login')}</button>
     <div class="auth-switch">${isSignup?`${t('au_have')} <a onclick=\"renderAuthForm('login')\">${t('au_login')}</a>`:`${t('au_no')} <a onclick=\"renderAuthForm('signup')\">${t('au_signup')}</a>`}</div>
     ${isSignup?'':`<div class="auth-switch"><a onclick="renderForgotForm()">${t('forgot_link')}</a></div>`}
