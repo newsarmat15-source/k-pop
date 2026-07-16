@@ -22,7 +22,7 @@ window.SONGS = [
     artist: 'BTS',
     ytId: 'xEeFrLSkMm8',
     duration: 274,
-    videoOffset: 0,
+    videoOffset: 31.0, // киноинтро клипа ~31с (вычислено по корейской ASR-дорожке YouTube: первый вокал на 48.0с vs 17.13с в дорожке)
     level: { ru: 'средний', en: 'intermediate' },
     src: 'lrclib.net (тайминг) · doolsetbangtan (перевод)',
     verses: [
