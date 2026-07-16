@@ -309,6 +309,9 @@ main{display:none}main.show{display:block}
 .song-search{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--ink);font:inherit;font-size:14px;padding:11px 13px;margin-bottom:14px}
 .song-search:focus{outline:none;border-color:var(--accent2)}
 .song-none{text-align:center;color:var(--dim,#7d6f97);font-size:13px;padding:22px 12px;line-height:1.5}
+.song-online-h{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--champ,#f3d9ac);margin:16px 0 8px}
+.song-item.add .lsn-badge{color:var(--accent2)}
+.song-item.add:disabled{opacity:.5}
 .song-vfoot{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:8px}
 .song-botnote{font-size:11px;color:var(--dim,#7d6f97);line-height:1.35}
 .song-fail{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:18px;font-size:13px;line-height:1.5;color:var(--mut,#c7b3da);background:var(--panel,#241b34)}
