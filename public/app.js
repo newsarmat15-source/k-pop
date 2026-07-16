@@ -615,28 +615,69 @@ function renderBlock(b){
   return `<div class="lb-text">${b[L]}</div>`;
 }
 
+// СТРАНИЦА 1 — материал (буквы/слова + озвучка), внизу «Далее → проверка».
 function openLesson(id){
   const lesson=allLessons().find(l=>l.id===id);
   if(!lesson)return;
+  window._lsnCur=lesson;
   document.getElementById('lessonOv').classList.add('show');
   document.getElementById('lsnBack').style.visibility='visible';
   document.getElementById('lessonTitle').textContent=lesson.title[getLang()];
   const blocks=lesson.blocks.map(renderBlock).join('');
-  const quiz=(lesson.quiz||[]).map((q,qi)=>`
-    <div class="lq" data-qi="${qi}">
-      <div class="lq-q">${qi+1}. ${q.q[getLang()]}</div>
-      <div class="lq-opts">${q.opts.map((o,oi)=>`<button class="lq-opt" onclick="pickQuiz(${qi},${oi})" data-oi="${oi}">${optLabel(o)}</button>`).join('')}</div>
-    </div>`).join('');
-  window._lsnCur=lesson; window._lsnAns={};
   document.getElementById('lessonBody').innerHTML=`
     <div class="lsn-goal">🎯 ${(lesson.goal&&lesson.goal[getLang()])||''}</div>
     <div class="lsn-teacher">${blocks}</div>
     <div class="lsn-vocab-note">${t('lsn_vocab_note')(lesson.vocab.length)}</div>
-    <div class="lsn-quiz-h">${t('lsn_quiz_h')}</div>
+    <button class="btn accent lsn-finish" onclick="openLessonQuiz('${lesson.id}')">${t('lsn_next_quiz')}</button>
+    <button class="lsn-ask" onclick="askTeacher()">${t('lsn_ask')}</button>`;
+  document.getElementById('lessonBody').scrollTop=0;
+}
+
+// Проверочная генерируется по ВСЕМ буквам/словам урока (не по 2 захардкоженным).
+function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function buildQuiz(lesson){
+  const L=getLang();
+  const hangul=lesson.blocks.filter(b=>b.type==='hangul');
+  const exs=lesson.blocks.filter(b=>b.type==='example');
+  const qs=[];
+  const romPool=[...new Set(hangul.map(b=>b.rom))];
+  const padRom=['a','o','u','i','eo','eu','n','m','g','s','h'];
+  hangul.forEach(b=>{
+    let distr=shuffle(romPool.filter(r=>r!==b.rom)).slice(0,3);
+    for(const p of padRom){if(distr.length>=3)break;if(p!==b.rom&&!distr.includes(p))distr.push(p);}
+    const opts=shuffle([b.rom,...distr]);
+    qs.push({q:{ru:`Как читается ${b.char}?`,en:`How is ${b.char} read?`},opts,answer:opts.indexOf(b.rom),say:b.char});
+  });
+  const meanPool=[...new Set(exs.map(b=>b[L]))];
+  exs.forEach(b=>{
+    const distr=shuffle(meanPool.filter(m=>m!==b[L])).slice(0,3);
+    if(distr.length>=2){
+      const opts=shuffle([b[L],...distr]);
+      qs.push({q:{ru:`Что значит «${b.kr}»?`,en:`What does “${b.kr}” mean?`},opts,answer:opts.indexOf(b[L]),say:b.kr});
+    }
+  });
+  return qs.length?qs:(lesson.quiz||[]).map(q=>({q:q.q,opts:q.opts.map(o=>optLabel(o)),answer:q.answer}));
+}
+
+// СТРАНИЦА 2 — проверочная (ответ не виден над вопросом, т.к. материал на прошлой странице).
+function openLessonQuiz(id){
+  const lesson=allLessons().find(l=>l.id===id);if(!lesson)return;
+  window._lsnCur=lesson;window._lsnQuiz=buildQuiz(lesson);window._lsnAns={};
+  const L=getLang();
+  document.getElementById('lessonOv').classList.add('show');
+  document.getElementById('lsnBack').style.visibility='visible';
+  document.getElementById('lessonTitle').textContent=t('lsn_quiz_h');
+  const quiz=window._lsnQuiz.map((q,qi)=>`
+    <div class="lq" data-qi="${qi}">
+      <div class="lq-q">${qi+1}. ${q.q[L]}${q.say?` <button class="say sm" onclick="speak(${JSON.stringify(q.say).replace(/"/g,'&quot;')})">🔊</button>`:''}</div>
+      <div class="lq-opts">${q.opts.map((o,oi)=>`<button class="lq-opt" onclick="pickQuiz(${qi},${oi})" data-oi="${oi}">${escapeHtml(o)}</button>`).join('')}</div>
+    </div>`).join('');
+  document.getElementById('lessonBody').innerHTML=`
+    <button class="lsn-toinfo" onclick="openLesson('${lesson.id}')">← ${t('lsn_toinfo')}</button>
+    <div class="lsn-quiz-h">${t('lsn_quiz_h')} · ${window._lsnQuiz.length}</div>
     ${quiz}
     <div class="lsn-quiz-msg" id="lsnQuizMsg"></div>
-    <button class="btn accent lsn-finish" id="lsnFinish" onclick="finishLesson()">${t('lsn_check')}</button>
-    <button class="lsn-ask" onclick="askTeacher()">${t('lsn_ask')}</button>`;
+    <button class="btn accent lsn-finish" id="lsnFinish" onclick="finishLesson()">${t('lsn_check')}</button>`;
   document.getElementById('lessonBody').scrollTop=0;
 }
 
@@ -647,33 +688,32 @@ function pickQuiz(qi,oi){
 
 function finishLesson(){
   const lesson=window._lsnCur;if(!lesson)return;
-  const quiz=lesson.quiz||[];
+  const quiz=window._lsnQuiz||[];
   const msg=document.getElementById('lsnQuizMsg');
-  // все вопросы отвечены?
   for(let i=0;i<quiz.length;i++){if(window._lsnAns[i]===undefined){msg.className='lsn-quiz-msg warn';msg.textContent=t('lsn_answer_all');return}}
-  // проверка
   let wrong=0;
   quiz.forEach((q,qi)=>{
-    const ok=window._lsnAns[qi]===q.answer;
-    if(!ok)wrong++;
+    if(window._lsnAns[qi]!==q.answer)wrong++;
     document.querySelectorAll(`.lq[data-qi="${qi}"] .lq-opt`).forEach(b=>{
       const oi=+b.dataset.oi;
       b.classList.toggle('correct',oi===q.answer);
       b.classList.toggle('wrong',oi===window._lsnAns[qi]&&oi!==q.answer);
     });
   });
-  if(wrong>0){msg.className='lsn-quiz-msg warn';msg.textContent=t('lsn_wrong')(wrong);return}
-  // успех → завершаем
+  const fin=document.getElementById('lsnFinish');
+  if(wrong>0){
+    msg.className='lsn-quiz-msg warn';msg.textContent=t('lsn_wrong')(wrong);
+    fin.textContent=t('lsn_retry');fin.onclick=()=>openLessonQuiz(lesson.id);
+    return;
+  }
   const done=lsnDone();
   if(!done.includes(lesson.id)){
     done.push(lesson.id);lsnSaveDone(done);
-    // слова → в словарь (без дублей)
     const voc=lsnVocab();const have=new Set(voc.map(v=>v.kr));
     lesson.vocab.forEach(v=>{if(!have.has(v.kr))voc.push({...v,from:'lesson'})});
     lsnSaveVocab(voc);
   }
   msg.className='lsn-quiz-msg ok';msg.textContent=t('lsn_passed');
-  const fin=document.getElementById('lsnFinish');
   fin.textContent=t('lsn_next');fin.onclick=()=>{
     const flat=allLessons();const idx=flat.findIndex(l=>l.id===lesson.id);
     const next=flat[idx+1];
@@ -1474,7 +1514,7 @@ const T={
     tab_girls:"Girls", tab_boys:"Boys",
     concept_suffix:"· your idol tutor", your_korean:"Your Korean", level:"level", days_together:"days together",
     lesson_start:"Start a lesson", lesson_sub:n=>`${n} teaches you Korean, step by step`,
-    lessons_h:"Lessons", lsn_vocab_note:n=>`${n} new words will be saved to your Workbook`, lsn_quiz_h:"Check yourself", lsn_check:"Check answers", lsn_ask:"Ask the teacher a question", lsn_answer_all:"Answer every question first.", lsn_wrong:n=>`${n} wrong — look again and retry.`, lsn_passed:"All correct! Lesson complete 🎉", lsn_next:"Next lesson →", lsn_toast:"Lesson done · words saved · card progress +", lsn_ask_seed:tt=>`I have a question about the lesson "${tt}": `,
+    lessons_h:"Lessons", lsn_vocab_note:n=>`${n} new words will be saved to your Workbook`, lsn_quiz_h:"Check yourself", lsn_check:"Check answers", lsn_next_quiz:"Next: quick check →", lsn_toinfo:"back to the material", lsn_retry:"Try again", lsn_ask:"Ask the teacher a question", lsn_answer_all:"Answer every question first.", lsn_wrong:n=>`${n} wrong — look again and retry.`, lsn_passed:"All correct! Lesson complete 🎉", lsn_next:"Next lesson →", lsn_toast:"Lesson done · words saved · card progress +", lsn_ask_seed:tt=>`I have a question about the lesson "${tt}": `,
     tile_wb:"Workbook", tile_wb_sub:"your words & slang",
     wb_h:"Workbook", wb_words:"Words", wb_slang:"Slang", wb_del:"Remove", wb_mean_ph:"meaning", wb_need_kr:"Type the Korean word", wb_dup:"Already in your workbook",
     wb_empty_words:"No words yet — finish lessons and they’ll pile up here automatically.", wb_empty_slang:"No slang yet — it’ll collect from song breakdowns. You can add your own too.",
@@ -1500,7 +1540,7 @@ const T={
     tab_girls:"Девушки", tab_boys:"Парни",
     concept_suffix:"· твой айдол-учитель", your_korean:"Твой корейский", level:"уровень", days_together:"дней вместе",
     lesson_start:"Начать урок", lesson_sub:n=>`${n} учит корейскому — шаг за шагом`,
-    lessons_h:"Уроки", lsn_vocab_note:n=>`${n} новых слов сохранятся в Рабочую тетрадь`, lsn_quiz_h:"Проверь себя", lsn_check:"Проверить", lsn_ask:"Задать вопрос учителю", lsn_answer_all:"Сначала ответь на все вопросы.", lsn_wrong:n=>`Ошибок: ${n} — посмотри ещё раз и попробуй снова.`, lsn_passed:"Всё верно! Урок пройден 🎉", lsn_next:"Следующий урок →", lsn_toast:"Урок пройден · слова сохранены · прогресс карточек +", lsn_ask_seed:tt=>`У меня вопрос по уроку «${tt}»: `,
+    lessons_h:"Уроки", lsn_vocab_note:n=>`${n} новых слов сохранятся в Рабочую тетрадь`, lsn_quiz_h:"Проверь себя", lsn_check:"Проверить", lsn_next_quiz:"Далее — проверка →", lsn_toinfo:"назад к материалу", lsn_retry:"Переписать", lsn_ask:"Задать вопрос учителю", lsn_answer_all:"Сначала ответь на все вопросы.", lsn_wrong:n=>`Ошибок: ${n} — посмотри ещё раз и попробуй снова.`, lsn_passed:"Всё верно! Урок пройден 🎉", lsn_next:"Следующий урок →", lsn_toast:"Урок пройден · слова сохранены · прогресс карточек +", lsn_ask_seed:tt=>`У меня вопрос по уроку «${tt}»: `,
     tile_wb:"Рабочая тетрадь", tile_wb_sub:"твои слова и сленг",
     wb_h:"Рабочая тетрадь", wb_words:"Слова", wb_slang:"Сленг", wb_del:"Удалить", wb_mean_ph:"перевод", wb_need_kr:"Впиши корейское слово", wb_dup:"Уже есть в тетради",
     wb_empty_words:"Пока пусто — проходи уроки, и слова сами накопятся здесь.", wb_empty_slang:"Пока пусто — сленг накопится из разборов песен. Можно добавить и своё.",

@@ -1,16 +1,16 @@
 # Graph Report - StageOne  (2026-07-16)
 
 ## Corpus Check
-- 68 files · ~352,643 words
+- 68 files · ~352,687 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 539 nodes · 931 edges · 67 communities (41 shown, 26 thin omitted)
+- 540 nodes · 933 edges · 68 communities (42 shown, 26 thin omitted)
 - Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 6 edges (avg confidence: 0.53)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `6065f9bc`
+- Built from commit: `fc457a31`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -63,6 +63,7 @@
 - Idol14 Content-Policy Flag
 - Rejected: NFT Trading
 - renderLangOpts
+- openSong
 - toast
 - Idol Portrait: MOMO
 - Idol Portrait: ZARA
@@ -111,11 +112,11 @@
 ## Hyperedges (group relationships)
 - **Files comprising the StageOne_app_v2.4 codebase** — full_dialogue_2026_07_08_stageone_app_v2_4, full_dialogue_2026_07_08_api_generate_js, full_dialogue_2026_07_08_api_result_js, full_dialogue_2026_07_08_api_status_js, full_dialogue_2026_07_08_public_index_html, full_dialogue_2026_07_08_idols_json [INFERRED 0.85]
 
-## Communities (67 total, 26 thin omitted)
+## Communities (68 total, 26 thin omitted)
 
 ### Community 0 - "Frontend App Logic (app.js)"
 Cohesion: 0.06
-Nodes (37): authReady, awardsHtml(), BIO_SAMPLE, bioState, CLIP, CLIP_COLOR, CLIP_ICON, DANCE (+29 more)
+Nodes (32): authReady, awardsHtml(), BIO_SAMPLE, bioState, CLIP, CLIP_COLOR, CLIP_ICON, DANCE (+24 more)
 
 ### Community 1 - "Auth & Clip API Handlers"
 Cohesion: 0.12
@@ -166,8 +167,8 @@ Cohesion: 0.48
 Nodes (11): downloadTo(), fetchVideoResult(), generateVideo15s(), log(), main(), pollUntilComplete(), runSyncLipsync(), sleep() (+3 more)
 
 ### Community 14 - "finishLesson"
-Cohesion: 0.17
-Nodes (17): escapeHtml(), karaBuild(), karaNext(), karaSave(), karaTick(), loadYT(), lsnSaveVocab(), lsnVocab() (+9 more)
+Cohesion: 0.14
+Nodes (21): allSongs(), closeSongs(), escapeHtml(), fmtMsg(), karaSave(), karaStop(), lsnSaveDone(), lsnSaveVocab() (+13 more)
 
 ### Community 15 - "Project Migration & Consolidation"
 Cohesion: 0.20
@@ -186,8 +187,8 @@ Cohesion: 0.28
 Nodes (8): __dirname, handleApi(), MIME, PUBLIC, ROOT, send(), server, serveStatic()
 
 ### Community 19 - "toggle"
-Cohesion: 0.16
-Nodes (14): allSongs(), closeOnb(), closeSongs(), karaStop(), lsnSaveDone(), lsnUid(), maybeOnboard(), onbKey() (+6 more)
+Cohesion: 0.36
+Nodes (9): allLessons(), doTrain(), finishLesson(), fmtRest(), idHash(), lessonPct(), lsnDone(), openLessons() (+1 more)
 
 ### Community 21 - "test-follow-streak.mjs"
 Cohesion: 0.13
@@ -257,17 +258,21 @@ Nodes (7): client(), config, handleCheckout(), handler(), handleWebhook(), PRODU
 Cohesion: 0.33
 Nodes (7): checkAuth(), closeAuthOv(), doLogout(), loadMyIdol(), renderAuthArea(), renderAuthForm(), submitAuth()
 
+### Community 50 - "openSong"
+Cohesion: 0.29
+Nodes (8): karaBuild(), karaNext(), karaTick(), karaVideoFail(), loadYT(), openSong(), renderKaraVerse(), updateKaraWords()
+
 ### Community 52 - "toast"
-Cohesion: 0.18
-Nodes (18): claimIdol(), doFollow(), doTrain(), doVote(), fmtRest(), idHash(), loadChart(), mockPushLive() (+10 more)
+Cohesion: 0.16
+Nodes (19): claimIdol(), doFollow(), doVote(), errBox(), generate(), generateOneSegment(), loadChart(), mockPushLive() (+11 more)
 
 ### Community 72 - "renderLangOpts"
 Cohesion: 0.23
 Nodes (15): bilingualUnlocked(), boot(), buildOpts(), langSwatch(), LANGUAGE, lbl(), nativeGenres(), renderBilingualBox() (+7 more)
 
 ### Community 73 - "showView"
-Cohesion: 0.18
-Nodes (17): allLessons(), applyStatic(), askTeacher(), chatBubble(), closeLessons(), finishLesson(), fmtMsg(), getLang() (+9 more)
+Cohesion: 0.16
+Nodes (15): applyStatic(), askTeacher(), chatBubble(), closeLessons(), closeOnb(), getLang(), maybeOnboard(), onbKey() (+7 more)
 
 ## Knowledge Gaps
 - **185 isolated node(s):** `state`, `LANG_CODE`, `LANG_COLOR`, `CLIP`, `DANCE` (+180 more)
@@ -284,7 +289,7 @@ _Questions this graph is uniquely positioned to answer:_
 - **What connects `state`, `LANG_CODE`, `LANG_COLOR` to the rest of the system?**
   _186 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Frontend App Logic (app.js)` be split into smaller, more focused modules?**
-  _Cohesion score 0.05603864734299517 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.05975609756097561 - nodes in this community are weakly interconnected._
 - **Should `Auth & Clip API Handlers` be split into smaller, more focused modules?**
   _Cohesion score 0.125 - nodes in this community are weakly interconnected._
 - **Should `Dance Move System (pipeline.js)` be split into smaller, more focused modules?**

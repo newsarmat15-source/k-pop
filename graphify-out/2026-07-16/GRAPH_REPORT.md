@@ -1,16 +1,16 @@
 # Graph Report - StageOne  (2026-07-16)
 
 ## Corpus Check
-- 68 files · ~352,542 words
+- 68 files · ~352,643 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 537 nodes · 928 edges · 63 communities (37 shown, 26 thin omitted)
+- 539 nodes · 931 edges · 67 communities (41 shown, 26 thin omitted)
 - Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 6 edges (avg confidence: 0.53)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `c0ff7d1f`
+- Built from commit: `6065f9bc`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -39,6 +39,8 @@
 - Local Server (local-server.mjs)
 - Generate Endpoint Test
 - Vercel Dispatcher Pattern
+- readUserId
+- supabase
 - LipSync/Song API & Seedance Legacy
 - Claude Tooling & Project Origin
 - askTeacher
@@ -46,6 +48,7 @@
 - API Status/Result Test
 - Music Generation Test
 - Vercel Config
+- seed-test-clips-visual.mjs
 - Clip Pull Script
 - Finalize API Test
 - Generate API Test
@@ -56,6 +59,7 @@
 - Hailuo Model Test
 - Kling Model Test
 - Rejected UI Ideas
+- clip.js
 - Idol14 Content-Policy Flag
 - Rejected: NFT Trading
 - renderLangOpts
@@ -82,7 +86,7 @@
 2. `supabase()` - 22 edges
 3. `toast()` - 16 edges
 4. `getLang()` - 15 edges
-5. `renderCabinet()` - 12 edges
+5. `showView()` - 12 edges
 6. `openAuth()` - 12 edges
 7. `StageOne — прогресс по этапам` - 12 edges
 8. `StageOne — проектный документ` - 12 edges
@@ -90,16 +94,16 @@
 10. `finishLesson()` - 11 edges
 
 ## Surprising Connections (you probably didn't know these)
+- `handleList()` --calls--> `supabase()`  [EXTRACTED]
+  api/clip.js → lib/supabase.js
 - `handleCreate()` --calls--> `readUserId()`  [EXTRACTED]
   api/clip.js → lib/session.js
+- `handleCreate()` --calls--> `supabase()`  [EXTRACTED]
+  api/clip.js → lib/supabase.js
 - `handleUpdate()` --calls--> `readUserId()`  [EXTRACTED]
   api/clip.js → lib/session.js
-- `handleVote()` --calls--> `readUserId()`  [EXTRACTED]
-  api/engage.js → lib/session.js
-- `handleFollow()` --calls--> `readUserId()`  [EXTRACTED]
-  api/engage.js → lib/session.js
-- `handleTrain()` --calls--> `readUserId()`  [EXTRACTED]
-  api/engage.js → lib/session.js
+- `handleUpdate()` --calls--> `supabase()`  [EXTRACTED]
+  api/clip.js → lib/supabase.js
 
 ## Import Cycles
 - None detected.
@@ -107,19 +111,19 @@
 ## Hyperedges (group relationships)
 - **Files comprising the StageOne_app_v2.4 codebase** — full_dialogue_2026_07_08_stageone_app_v2_4, full_dialogue_2026_07_08_api_generate_js, full_dialogue_2026_07_08_api_result_js, full_dialogue_2026_07_08_api_status_js, full_dialogue_2026_07_08_public_index_html, full_dialogue_2026_07_08_idols_json [INFERRED 0.85]
 
-## Communities (63 total, 26 thin omitted)
+## Communities (67 total, 26 thin omitted)
 
 ### Community 0 - "Frontend App Logic (app.js)"
 Cohesion: 0.06
-Nodes (36): authReady, awardsHtml(), BIO_SAMPLE, bioState, CLIP, CLIP_COLOR, CLIP_ICON, closeOnb() (+28 more)
+Nodes (37): authReady, awardsHtml(), BIO_SAMPLE, bioState, CLIP, CLIP_COLOR, CLIP_ICON, DANCE (+29 more)
 
 ### Community 1 - "Auth & Clip API Handlers"
-Cohesion: 0.05
-Nodes (39): handleCreate(), handleList(), handler(), handleUpdate(), handleChart(), handleFollow(), handler(), handleTrain() (+31 more)
+Cohesion: 0.12
+Nodes (8): db, testUsers, cookie, r1, r2, r3, db, db
 
 ### Community 2 - "Dance Move System (pipeline.js)"
 Cohesion: 0.10
-Nodes (44): BOY_REGISTER, BOY_TEXTURE, BOY_TIMBRE, buildClipMoves(), CLIP, DANCE_GENDER, DANCE_LEGACY, detectSilences() (+36 more)
+Nodes (43): BOY_REGISTER, BOY_TEXTURE, BOY_TIMBRE, buildClipMoves(), CLIP, DANCE_GENDER, DANCE_LEGACY, detectSilences() (+35 more)
 
 ### Community 4 - "NPM Dependencies"
 Cohesion: 0.08
@@ -163,7 +167,7 @@ Nodes (11): downloadTo(), fetchVideoResult(), generateVideo15s(), log(), main(),
 
 ### Community 14 - "finishLesson"
 Cohesion: 0.17
-Nodes (15): allSongs(), closeSongs(), escapeHtml(), karaBuild(), karaNext(), karaSave(), karaStop(), karaTick() (+7 more)
+Nodes (17): escapeHtml(), karaBuild(), karaNext(), karaSave(), karaTick(), loadYT(), lsnSaveVocab(), lsnVocab() (+9 more)
 
 ### Community 15 - "Project Migration & Consolidation"
 Cohesion: 0.20
@@ -182,12 +186,12 @@ Cohesion: 0.28
 Nodes (8): __dirname, handleApi(), MIME, PUBLIC, ROOT, send(), server, serveStatic()
 
 ### Community 19 - "toggle"
-Cohesion: 0.21
-Nodes (17): allLessons(), finishLesson(), lessonPct(), lsnDone(), lsnSaveDone(), lsnSaveVocab(), lsnUid(), lsnVocab() (+9 more)
+Cohesion: 0.16
+Nodes (14): allSongs(), closeOnb(), closeSongs(), karaStop(), lsnSaveDone(), lsnUid(), maybeOnboard(), onbKey() (+6 more)
 
 ### Community 21 - "test-follow-streak.mjs"
-Cohesion: 0.50
-Nodes (5): endTour(), positionTour(), startTour(), tourNext(), tourShow()
+Cohesion: 0.13
+Nodes (11): cookie, db, ownerCookie, r1, r2, r3, r4, r5 (+3 more)
 
 ### Community 22 - "Local Server (local-server.mjs)"
 Cohesion: 0.29
@@ -200,6 +204,14 @@ Nodes (6): CLIP, DANCE, imageUrls, main(), sleep(), SONG
 ### Community 24 - "Vercel Dispatcher Pattern"
 Cohesion: 0.15
 Nodes (12): 10. Ассеты, 1. Продукт, 2. Заказчик и формат работы, 3. Текущий стек (актуально на 10.07.2026), 4. Пайплайн клипа, 5. Что ОТВЕРГНУТО (не возвращаться), 6. Монетизация, 7. Открытые задачи (+4 more)
+
+### Community 25 - "readUserId"
+Cohesion: 0.40
+Nodes (7): handleCreate(), handleMyIdol(), handlePublicView(), handler(), createSessionCookie(), readUserId(), sign()
+
+### Community 26 - "supabase"
+Cohesion: 0.57
+Nodes (7): handleChart(), handleFollow(), handler(), handleTrain(), handleVote(), ymd(), supabase()
 
 ### Community 27 - "LipSync/Song API & Seedance Legacy"
 Cohesion: 0.67
@@ -225,9 +237,17 @@ Nodes (3): main(), makeRes(), sleep()
 Cohesion: 0.50
 Nodes (3): maxDuration, functions, api/pipeline.js
 
+### Community 34 - "seed-test-clips-visual.mjs"
+Cohesion: 0.33
+Nodes (3): db, r1, stamp
+
 ### Community 44 - "Rejected UI Ideas"
 Cohesion: 0.40
 Nodes (9): buildPersona(), callLLM(), closenessGuide(), handleHistory(), handler(), handleSend(), langName(), levelGuide() (+1 more)
+
+### Community 45 - "clip.js"
+Cohesion: 0.70
+Nodes (4): handleCreate(), handleList(), handler(), handleUpdate()
 
 ### Community 47 - "Rejected: NFT Trading"
 Cohesion: 0.43
@@ -238,16 +258,16 @@ Cohesion: 0.33
 Nodes (7): checkAuth(), closeAuthOv(), doLogout(), loadMyIdol(), renderAuthArea(), renderAuthForm(), submitAuth()
 
 ### Community 52 - "toast"
-Cohesion: 0.20
-Nodes (16): claimIdol(), doFollow(), doVote(), fmtRest(), idHash(), loadChart(), mockPushLive(), openAuth() (+8 more)
+Cohesion: 0.18
+Nodes (18): claimIdol(), doFollow(), doTrain(), doVote(), fmtRest(), idHash(), loadChart(), mockPushLive() (+10 more)
 
 ### Community 72 - "renderLangOpts"
-Cohesion: 0.21
-Nodes (16): bilingualUnlocked(), boot(), buildOpts(), doTrain(), langSwatch(), LANGUAGE, lbl(), nativeGenres() (+8 more)
+Cohesion: 0.23
+Nodes (15): bilingualUnlocked(), boot(), buildOpts(), langSwatch(), LANGUAGE, lbl(), nativeGenres(), renderBilingualBox() (+7 more)
 
 ### Community 73 - "showView"
-Cohesion: 0.21
-Nodes (12): applyStatic(), askTeacher(), chatBubble(), closeLessons(), fmtMsg(), getLang(), openChat(), openLesson() (+4 more)
+Cohesion: 0.18
+Nodes (17): allLessons(), applyStatic(), askTeacher(), chatBubble(), closeLessons(), finishLesson(), fmtMsg(), getLang() (+9 more)
 
 ## Knowledge Gaps
 - **185 isolated node(s):** `state`, `LANG_CODE`, `LANG_COLOR`, `CLIP`, `DANCE` (+180 more)
@@ -257,17 +277,17 @@ Nodes (12): applyStatic(), askTeacher(), chatBubble(), closeLessons(), fmtMsg(),
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `supabase()` connect `Auth & Clip API Handlers` to `Clips Integration Test`, `test-follow-streak.mjs`?**
-  _High betweenness centrality (0.025) - this node is a cross-community bridge._
-- **Why does `readUserId()` connect `Dance Move System (pipeline.js)` to `Auth & Clip API Handlers`?**
-  _High betweenness centrality (0.019) - this node is a cross-community bridge._
+- **Why does `supabase()` connect `supabase` to `Auth & Clip API Handlers`, `seed-test-clips-visual.mjs`, `test-follow-streak.mjs`, `Clips Integration Test`, `clip.js`, `test-follow-streak.mjs`, `readUserId`?**
+  _High betweenness centrality (0.024) - this node is a cross-community bridge._
+- **Why does `readUserId()` connect `readUserId` to `supabase`, `Dance Move System (pipeline.js)`, `clip.js`?**
+  _High betweenness centrality (0.018) - this node is a cross-community bridge._
 - **What connects `state`, `LANG_CODE`, `LANG_COLOR` to the rest of the system?**
   _186 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Frontend App Logic (app.js)` be split into smaller, more focused modules?**
-  _Cohesion score 0.05708245243128964 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.05603864734299517 - nodes in this community are weakly interconnected._
 - **Should `Auth & Clip API Handlers` be split into smaller, more focused modules?**
-  _Cohesion score 0.054354178842782 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.125 - nodes in this community are weakly interconnected._
 - **Should `Dance Move System (pipeline.js)` be split into smaller, more focused modules?**
-  _Cohesion score 0.10083256244218317 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.0966183574879227 - nodes in this community are weakly interconnected._
 - **Should `NPM Dependencies` be split into smaller, more focused modules?**
   _Cohesion score 0.08 - nodes in this community are weakly interconnected._

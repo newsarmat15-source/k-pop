@@ -100,8 +100,8 @@
     "semantic_hash": ""
   },
   "public/app.js": {
-    "mtime": 1784161197.3424966,
-    "ast_hash": "836e9e427753cacb15ca03356e92f560",
+    "mtime": 1784210368.3608675,
+    "ast_hash": "01609301cf7d3dd35c385b7ca24bf772",
     "semantic_hash": ""
   },
   "public/idols.json": {
@@ -315,8 +315,8 @@
     "semantic_hash": "78b09be567d0a059a16e8edb18d4a371"
   },
   "public/index.html": {
-    "mtime": 1784083322.031463,
-    "ast_hash": "f0e55b375da54efcf4b58102ff608f5a",
+    "mtime": 1784210313.9865243,
+    "ast_hash": "2deb69c05cdbe6f5922befb4607fc088",
     "semantic_hash": ""
   },
   "review/rap_final_url.txt": {

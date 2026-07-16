@@ -252,7 +252,10 @@ main{display:none}main.show{display:block}
 .lb-char{font-size:34px;font-weight:700;color:var(--accent2);line-height:1;min-width:44px}
 .lb-ex{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;border-left:3px solid var(--accent2);padding:8px 0 8px 12px}
 .lb-kr{font-size:20px;font-weight:700;color:var(--ink)}
-.lb-rom{font-size:13px;color:var(--dim,#7d6f97);font-style:italic}
+.lb-rom{font-size:17px;font-weight:700;color:var(--accent2);letter-spacing:.01em}
+.say.sm{margin-left:6px;padding:1px 6px;font-size:12px;border:none;vertical-align:middle}
+.lsn-toinfo{background:none;border:none;color:var(--muted,#a99cc0);font:inherit;font-size:13px;cursor:pointer;padding:0 0 12px;display:block}
+.lsn-toinfo:hover{color:var(--accent2)}
 .lb-mean{font-size:14px;color:var(--muted,#a99cc0)}
 .lb-tip{font-size:13.5px;line-height:1.5;background:rgba(243,217,172,.08);border:1px solid rgba(243,217,172,.25);padding:11px 13px;color:var(--muted,#a99cc0)}
 .lsn-vocab-note{font-size:12px;color:var(--dim,#7d6f97);margin-bottom:16px}
