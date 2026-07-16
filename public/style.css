@@ -308,6 +308,7 @@ main{display:none}main.show{display:block}
 .song-intro{font-size:13.5px;line-height:1.5;color:var(--muted,#a99cc0);margin-bottom:12px}
 .song-search{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--ink);font:inherit;font-size:14px;padding:11px 13px;margin-bottom:14px}
 .song-search:focus{outline:none;border-color:var(--accent2)}
+.song-search-hint{font-size:11px;color:var(--dim,#7d6f97);margin:-8px 0 14px;line-height:1.35}
 .song-none{text-align:center;color:var(--dim,#7d6f97);font-size:13px;padding:22px 12px;line-height:1.5}
 .song-online-h{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--champ,#f3d9ac);margin:16px 0 8px}
 .song-item.add .lsn-badge{color:var(--accent2)}
