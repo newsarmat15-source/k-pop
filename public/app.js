@@ -754,7 +754,6 @@ function openSongs(){
 
 // ---- Караоке-движок: подсветка по таймкодам + авто-пауза в конце куплета ----
 function karaBuild(song){
-  const off=parseFloat(localStorage.getItem('so_songoff_'+song.id)||'0')||0;
   const verses=song.verses.map(v=>{
     const lines=v.lines.map((ln,i)=>{
       const end=(i+1<v.lines.length?v.lines[i+1].t:v.end);
@@ -767,8 +766,8 @@ function karaBuild(song){
     });
     return {...v,lines,start:lines[0].t};
   });
-  return {song,verses,vIdx:0,paused:false,continuous:false,userOffset:off,videoOffset:song.videoOffset||0,
-    get off(){return this.videoOffset+this.userOffset},player:null,timer:null,saved:{},tok:[]};
+  return {song,verses,vIdx:0,paused:false,continuous:false,videoOffset:song.videoOffset||0,
+    get off(){return this.videoOffset},player:null,timer:null,saved:{},tok:[],lastLine:null};
 }
 
 function openSong(id){
@@ -780,13 +779,13 @@ function openSong(id){
   document.getElementById('songTitle').textContent=song.title;
   document.getElementById('songBody').innerHTML=`
     <div class="kara">
-      <div class="song-video"><div id="ytPlayer"></div></div>
-      <a class="song-yt" href="https://www.youtube.com/watch?v=${song.ytId}" target="_blank" rel="noopener">${t('song_open_yt')} ↗</a>
-      <div class="kara-hint">${t('kara_hint')}</div>
+      <div class="song-top">
+        <div class="song-video"><div id="ytPlayer"></div></div>
+        <a class="song-yt" href="https://www.youtube.com/watch?v=${song.ytId}" target="_blank" rel="noopener">${t('song_open_yt')} ↗</a>
+      </div>
       <div class="kara-lines" id="karaLines"></div>
       <div class="kara-pause" id="karaPause" style="display:none"></div>
       <div class="kara-bar">
-        <button class="kara-syncbtn" onclick="karaTapSync()">🎯 <span>${t('kara_synctap')}</span></button>
         <label class="kara-toggle"><span>${t('kara_cont')}</span><span class="tgl"><input type="checkbox" id="karaCont" onchange="karaToggleCont()"><i></i></span></label>
       </div>
     </div>`;
@@ -843,12 +842,16 @@ function renderKaraVerse(){
 function updateKaraWords(t){
   const box=document.getElementById('karaLines');if(!box)return;
   const K=window._kara;const toks=box.querySelectorAll('.tok');
+  let activeEl=null;
   toks.forEach((el,i)=>{
     const tk=K.tok[i];if(!tk)return;
     const done=t>=tk.t1,on=!done&&t>=tk.t0;
     el.classList.toggle('done',done);
     el.classList.toggle('on',on);
+    if(on)activeEl=el;
   });
+  // активная строка сама остаётся в поле зрения (клип закреплён сверху)
+  if(activeEl){const line=activeEl.closest('.kline');if(line&&line!==K.lastLine){K.lastLine=line;line.scrollIntoView({behavior:'smooth',block:'center'});}}
 }
 
 function showVersePause(){
@@ -857,6 +860,7 @@ function showVersePause(){
   const vocab=v.vocab||[];
   const p=document.getElementById('karaPause');
   p.style.display='block';
+  setTimeout(()=>p.scrollIntoView({behavior:'smooth',block:'center'}),40);
   p.innerHTML=`
     <div class="kp-h">${t('kara_verse')} ${K.vIdx+1}/${K.verses.length}</div>
     ${v.tr?`<div class="kp-tr">${v.tr[L]}</div>`:''}
@@ -871,14 +875,6 @@ function showVersePause(){
 function karaRepeat(){const K=window._kara,v=K.verses[K.vIdx];K.paused=false;document.getElementById('karaPause').style.display='none';K.player.seekTo(v.start+K.off,true);K.player.playVideo();}
 function karaNext(){const K=window._kara;if(K.vIdx<K.verses.length-1)K.vIdx++;const v=K.verses[K.vIdx];K.paused=false;renderKaraVerse();K.player.seekTo(v.start+K.off,true);K.player.playVideo();}
 function karaToggleCont(){const K=window._kara;K.continuous=document.getElementById('karaCont').checked;if(K.continuous&&K.paused){K.paused=false;document.getElementById('karaPause').style.display='none';K.player.playVideo();}}
-function karaTapSync(){
-  const K=window._kara;if(!K||!K.player||!K.player.getCurrentTime)return;
-  const v=K.verses[K.vIdx];
-  // Позиция клипа в момент тапа = начало текущего куплета → вычисляем сдвиг
-  K.userOffset=Math.round((K.player.getCurrentTime()-v.start-K.videoOffset)*100)/100;
-  localStorage.setItem('so_songoff_'+K.song.id,K.userOffset);
-  toast(t('kara_syncdone'));
-}
 function karaSave(i){const K=window._kara,v=K.verses[K.vIdx],w=(v.vocab||[])[i];if(!w)return;const voc=lsnVocab();if(!voc.some(x=>x.kr===w.kr)){voc.push({...w,from:'song'});lsnSaveVocab(voc);}K.saved[K.vIdx+'_'+i]=true;showVersePause();toast(t('song_save_toast'));}
 
 function songComplete(){
