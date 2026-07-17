@@ -100,8 +100,8 @@
     "semantic_hash": ""
   },
   "public/app.js": {
-    "mtime": 1784247865.7026842,
-    "ast_hash": "1f7762db6bf92473221dad0062919101",
+    "mtime": 1784255947.8656633,
+    "ast_hash": "cc5655ccbad779a0c41afe7ca4c5f34f",
     "semantic_hash": ""
   },
   "public/idols.json": {
@@ -617,6 +617,16 @@
   "scripts/align-songs.mjs": {
     "mtime": 1784248012.1450555,
     "ast_hash": "1f1b968d72abc8db47ca44011ac71d5e",
+    "semantic_hash": ""
+  },
+  "scripts/add-song.mjs": {
+    "mtime": 1784249327.3439083,
+    "ast_hash": "8fb3ba2a5a1efda478e5b28873f0dbb1",
+    "semantic_hash": ""
+  },
+  "scripts/align-words.mjs": {
+    "mtime": 1784255816.127138,
+    "ast_hash": "77e1a3016e83fe90659a2d068f0fdbf1",
     "semantic_hash": ""
   }
 }
