@@ -826,7 +826,12 @@ function allSongs(){
 function loadCatalog(){
   fetch('/api/song?action=list').then(r=>r.json()).then(d=>{if(d&&d.songs){window._catalog=d.songs;renderSongList();}}).catch(()=>{});
 }
-function closeSongs(){karaStop();document.getElementById('songOv').classList.remove('show');navClear()}
+function closeSongs(){
+  // Если открыт конкретный клип — «закрыть» = вернуться к СПИСКУ песен (одна ступень назад),
+  // а не вываливаться в кабинет (две ступени). В списке ✕/тап-фон закрывают оверлей.
+  if(window._kara){openSongs();return}
+  karaStop();document.getElementById('songOv').classList.remove('show');navClear();
+}
 document.getElementById('songOv').onclick=e=>{if(e.target.id==='songOv')closeSongs()};
 
 function openSongs(){
