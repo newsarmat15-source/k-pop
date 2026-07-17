@@ -1,16 +1,16 @@
 # Graph Report - StageOne  (2026-07-17)
 
 ## Corpus Check
-- 73 files · ~357,760 words
+- 73 files · ~357,798 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 591 nodes · 1040 edges · 71 communities (45 shown, 26 thin omitted)
+- 592 nodes · 1043 edges · 71 communities (45 shown, 26 thin omitted)
 - Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 6 edges (avg confidence: 0.53)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `e43630e2`
+- Built from commit: `c3e9ab68`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -118,8 +118,8 @@
 ## Communities (71 total, 26 thin omitted)
 
 ### Community 0 - "Frontend App Logic (app.js)"
-Cohesion: 0.05
-Nodes (44): authReady, awardsHtml(), BIO_SAMPLE, bioState, CLIP, CLIP_COLOR, CLIP_ICON, closeOnb() (+36 more)
+Cohesion: 0.06
+Nodes (41): authReady, awardsHtml(), BIO_SAMPLE, bioState, CLIP, CLIP_COLOR, CLIP_ICON, DANCE (+33 more)
 
 ### Community 1 - "Auth & Clip API Handlers"
 Cohesion: 0.12
@@ -170,8 +170,8 @@ Cohesion: 0.48
 Nodes (11): downloadTo(), fetchVideoResult(), generateVideo15s(), log(), main(), pollUntilComplete(), runSyncLipsync(), sleep() (+3 more)
 
 ### Community 14 - "finishLesson"
-Cohesion: 0.22
-Nodes (14): karaSave(), lsnSaveDone(), lsnSaveVocab(), lsnUid(), lsnVocab(), renderWorkbook(), saveUserSong(), songComplete() (+6 more)
+Cohesion: 0.33
+Nodes (9): karaSave(), lsnSaveVocab(), lsnVocab(), openWorkbook(), renderVersePanel(), renderWorkbook(), switchWb(), wbAddWord() (+1 more)
 
 ### Community 15 - "Project Migration & Consolidation"
 Cohesion: 0.20
@@ -190,8 +190,8 @@ Cohesion: 0.28
 Nodes (8): __dirname, handleApi(), MIME, PUBLIC, ROOT, send(), server, serveStatic()
 
 ### Community 19 - "toggle"
-Cohesion: 0.17
-Nodes (16): addSong(), allSongs(), escapeHtml(), karaBuild(), karaTick(), karaVideoFail(), loadCatalog(), loadYT() (+8 more)
+Cohesion: 0.15
+Nodes (19): addSong(), allSongs(), chatBubble(), escapeHtml(), fmtMsg(), loadCatalog(), lsnSaveDone(), lsnUid() (+11 more)
 
 ### Community 21 - "test-follow-streak.mjs"
 Cohesion: 0.13
@@ -258,8 +258,8 @@ Cohesion: 0.43
 Nodes (7): client(), config, handleCheckout(), handler(), handleWebhook(), PRODUCTS, rawBody()
 
 ### Community 49 - "test-auth-flow.mjs"
-Cohesion: 0.23
-Nodes (12): bilingualUnlocked(), checkAuth(), closeAuthOv(), doLogout(), langSwatch(), LANGUAGE, loadMyIdol(), renderAuthArea() (+4 more)
+Cohesion: 0.25
+Nodes (8): closeOnb(), doTrain(), fmtRest(), idHash(), maybeOnboard(), onbKey(), openOnb(), renderCabinet()
 
 ### Community 50 - "openSong"
 Cohesion: 0.36
@@ -270,24 +270,24 @@ Cohesion: 0.38
 Nodes (6): computeOffset(), DBURL, firstKoreanAsrSec(), [mode, ytId, firstSec], runDB(), TMP
 
 ### Community 52 - "toast"
-Cohesion: 0.16
-Nodes (17): claimIdol(), doFollow(), doTrain(), doVote(), fmtRest(), idHash(), loadChart(), mockPushLive() (+9 more)
+Cohesion: 0.13
+Nodes (24): checkAuth(), claimIdol(), closeAuthOv(), doFollow(), doLogout(), doVote(), errBox(), generate() (+16 more)
 
 ### Community 53 - "align-words.mjs"
 Cohesion: 0.32
 Nodes (5): alignWords(), db, DBURL, norm(), sim()
 
 ### Community 68 - "askTeacher"
-Cohesion: 0.25
-Nodes (8): askTeacher(), closeChat(), closeLessons(), closeSongs(), closeWorkbook(), karaStop(), navClear(), saveNav()
+Cohesion: 0.18
+Nodes (13): closeChat(), closeSongs(), closeWorkbook(), karaBuild(), karaReload(), karaStop(), karaTick(), karaVideoFail() (+5 more)
 
 ### Community 72 - "renderLangOpts"
-Cohesion: 0.20
-Nodes (15): boot(), buildOpts(), lbl(), loadNav(), nativeGenres(), pickQuiz(), renderDanceOpts(), renderIdolGrid() (+7 more)
+Cohesion: 0.21
+Nodes (16): bilingualUnlocked(), boot(), buildOpts(), langSwatch(), LANGUAGE, lbl(), loadNav(), nativeGenres() (+8 more)
 
 ### Community 73 - "showView"
-Cohesion: 0.17
-Nodes (23): allLessons(), applyStatic(), buildQuiz(), chatBubble(), finishLesson(), fmtMsg(), getLang(), lessonPct() (+15 more)
+Cohesion: 0.19
+Nodes (20): allLessons(), applyStatic(), askTeacher(), buildQuiz(), closeLessons(), finishLesson(), getLang(), lessonPct() (+12 more)
 
 ## Knowledge Gaps
 - **196 isolated node(s):** `state`, `LANG_CODE`, `LANG_COLOR`, `CLIP`, `DANCE` (+191 more)
@@ -304,7 +304,7 @@ _Questions this graph is uniquely positioned to answer:_
 - **What connects `state`, `LANG_CODE`, `LANG_COLOR` to the rest of the system?**
   _197 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Frontend App Logic (app.js)` be split into smaller, more focused modules?**
-  _Cohesion score 0.054693877551020405 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.05735430157261795 - nodes in this community are weakly interconnected._
 - **Should `Auth & Clip API Handlers` be split into smaller, more focused modules?**
   _Cohesion score 0.125 - nodes in this community are weakly interconnected._
 - **Should `Dance Move System (pipeline.js)` be split into smaller, more focused modules?**

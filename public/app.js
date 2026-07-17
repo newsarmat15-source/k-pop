@@ -833,6 +833,7 @@ function openSongs(){
   if(!currentUser){openAuth('signup');return}
   navOv('songs');
   karaStop();
+  const st=document.getElementById('ytStage');if(st)st.style.display='none';
   document.getElementById('songOv').classList.add('show');
   document.getElementById('songBack').style.visibility='hidden';
   document.getElementById('songTitle').textContent=t('songs_h');
@@ -942,50 +943,48 @@ function karaBuild(song){
 function openSong(id){
   const song=allSongs().find(s=>s.id===id);if(!song)return;
   navOv('song',id);
-  karaStop();
+  if(window._kara&&window._kara.timer)clearInterval(window._kara.timer);
   window._kara=karaBuild(song);
   document.getElementById('songOv').classList.add('show');
   document.getElementById('songBack').style.visibility='visible';
   document.getElementById('songTitle').textContent=song.title;
+  // Постоянный плеер: показываем сцену, обновляем ссылку/подписи, меняем видео БЕЗ пересоздания.
+  document.getElementById('ytStage').style.display='';
+  const lk=document.getElementById('ytOpenLink');if(lk)lk.href='https://www.youtube.com/watch?v='+song.ytId;
+  const rl=document.getElementById('ytReloadLbl');if(rl)rl.textContent=t('song_reload');
   document.getElementById('songBody').innerHTML=`
     <div class="kara">
-      <div class="song-top">
-        <div class="song-video"><div id="ytPlayer"></div></div>
-        <div class="song-vfoot">
-          <button class="song-reload" onclick="karaReload()">🔄 ${t('song_reload')}</button>
-          <a class="song-yt" href="https://www.youtube.com/watch?v=${song.ytId}" target="_blank" rel="noopener">${t('song_open_yt')} ↗</a>
-        </div>
-      </div>
       <div class="kara-lines" id="karaLines"></div>
       <div class="kara-pause" id="karaPause" style="display:none"></div>
     </div>`;
   document.getElementById('songBody').scrollTop=0;
   renderKaraVerse();
-  loadYT(()=>{
+  ensureYtPlayer(p=>{
     const K=window._kara;if(!K)return;
-    K.player=new YT.Player('ytPlayer',{videoId:song.ytId,playerVars:{playsinline:1,rel:0,origin:location.origin},events:{
-      onReady:()=>{K.ready=true;if(K.readyTimer){clearTimeout(K.readyTimer);K.readyTimer=null}},
-      onError:()=>karaVideoFail()
-    }});
-    K.readyTimer=setTimeout(()=>{if(window._kara===K&&!K.ready)karaVideoFail()},15000);
+    K.player=p;
+    try{p.cueVideoById(song.ytId)}catch(e){}
+    if(K.timer)clearInterval(K.timer);
     K.timer=setInterval(karaTick,120);
   });
 }
 
-// Пересоздать плеер — снимает нестабильный бот-чек YouTube (частая причина чёрного экрана).
-function karaReload(){
-  const K=window._kara;if(!K||!K.song)return;const s=K.song;
-  const box=document.querySelector('.song-video');if(box)box.innerHTML='<div id="ytPlayer"></div>';
-  try{K.player&&K.player.destroy&&K.player.destroy()}catch(e){}
-  K.ready=false;if(K.readyTimer)clearTimeout(K.readyTimer);
+// Единственный плеер на всё приложение — создаётся ОДИН раз, дальше только loadVideoById.
+function ensureYtPlayer(cb){
+  if(window._ytPlayer&&window._ytReady)return cb(window._ytPlayer);
+  if(window._ytCreating){const iv=setInterval(()=>{if(window._ytReady){clearInterval(iv);cb(window._ytPlayer);}},100);return;}
+  window._ytCreating=true;
   loadYT(()=>{
-    if(window._kara!==K)return;
-    K.player=new YT.Player('ytPlayer',{videoId:s.ytId,playerVars:{playsinline:1,rel:0,origin:location.origin},events:{
-      onReady:()=>{K.ready=true;if(K.readyTimer){clearTimeout(K.readyTimer);K.readyTimer=null}},
-      onError:()=>karaVideoFail()
+    window._ytPlayer=new YT.Player('ytPlayer',{playerVars:{playsinline:1,rel:0,origin:location.origin},events:{
+      onReady:()=>{window._ytReady=true;}
     }});
-    K.readyTimer=setTimeout(()=>{if(window._kara===K&&!K.ready)karaVideoFail()},15000);
+    const iv=setInterval(()=>{if(window._ytReady){clearInterval(iv);cb(window._ytPlayer);}},100);
   });
+}
+
+// «Перезагрузить видео» — просто перезагрузить текущее в том же плеере (снимает застрявшую загрузку).
+function karaReload(){
+  const K=window._kara;if(!K||!window._ytPlayer||!K.song)return;
+  try{window._ytPlayer.loadVideoById(K.song.ytId)}catch(e){}
 }
 
 function loadYT(cb){
@@ -995,18 +994,12 @@ function loadYT(cb){
   if(!document.getElementById('ytapi')){const s=document.createElement('script');s.id='ytapi';s.src='https://www.youtube.com/iframe_api';document.head.appendChild(s);}
 }
 
+// Плеер НЕ уничтожаем (переиспользуем). Только стоп таймера + пауза.
 function karaStop(){
-  const K=window._kara;if(!K)return;
-  if(K.timer)clearInterval(K.timer);
-  if(K.readyTimer)clearTimeout(K.readyTimer);
-  try{K.player&&K.player.destroy&&K.player.destroy()}catch(e){}
+  const K=window._kara;
+  if(K&&K.timer)clearInterval(K.timer);
+  try{window._ytPlayer&&window._ytPlayer.pauseVideo&&window._ytPlayer.pauseVideo()}catch(e){}
   window._kara=null;
-}
-function karaVideoFail(){
-  const K=window._kara;if(!K)return;
-  if(K.readyTimer){clearTimeout(K.readyTimer);K.readyTimer=null}
-  const v=document.querySelector('.song-video');
-  if(v)v.innerHTML=`<div class="song-fail">${t('song_fail')}</div>`;
 }
 
 // Непрерывный плавный караоке: ведём строго по времени клипа, никаких внутренних пауз
