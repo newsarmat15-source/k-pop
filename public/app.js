@@ -970,8 +970,12 @@ function openSong(id){
     // loadVideoById (а не cue) — форсит загрузку+проигрывание и ВЫВОДИТ плеер из «спящего»
     // состояния, в которое он попадает, когда оверлей закрывался (display:none усыпляет iframe).
     // Именно это лечит «вечную загрузку» при повторном заходе в песню после ✕→кабинет.
-    try{p.loadVideoById(song.ytId)}catch(e){}
-    K.loadAt=Date.now();K.recovered=false;K.playing=false;K.errored=false;karaShowErr(null);
+    // На iPhone/Safari (наша основная ЦА) автозапуск видео СО ЗВУКОМ запрещён системой —
+    // если пытаться играть сами, iOS блокирует → «картинка есть, но не играет». Поэтому только
+    // ГОТОВИМ клип (cue): показываем родную кнопку ▶ + подсказку, юзер тапает сам → играет со
+    // звуком, караоке подхватывает время. Единственный надёжный путь на телефонах.
+    try{p.cueVideoById(song.ytId)}catch(e){}
+    K.loadAt=Date.now();K.recovered=false;K.playing=false;K.errored=false;karaShowErr(null);karaShowHint(true);
     if(K.timer)clearInterval(K.timer);
     K.timer=setInterval(karaTick,120);
   });
@@ -1018,6 +1022,8 @@ function karaStop(){
 // (state -1 unstarted / 3 buffering) — один раз тихо перезагружаем видео. Не трогаем, если
 // юзер просто поставил на паузу (state 2) или ждёт тапа (5 cued).
 function karaShowErr(html){const e=document.getElementById('ytErr');if(!e)return;if(html){e.innerHTML=html;e.style.display='flex';}else{e.style.display='none';e.innerHTML='';}}
+// Подсказка «тапни ▶» — нужна на iOS, где автозапуск запрещён. Прячется, как только клип пошёл.
+function karaShowHint(show){const e=document.getElementById('ytHint');if(!e)return;if(show){e.textContent=getLang()==='ru'?'▶ Нажми на клип, чтобы включить со звуком':'▶ Tap the clip to start with sound';e.style.display='block';}else{e.style.display='none';}}
 // Ошибка плеера YouTube. 101/150 = владелец ЗАПРЕТИЛ встраивание (BTS/HYBE — почти все клипы);
 // 100 = видео удалено/приватное; 2 = кривой id; 5 = ошибка html5-плеера. Показываем честно
 // вместо вечного спиннера + крупную ссылку на YouTube. Заодно логируем битый id в консоль.
@@ -1032,7 +1038,7 @@ function karaOnError(code){
 }
 function karaWatchdog(K){
   let ct=0,st=-9;try{ct=K.player.getCurrentTime()||0;st=K.player.getPlayerState?K.player.getPlayerState():-9;}catch(e){}
-  if(ct>0.05){K.playing=true;K.errored=false;karaShowErr(null);return;}
+  if(ct>0.05){K.playing=true;K.errored=false;karaShowErr(null);karaShowHint(false);return;}
   if(K.playing||K.errored)return;
   const stuck=(st===-1||st===3);
   if(!K.recovered&&stuck&&Date.now()-(K.loadAt||0)>4500){

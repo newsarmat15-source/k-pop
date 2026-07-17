@@ -1,16 +1,16 @@
 # Graph Report - StageOne  (2026-07-17)
 
 ## Corpus Check
-- 73 files · ~358,115 words
+- 73 files · ~358,203 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 595 nodes · 1049 edges · 73 communities (47 shown, 26 thin omitted)
+- 597 nodes · 1055 edges · 73 communities (47 shown, 26 thin omitted)
 - Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 6 edges (avg confidence: 0.53)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `215aa362`
+- Built from commit: `d7b1e151`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -121,15 +121,15 @@
 
 ### Community 0 - "Frontend App Logic (app.js)"
 Cohesion: 0.05
-Nodes (43): authReady, awardsHtml(), BIO_SAMPLE, bioState, CLIP, CLIP_COLOR, CLIP_ICON, closeOnb() (+35 more)
+Nodes (44): authReady, awardsHtml(), BIO_SAMPLE, bioState, CLIP, CLIP_COLOR, CLIP_ICON, DANCE (+36 more)
 
 ### Community 1 - "Auth & Clip API Handlers"
-Cohesion: 0.12
-Nodes (8): db, testUsers, cookie, r1, r2, r3, db, db
+Cohesion: 0.13
+Nodes (7): db, testUsers, db, r1, stamp, db, db
 
 ### Community 2 - "Dance Move System (pipeline.js)"
 Cohesion: 0.10
-Nodes (43): BOY_REGISTER, BOY_TEXTURE, BOY_TIMBRE, buildClipMoves(), CLIP, DANCE_GENDER, DANCE_LEGACY, detectSilences() (+35 more)
+Nodes (44): BOY_REGISTER, BOY_TEXTURE, BOY_TIMBRE, buildClipMoves(), CLIP, DANCE_GENDER, DANCE_LEGACY, detectSilences() (+36 more)
 
 ### Community 4 - "NPM Dependencies"
 Cohesion: 0.08
@@ -172,8 +172,8 @@ Cohesion: 0.48
 Nodes (11): downloadTo(), fetchVideoResult(), generateVideo15s(), log(), main(), pollUntilComplete(), runSyncLipsync(), sleep() (+3 more)
 
 ### Community 14 - "finishLesson"
-Cohesion: 0.23
-Nodes (13): addSong(), karaSave(), lsnSaveDone(), lsnSaveVocab(), lsnUid(), lsnVocab(), renderWorkbook(), saveUserSong() (+5 more)
+Cohesion: 0.48
+Nodes (7): karaSave(), lsnSaveVocab(), lsnVocab(), renderWorkbook(), switchWb(), wbAddWord(), wbDelete()
 
 ### Community 15 - "Project Migration & Consolidation"
 Cohesion: 0.20
@@ -192,12 +192,12 @@ Cohesion: 0.28
 Nodes (8): __dirname, handleApi(), MIME, PUBLIC, ROOT, send(), server, serveStatic()
 
 ### Community 19 - "toggle"
-Cohesion: 0.24
-Nodes (12): allSongs(), closeSongs(), escapeHtml(), karaStop(), loadCatalog(), onSongSearchInput(), openSongs(), renderSongList() (+4 more)
+Cohesion: 0.18
+Nodes (17): addSong(), allSongs(), closeSongs(), karaStop(), loadCatalog(), lsnSaveDone(), lsnUid(), onSongSearchInput() (+9 more)
 
 ### Community 21 - "test-follow-streak.mjs"
-Cohesion: 0.13
-Nodes (11): cookie, db, ownerCookie, r1, r2, r3, r4, r5 (+3 more)
+Cohesion: 0.12
+Nodes (13): createSessionCookie(), sign(), cookie, db, ownerCookie, r1, r2, r3 (+5 more)
 
 ### Community 22 - "Local Server (local-server.mjs)"
 Cohesion: 0.29
@@ -212,8 +212,8 @@ Cohesion: 0.15
 Nodes (12): 10. Ассеты, 1. Продукт, 2. Заказчик и формат работы, 3. Текущий стек (актуально на 10.07.2026), 4. Пайплайн клипа, 5. Что ОТВЕРГНУТО (не возвращаться), 6. Монетизация, 7. Открытые задачи (+4 more)
 
 ### Community 25 - "readUserId"
-Cohesion: 0.40
-Nodes (7): handleCreate(), handleMyIdol(), handlePublicView(), handler(), createSessionCookie(), readUserId(), sign()
+Cohesion: 0.70
+Nodes (4): handleCreate(), handleMyIdol(), handlePublicView(), handler()
 
 ### Community 26 - "supabase"
 Cohesion: 0.57
@@ -244,8 +244,8 @@ Cohesion: 0.50
 Nodes (3): maxDuration, functions, api/pipeline.js
 
 ### Community 34 - "seed-test-clips-visual.mjs"
-Cohesion: 0.33
-Nodes (3): db, r1, stamp
+Cohesion: 0.29
+Nodes (4): cookie, r1, r2, r3
 
 ### Community 44 - "Rejected UI Ideas"
 Cohesion: 0.40
@@ -260,8 +260,8 @@ Cohesion: 0.43
 Nodes (7): client(), config, handleCheckout(), handler(), handleWebhook(), PRODUCTS, rawBody()
 
 ### Community 49 - "test-auth-flow.mjs"
-Cohesion: 0.13
-Nodes (22): claimIdol(), doFollow(), doTrain(), fmtRest(), idHash(), IDOLS, loadChart(), mockPushLive() (+14 more)
+Cohesion: 0.11
+Nodes (24): claimIdol(), doFollow(), doTrain(), doVote(), fmtRest(), idHash(), IDOLS, loadChart() (+16 more)
 
 ### Community 50 - "openSong"
 Cohesion: 0.36
@@ -285,11 +285,11 @@ Nodes (6): askTeacher(), closeChat(), closeLessons(), closeWorkbook(), navClear(
 
 ### Community 69 - "getLang"
 Cohesion: 0.21
-Nodes (13): applyStatic(), buildQuiz(), chatBubble(), fmtMsg(), getLang(), optLabel(), renderBlock(), renderKaraVerse() (+5 more)
+Nodes (14): applyStatic(), buildQuiz(), chatBubble(), escapeHtml(), fmtMsg(), getLang(), optLabel(), renderBlock() (+6 more)
 
 ### Community 70 - "generate"
-Cohesion: 0.40
-Nodes (5): errBox(), generate(), generateOneSegment(), pollJob(), stepsHtml()
+Cohesion: 0.50
+Nodes (4): closeOnb(), maybeOnboard(), onbKey(), openOnb()
 
 ### Community 72 - "renderLangOpts"
 Cohesion: 0.21
@@ -309,15 +309,15 @@ _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `supabase()` connect `supabase` to `Auth & Clip API Handlers`, `seed-test-clips-visual.mjs`, `test-follow-streak.mjs`, `Clips Integration Test`, `clip.js`, `test-follow-streak.mjs`, `readUserId`?**
   _High betweenness centrality (0.020) - this node is a cross-community bridge._
-- **Why does `readUserId()` connect `readUserId` to `supabase`, `Dance Move System (pipeline.js)`, `clip.js`?**
+- **Why does `readUserId()` connect `Dance Move System (pipeline.js)` to `readUserId`, `supabase`, `test-follow-streak.mjs`, `clip.js`?**
   _High betweenness centrality (0.015) - this node is a cross-community bridge._
 - **What connects `state`, `LANG_CODE`, `LANG_COLOR` to the rest of the system?**
   _197 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Frontend App Logic (app.js)` be split into smaller, more focused modules?**
-  _Cohesion score 0.053061224489795916 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.05411764705882353 - nodes in this community are weakly interconnected._
 - **Should `Auth & Clip API Handlers` be split into smaller, more focused modules?**
-  _Cohesion score 0.125 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.13333333333333333 - nodes in this community are weakly interconnected._
 - **Should `Dance Move System (pipeline.js)` be split into smaller, more focused modules?**
-  _Cohesion score 0.0966183574879227 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.10083256244218317 - nodes in this community are weakly interconnected._
 - **Should `NPM Dependencies` be split into smaller, more focused modules?**
   _Cohesion score 0.08 - nodes in this community are weakly interconnected._

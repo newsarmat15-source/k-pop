@@ -342,6 +342,7 @@ main{display:none}main.show{display:block}
 .song-video iframe,.song-video>#ytPlayer{position:absolute;inset:0;width:100%;height:100%;border:0}
 .yt-err{position:absolute;inset:0;z-index:2;background:rgba(8,6,14,.92);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:16px}
 .yt-err-msg{font-size:14px;color:var(--txt);max-width:280px;line-height:1.4}
+.yt-hint{text-align:center;font-size:13px;color:var(--accent,#e8a9c9);padding:8px 10px;font-weight:600}
 .song-yt{display:inline-block;font-size:12px;color:var(--accent2);text-decoration:none;margin:-8px 0 12px}
 .song-yt:hover{text-decoration:underline}
 .song-teacher-note{font-size:12px;color:var(--dim,#7d6f97);margin-bottom:14px}
