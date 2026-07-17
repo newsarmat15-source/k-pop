@@ -1,29 +1,27 @@
 # Graph Report - StageOne  (2026-07-17)
 
 ## Corpus Check
-- 73 files · ~358,203 words
+- 73 files · ~358,294 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 597 nodes · 1055 edges · 73 communities (47 shown, 26 thin omitted)
+- 598 nodes · 1059 edges · 67 communities (41 shown, 26 thin omitted)
 - Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 6 edges (avg confidence: 0.53)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `d7b1e151`
+- Built from commit: `2d3b662f`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
 - Frontend App Logic (app.js)
-- Auth & Clip API Handlers
 - Dance Move System (pipeline.js)
 - Kling Stack & Orchestration Decisions
 - NPM Dependencies
 - Monetization, Legal & Auth Strategy
 - test-follow-streak.mjs
 - Vote/Training Integration Test
-- Clips Integration Test
 - Multi-Segment Resume Test
 - Multi-Segment V2 Test
 - Vocal Isolation Test
@@ -39,8 +37,6 @@
 - Local Server (local-server.mjs)
 - Generate Endpoint Test
 - Vercel Dispatcher Pattern
-- readUserId
-- supabase
 - LipSync/Song API & Seedance Legacy
 - Claude Tooling & Project Origin
 - askTeacher
@@ -48,7 +44,6 @@
 - API Status/Result Test
 - Music Generation Test
 - Vercel Config
-- seed-test-clips-visual.mjs
 - Clip Pull Script
 - Finalize API Test
 - Generate API Test
@@ -59,7 +54,6 @@
 - Hailuo Model Test
 - Kling Model Test
 - Rejected UI Ideas
-- clip.js
 - Idol14 Content-Policy Flag
 - Rejected: NFT Trading
 - test-auth-flow.mjs
@@ -90,7 +84,7 @@
 ## God Nodes (most connected - your core abstractions)
 1. `readUserId()` - 22 edges
 2. `supabase()` - 22 edges
-3. `getLang()` - 18 edges
+3. `getLang()` - 19 edges
 4. `toast()` - 17 edges
 5. `showView()` - 13 edges
 6. `finishLesson()` - 12 edges
@@ -100,16 +94,16 @@
 10. `fetchWithRetry()` - 12 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `handleCreate()` --calls--> `readUserId()`  [EXTRACTED]
-  api/clip.js → lib/session.js
-- `handleUpdate()` --calls--> `readUserId()`  [EXTRACTED]
-  api/clip.js → lib/session.js
-- `handleFollow()` --calls--> `readUserId()`  [EXTRACTED]
-  api/engage.js → lib/session.js
-- `handleTrain()` --calls--> `readUserId()`  [EXTRACTED]
-  api/engage.js → lib/session.js
-- `handleVote()` --calls--> `readUserId()`  [EXTRACTED]
-  api/engage.js → lib/session.js
+- `handleFinalize()` --calls--> `readUserId()`  [EXTRACTED]
+  api/pipeline.js → lib/session.js
+- `handleGenerate()` --calls--> `readUserId()`  [EXTRACTED]
+  api/pipeline.js → lib/session.js
+- `handleLastframe()` --calls--> `readUserId()`  [EXTRACTED]
+  api/pipeline.js → lib/session.js
+- `handleLipsync()` --calls--> `readUserId()`  [EXTRACTED]
+  api/pipeline.js → lib/session.js
+- `handleMuxAudio()` --calls--> `readUserId()`  [EXTRACTED]
+  api/pipeline.js → lib/session.js
 
 ## Import Cycles
 - None detected.
@@ -117,19 +111,15 @@
 ## Hyperedges (group relationships)
 - **Files comprising the StageOne_app_v2.4 codebase** — full_dialogue_2026_07_08_stageone_app_v2_4, full_dialogue_2026_07_08_api_generate_js, full_dialogue_2026_07_08_api_result_js, full_dialogue_2026_07_08_api_status_js, full_dialogue_2026_07_08_public_index_html, full_dialogue_2026_07_08_idols_json [INFERRED 0.85]
 
-## Communities (73 total, 26 thin omitted)
+## Communities (67 total, 26 thin omitted)
 
 ### Community 0 - "Frontend App Logic (app.js)"
 Cohesion: 0.05
-Nodes (44): authReady, awardsHtml(), BIO_SAMPLE, bioState, CLIP, CLIP_COLOR, CLIP_ICON, DANCE (+36 more)
-
-### Community 1 - "Auth & Clip API Handlers"
-Cohesion: 0.13
-Nodes (7): db, testUsers, db, r1, stamp, db, db
+Nodes (42): authReady, awardsHtml(), BIO_SAMPLE, bioState, chatBubble(), CLIP, CLIP_COLOR, CLIP_ICON (+34 more)
 
 ### Community 2 - "Dance Move System (pipeline.js)"
 Cohesion: 0.10
-Nodes (44): BOY_REGISTER, BOY_TEXTURE, BOY_TIMBRE, buildClipMoves(), CLIP, DANCE_GENDER, DANCE_LEGACY, detectSilences() (+36 more)
+Nodes (43): BOY_REGISTER, BOY_TEXTURE, BOY_TIMBRE, buildClipMoves(), CLIP, DANCE_GENDER, DANCE_LEGACY, detectSilences() (+35 more)
 
 ### Community 4 - "NPM Dependencies"
 Cohesion: 0.08
@@ -140,16 +130,12 @@ Cohesion: 0.15
 Nodes (12): StageOne — прогресс по этапам, Закрыто, Приоритет (на будущие сессии), Что не сделано / открыто прямо сейчас, Этап 1 — 07.07.2026 — Стратегия и первая сборка (в обычном Claude), Этап 2 — 08.07.2026 — Диагностика Seedance, выбор видео-платформы, Этап 3 — 08.07.2026 — Легальный вокал, Этап 4 — 08.07.2026 — Пересборка кода под новый пайплайн (+4 more)
 
 ### Community 6 - "test-follow-streak.mjs"
-Cohesion: 0.13
-Nodes (12): db, ownerCookie, r1, r2, r3, r4, r5, r6 (+4 more)
+Cohesion: 0.07
+Nodes (22): cookie, db, intruderCookie, r1, r2, r3, r4, r5 (+14 more)
 
 ### Community 7 - "Vote/Training Integration Test"
 Cohesion: 0.46
 Nodes (7): handleForgot(), handleLogin(), handleLogout(), handleMe(), handler(), handleReset(), handleSignup()
-
-### Community 8 - "Clips Integration Test"
-Cohesion: 0.15
-Nodes (10): cookie, db, intruderCookie, r1, r2, r3, r4, r5 (+2 more)
 
 ### Community 9 - "Multi-Segment Resume Test"
 Cohesion: 0.44
@@ -192,12 +178,12 @@ Cohesion: 0.28
 Nodes (8): __dirname, handleApi(), MIME, PUBLIC, ROOT, send(), server, serveStatic()
 
 ### Community 19 - "toggle"
-Cohesion: 0.18
-Nodes (17): addSong(), allSongs(), closeSongs(), karaStop(), loadCatalog(), lsnSaveDone(), lsnUid(), onSongSearchInput() (+9 more)
+Cohesion: 0.17
+Nodes (18): addSong(), allSongs(), closeSongs(), escapeHtml(), karaStop(), loadCatalog(), lsnSaveDone(), lsnUid() (+10 more)
 
 ### Community 21 - "test-follow-streak.mjs"
-Cohesion: 0.12
-Nodes (13): createSessionCookie(), sign(), cookie, db, ownerCookie, r1, r2, r3 (+5 more)
+Cohesion: 0.06
+Nodes (40): handleCreate(), handleList(), handler(), handleUpdate(), handleChart(), handleFollow(), handler(), handleTrain() (+32 more)
 
 ### Community 22 - "Local Server (local-server.mjs)"
 Cohesion: 0.29
@@ -210,14 +196,6 @@ Nodes (6): CLIP, DANCE, imageUrls, main(), sleep(), SONG
 ### Community 24 - "Vercel Dispatcher Pattern"
 Cohesion: 0.15
 Nodes (12): 10. Ассеты, 1. Продукт, 2. Заказчик и формат работы, 3. Текущий стек (актуально на 10.07.2026), 4. Пайплайн клипа, 5. Что ОТВЕРГНУТО (не возвращаться), 6. Монетизация, 7. Открытые задачи (+4 more)
-
-### Community 25 - "readUserId"
-Cohesion: 0.70
-Nodes (4): handleCreate(), handleMyIdol(), handlePublicView(), handler()
-
-### Community 26 - "supabase"
-Cohesion: 0.57
-Nodes (7): handleChart(), handleFollow(), handler(), handleTrain(), handleVote(), ymd(), supabase()
 
 ### Community 27 - "LipSync/Song API & Seedance Legacy"
 Cohesion: 0.67
@@ -243,25 +221,17 @@ Nodes (3): main(), makeRes(), sleep()
 Cohesion: 0.50
 Nodes (3): maxDuration, functions, api/pipeline.js
 
-### Community 34 - "seed-test-clips-visual.mjs"
-Cohesion: 0.29
-Nodes (4): cookie, r1, r2, r3
-
 ### Community 44 - "Rejected UI Ideas"
 Cohesion: 0.40
 Nodes (9): buildPersona(), callLLM(), closenessGuide(), handleHistory(), handler(), handleSend(), langName(), levelGuide() (+1 more)
-
-### Community 45 - "clip.js"
-Cohesion: 0.70
-Nodes (4): handleCreate(), handleList(), handler(), handleUpdate()
 
 ### Community 47 - "Rejected: NFT Trading"
 Cohesion: 0.43
 Nodes (7): client(), config, handleCheckout(), handler(), handleWebhook(), PRODUCTS, rawBody()
 
 ### Community 49 - "test-auth-flow.mjs"
-Cohesion: 0.11
-Nodes (24): claimIdol(), doFollow(), doTrain(), doVote(), fmtRest(), idHash(), IDOLS, loadChart() (+16 more)
+Cohesion: 0.13
+Nodes (21): claimIdol(), doFollow(), doTrain(), fmtRest(), idHash(), IDOLS, loadChart(), mockPushLive() (+13 more)
 
 ### Community 50 - "openSong"
 Cohesion: 0.36
@@ -284,20 +254,20 @@ Cohesion: 0.33
 Nodes (6): askTeacher(), closeChat(), closeLessons(), closeWorkbook(), navClear(), saveNav()
 
 ### Community 69 - "getLang"
-Cohesion: 0.21
-Nodes (14): applyStatic(), buildQuiz(), chatBubble(), escapeHtml(), fmtMsg(), getLang(), optLabel(), renderBlock() (+6 more)
+Cohesion: 0.15
+Nodes (20): applyStatic(), buildQuiz(), ensureYtPlayer(), getLang(), karaBuild(), karaOnError(), karaShowErr(), karaShowHint() (+12 more)
 
 ### Community 70 - "generate"
 Cohesion: 0.50
 Nodes (4): closeOnb(), maybeOnboard(), onbKey(), openOnb()
 
 ### Community 72 - "renderLangOpts"
-Cohesion: 0.21
-Nodes (16): bilingualUnlocked(), boot(), buildOpts(), langSwatch(), LANGUAGE, lbl(), loadNav(), nativeGenres() (+8 more)
+Cohesion: 0.19
+Nodes (17): bilingualUnlocked(), boot(), buildOpts(), langSwatch(), LANGUAGE, lbl(), loadNav(), nativeGenres() (+9 more)
 
 ### Community 73 - "showView"
-Cohesion: 0.31
-Nodes (14): allLessons(), finishLesson(), karaBuild(), lessonPct(), lsnDone(), navOv(), openAuth(), openChat() (+6 more)
+Cohesion: 0.38
+Nodes (12): allLessons(), finishLesson(), lessonPct(), lsnDone(), navOv(), openAuth(), openChat(), openLesson() (+4 more)
 
 ## Knowledge Gaps
 - **196 isolated node(s):** `state`, `LANG_CODE`, `LANG_COLOR`, `CLIP`, `DANCE` (+191 more)
@@ -307,17 +277,17 @@ Nodes (14): allLessons(), finishLesson(), karaBuild(), lessonPct(), lsnDone(), n
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `supabase()` connect `supabase` to `Auth & Clip API Handlers`, `seed-test-clips-visual.mjs`, `test-follow-streak.mjs`, `Clips Integration Test`, `clip.js`, `test-follow-streak.mjs`, `readUserId`?**
+- **Why does `supabase()` connect `test-follow-streak.mjs` to `test-follow-streak.mjs`?**
   _High betweenness centrality (0.020) - this node is a cross-community bridge._
-- **Why does `readUserId()` connect `Dance Move System (pipeline.js)` to `readUserId`, `supabase`, `test-follow-streak.mjs`, `clip.js`?**
+- **Why does `readUserId()` connect `test-follow-streak.mjs` to `Dance Move System (pipeline.js)`?**
   _High betweenness centrality (0.015) - this node is a cross-community bridge._
 - **What connects `state`, `LANG_CODE`, `LANG_COLOR` to the rest of the system?**
   _197 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Frontend App Logic (app.js)` be split into smaller, more focused modules?**
-  _Cohesion score 0.05411764705882353 - nodes in this community are weakly interconnected._
-- **Should `Auth & Clip API Handlers` be split into smaller, more focused modules?**
-  _Cohesion score 0.13333333333333333 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.05442176870748299 - nodes in this community are weakly interconnected._
 - **Should `Dance Move System (pipeline.js)` be split into smaller, more focused modules?**
-  _Cohesion score 0.10083256244218317 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.0966183574879227 - nodes in this community are weakly interconnected._
 - **Should `NPM Dependencies` be split into smaller, more focused modules?**
   _Cohesion score 0.08 - nodes in this community are weakly interconnected._
+- **Should `test-follow-streak.mjs` be split into smaller, more focused modules?**
+  _Cohesion score 0.06878306878306878 - nodes in this community are weakly interconnected._
