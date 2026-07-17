@@ -1,16 +1,16 @@
 # Graph Report - StageOne  (2026-07-17)
 
 ## Corpus Check
-- 69 files · ~355,556 words
+- 70 files · ~355,805 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 562 nodes · 1002 edges · 69 communities (43 shown, 26 thin omitted)
+- 563 nodes · 1005 edges · 70 communities (44 shown, 26 thin omitted)
 - Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 6 edges (avg confidence: 0.53)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `78c71822`
+- Built from commit: `527e61fd`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -62,6 +62,7 @@
 - clip.js
 - Idol14 Content-Policy Flag
 - Rejected: NFT Trading
+- test-auth-flow.mjs
 - openSong
 - toast
 - Idol Portrait: MOMO
@@ -113,15 +114,15 @@
 ## Hyperedges (group relationships)
 - **Files comprising the StageOne_app_v2.4 codebase** — full_dialogue_2026_07_08_stageone_app_v2_4, full_dialogue_2026_07_08_api_generate_js, full_dialogue_2026_07_08_api_result_js, full_dialogue_2026_07_08_api_status_js, full_dialogue_2026_07_08_public_index_html, full_dialogue_2026_07_08_idols_json [INFERRED 0.85]
 
-## Communities (69 total, 26 thin omitted)
+## Communities (70 total, 26 thin omitted)
 
 ### Community 0 - "Frontend App Logic (app.js)"
 Cohesion: 0.06
-Nodes (39): authReady, awardsHtml(), BIO_SAMPLE, bioState, checkAuth(), CLIP, CLIP_COLOR, CLIP_ICON (+31 more)
+Nodes (41): authReady, awardsHtml(), BIO_SAMPLE, bioState, checkAuth(), CLIP, CLIP_COLOR, CLIP_ICON (+33 more)
 
 ### Community 1 - "Auth & Clip API Handlers"
-Cohesion: 0.12
-Nodes (8): db, testUsers, cookie, r1, r2, r3, db, db
+Cohesion: 0.22
+Nodes (4): db, testUsers, db, db
 
 ### Community 2 - "Dance Move System (pipeline.js)"
 Cohesion: 0.10
@@ -188,8 +189,8 @@ Cohesion: 0.28
 Nodes (8): __dirname, handleApi(), MIME, PUBLIC, ROOT, send(), server, serveStatic()
 
 ### Community 19 - "toggle"
-Cohesion: 0.11
-Nodes (25): addSong(), allSongs(), applyStatic(), buildQuiz(), chatBubble(), escapeHtml(), fmtMsg(), getLang() (+17 more)
+Cohesion: 0.17
+Nodes (16): addSong(), allSongs(), escapeHtml(), karaBuild(), karaTick(), karaVideoFail(), loadCatalog(), loadYT() (+8 more)
 
 ### Community 21 - "test-follow-streak.mjs"
 Cohesion: 0.12
@@ -224,8 +225,8 @@ Cohesion: 0.40
 Nodes (5): Claude.ai (web version, no shared memory with Claude Code), Claude Code (CLI tool used to develop StageOne), Seedance (video generation service, 15-second limit constraint mentioned), StageOne (AI K-pop idol video app project), Windows voice dictation (Win+H, Russian language pack)
 
 ### Community 29 - "askTeacher"
-Cohesion: 0.50
-Nodes (4): closeOnb(), maybeOnboard(), onbKey(), openOnb()
+Cohesion: 0.15
+Nodes (14): applyStatic(), buildQuiz(), chatBubble(), closeOnb(), fmtMsg(), getLang(), maybeOnboard(), onbKey() (+6 more)
 
 ### Community 30 - "Photocard Test"
 Cohesion: 0.90
@@ -255,13 +256,17 @@ Nodes (4): handleCreate(), handleList(), handler(), handleUpdate()
 Cohesion: 0.43
 Nodes (7): client(), config, handleCheckout(), handler(), handleWebhook(), PRODUCTS, rawBody()
 
+### Community 49 - "test-auth-flow.mjs"
+Cohesion: 0.29
+Nodes (4): cookie, r1, r2, r3
+
 ### Community 50 - "openSong"
 Cohesion: 0.36
 Nodes (9): annotate(), config, groupVerses(), handleBuild(), handler(), itunesSuggest(), lrclibFind(), parseSynced() (+1 more)
 
 ### Community 52 - "toast"
-Cohesion: 0.12
-Nodes (23): claimIdol(), doFollow(), doTrain(), doVote(), fmtRest(), idHash(), IDOLS, loadChart() (+15 more)
+Cohesion: 0.13
+Nodes (22): claimIdol(), doFollow(), doTrain(), fmtRest(), idHash(), IDOLS, loadChart(), mockPushLive() (+14 more)
 
 ### Community 68 - "askTeacher"
 Cohesion: 0.25
@@ -272,8 +277,8 @@ Cohesion: 0.50
 Nodes (5): endTour(), positionTour(), startTour(), tourNext(), tourShow()
 
 ### Community 72 - "renderLangOpts"
-Cohesion: 0.19
-Nodes (17): bilingualUnlocked(), boot(), buildOpts(), langSwatch(), LANGUAGE, lbl(), loadNav(), nativeGenres() (+9 more)
+Cohesion: 0.21
+Nodes (16): bilingualUnlocked(), boot(), buildOpts(), langSwatch(), LANGUAGE, lbl(), loadNav(), nativeGenres() (+8 more)
 
 ### Community 73 - "showView"
 Cohesion: 0.36
@@ -287,17 +292,17 @@ Nodes (13): allLessons(), finishLesson(), lessonPct(), lsnDone(), navOv(), openA
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `supabase()` connect `supabase` to `Auth & Clip API Handlers`, `seed-test-clips-visual.mjs`, `test-follow-streak.mjs`, `Clips Integration Test`, `clip.js`, `test-follow-streak.mjs`, `readUserId`?**
+- **Why does `supabase()` connect `supabase` to `Auth & Clip API Handlers`, `seed-test-clips-visual.mjs`, `test-follow-streak.mjs`, `Clips Integration Test`, `clip.js`, `test-auth-flow.mjs`, `test-follow-streak.mjs`, `readUserId`?**
   _High betweenness centrality (0.022) - this node is a cross-community bridge._
 - **Why does `readUserId()` connect `Dance Move System (pipeline.js)` to `readUserId`, `supabase`, `test-follow-streak.mjs`, `clip.js`?**
   _High betweenness centrality (0.017) - this node is a cross-community bridge._
 - **What connects `config`, `state`, `LANG_CODE` to the rest of the system?**
   _187 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Frontend App Logic (app.js)` be split into smaller, more focused modules?**
-  _Cohesion score 0.0595959595959596 - nodes in this community are weakly interconnected._
-- **Should `Auth & Clip API Handlers` be split into smaller, more focused modules?**
-  _Cohesion score 0.125 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.05735430157261795 - nodes in this community are weakly interconnected._
 - **Should `Dance Move System (pipeline.js)` be split into smaller, more focused modules?**
   _Cohesion score 0.10083256244218317 - nodes in this community are weakly interconnected._
 - **Should `NPM Dependencies` be split into smaller, more focused modules?**
   _Cohesion score 0.08 - nodes in this community are weakly interconnected._
+- **Should `test-follow-streak.mjs` be split into smaller, more focused modules?**
+  _Cohesion score 0.13333333333333333 - nodes in this community are weakly interconnected._
