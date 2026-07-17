@@ -24,6 +24,7 @@ image = (
     .apt_install("ffmpeg", "git")
     .pip_install("torch", "torchaudio", "transformers")
     .pip_install("demucs", "librosa")
+    .pip_install("faster-whisper==1.0.3", "requests")
     .pip_install("git+https://github.com/MahmoudAshraf97/ctc-forced-aligner.git")
 )
 
@@ -223,6 +224,37 @@ def align(audio_bytes: bytes, lines: list, lang: str = "kor") -> dict:
     return {"words": words_out, "duration": dur, "n": N, "lowconf": lowconf}
 
 
+@app.function(image=image, gpu="T4", volumes={CACHE: vol}, timeout=1800)
+def asr(audio_bytes: bytes, lang: str = "ko") -> dict:
+    """Независимый ASR-проход: Whisper САМ слушает клип и слышит слова со своими
+    таймингами (не forced) — эталон для проверки нашей привязки. Слушает ИЗОЛИР. вокал."""
+    import tempfile, os
+    import torch
+    from faster_whisper import WhisperModel
+
+    os.environ["HF_HOME"] = CACHE
+    os.environ["TORCH_HOME"] = CACHE
+    with tempfile.NamedTemporaryFile(suffix=".m4a", delete=False) as f:
+        f.write(audio_bytes)
+        path = f.name
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    vocals = isolate_vocals(path, device)
+    # Whisper на CPU (int8): ctranslate2-GPU требует системный libcublas, которого в образе нет.
+    # Для валидатора скорость не критична.
+    model = WhisperModel("large-v3", device="cpu", compute_type="int8", download_root=CACHE)
+    segs, info = model.transcribe(vocals, language=lang, word_timestamps=True,
+                                  beam_size=5, vad_filter=False, condition_on_previous_text=False)
+    words = []
+    for s in segs:
+        for w in (s.words or []):
+            t = w.word.strip()
+            if t:
+                words.append({"kr": t, "t": round(float(w.start), 2)})
+    vol.commit()
+    os.unlink(path)
+    return {"words": words, "duration": round(float(info.duration), 2)}
+
+
 @app.local_entrypoint()
 def main(audio: str, lines: str, lang: str = "kor"):
     with open(audio, "rb") as f:
@@ -230,4 +262,12 @@ def main(audio: str, lines: str, lang: str = "kor"):
     with open(lines, "r", encoding="utf-8") as f:
         ln = json.load(f)
     out = align.remote(data, ln, lang)
+    print("RESULT_JSON:" + json.dumps(out, ensure_ascii=False))
+
+
+@app.local_entrypoint()
+def check(audio: str, lang: str = "ko"):
+    with open(audio, "rb") as f:
+        data = f.read()
+    out = asr.remote(data, lang)
     print("RESULT_JSON:" + json.dumps(out, ensure_ascii=False))

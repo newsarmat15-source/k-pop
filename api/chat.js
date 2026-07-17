@@ -5,6 +5,7 @@
 // Персона айдола собирается из его карточки (имя/био/концепт) + уровень корейского из тренировок.
 import { supabase } from "../lib/supabase.js";
 import { readUserId } from "../lib/session.js";
+import { chatUsage } from "../lib/limits.js";
 
 // Чат идёт через fal.ai any-llm — FAL_KEY уже оплачен и настроен в Vercel,
 // поэтому отдельный биллинг Anthropic не нужен.
@@ -131,6 +132,11 @@ async function handleSend(req, res) {
   const db = supabase();
   const idol = await ownIdol(db, uid);
   if (!idol) return res.status(400).json({ error: "У тебя ещё нет айдола" });
+
+  // Дневной лимит бесплатного тарифа (защита от разорения на fal-вызовах).
+  const lim = await chatUsage(db, idol.id);
+  if (lim.over) return res.status(429).json({
+    error: `Дневной лимит сообщений (${lim.limit}) исчерпан. Возвращайся завтра 🙂`, limit: lim.limit });
 
   // 1. Сохраняем сообщение продюсера.
   const { error: insErr } = await db

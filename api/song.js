@@ -5,6 +5,7 @@
 // Текст/тайминги — из открытых источников, разбор — модель. Ничего не выдумываем на пустом месте.
 import { readUserId } from "../lib/session.js";
 import { supabase } from "../lib/supabase.js";
+import { songUsage } from "../lib/limits.js";
 
 export const config = { maxDuration: 60 };
 
@@ -122,9 +123,14 @@ async function handleBuild(req, res) {
 
   const id = "usr_" + rec.id;
   const db = supabase();
-  // Уже собрана кем-то раньше? — отдаём готовую из общего каталога, не пересобираем.
+  // Уже собрана кем-то раньше? — отдаём готовую из общего каталога, не пересобираем (бесплатно).
   const { data: existing } = await db.from("songs").select("data").eq("id", id).maybeSingle();
   if (existing && existing.data) return res.status(200).json({ ok: true, song: existing.data, cached: true });
+
+  // Только НОВАЯ сборка платная (LLM) — дневной лимит на юзера.
+  const lim = await songUsage(db, readUserId(req));
+  if (lim.over) return res.status(429).json({
+    error: `Дневной лимит новых песен (${lim.limit}) исчерпан. Готовые песни из каталога — без ограничений.`, limit: lim.limit });
 
   const allLines = parseSynced(rec.syncedLyrics);
   if (!allLines.length) return res.status(422).json({ error: "В песне нет корейского текста" });
