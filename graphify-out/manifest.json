@@ -628,5 +628,10 @@
     "mtime": 1784255816.127138,
     "ast_hash": "77e1a3016e83fe90659a2d068f0fdbf1",
     "semantic_hash": ""
+  },
+  "public/yttest.html": {
+    "mtime": 1784280141.0024712,
+    "ast_hash": "3106275450450c4a14932f20861e4e71",
+    "semantic_hash": ""
   }
 }

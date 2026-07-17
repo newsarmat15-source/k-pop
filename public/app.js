@@ -964,9 +964,7 @@ function openSong(id){
     </div>`;
   document.getElementById('songBody').scrollTop=0;
   renderKaraVerse();
-  window._ytLastErr=null;window._ytMaxState=null;
-  if(window._dbgTimer)clearInterval(window._dbgTimer);
-  window._dbgTimer=setInterval(karaDbg,400);karaDbg();
+  window._ytLastErr=null;
   ensureYtPlayer(p=>{
     const K=window._kara;if(!K)return;
     K.player=p;
@@ -1015,7 +1013,6 @@ function loadYT(cb){
 function karaStop(){
   const K=window._kara;
   if(K&&K.timer)clearInterval(K.timer);
-  if(window._dbgTimer)clearInterval(window._dbgTimer);
   try{window._ytPlayer&&window._ytPlayer.pauseVideo&&window._ytPlayer.pauseVideo()}catch(e){}
   window._kara=null;
 }
@@ -1031,16 +1028,6 @@ function karaShowHint(show){const e=document.getElementById('ytHint');if(!e)retu
 // Ошибка плеера YouTube. 101/150 = владелец ЗАПРЕТИЛ встраивание (BTS/HYBE — почти все клипы);
 // 100 = видео удалено/приватное; 2 = кривой id; 5 = ошибка html5-плеера. Показываем честно
 // вместо вечного спиннера + крупную ссылку на YouTube. Заодно логируем битый id в консоль.
-// Строка-диагностика для мобильного (у iOS нет консоли под рукой) — читаем по скриншоту юзера.
-function karaDbg(){
-  const e=document.getElementById('ytDbg');if(!e)return;
-  const K=window._kara;let st=-9,ct=0;
-  try{if(K&&K.player&&K.player.getPlayerState){st=K.player.getPlayerState();ct=(K.player.getCurrentTime()||0);}}catch(err){}
-  if(st>(window._ytMaxState==null?-99:window._ytMaxState))window._ytMaxState=st; // максимум состояния (дошло ли до 1=играет)
-  const age=K&&K.loadAt?Math.round((Date.now()-K.loadAt)/1000):0;
-  // state: -1 не начато · 1 играет · 2 пауза · 3 буфер · 5 готово(cued)
-  e.textContent=`st:${st} max:${window._ytMaxState==null?'-':window._ytMaxState} t:${ct.toFixed(1)} age:${age}s err:${window._ytLastErr!=null?window._ytLastErr:'-'} api:${window.YT&&window.YT.Player?'ok':'НЕТ'}`;
-}
 function karaOnError(code){
   window._ytLastErr=code;
   const K=window._kara;const yt=K&&K.song&&K.song.ytId;
