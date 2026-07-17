@@ -911,19 +911,31 @@ async function addSong(artist,track,btn){
 
 // ---- Караоке-движок: подсветка по таймкодам + авто-пауза в конце куплета ----
 function karaBuild(song){
+  // wordAligned: у каждого слова свой абсолютный тайминг клипа (t) из ASR — самый точный.
+  const wa=song.wordAligned||(song.verses&&song.verses[0]&&song.verses[0].lines[0]&&song.verses[0].lines[0].w[0]&&song.verses[0].lines[0].w[0].t!=null);
   const verses=song.verses.map(v=>{
     const lines=v.lines.map((ln,i)=>{
-      const end=(i+1<v.lines.length?v.lines[i+1].t:v.end);
-      const total=Math.max(0.1,end-ln.t);
-      const weights=ln.w.map(x=>Math.max(1,(x.k||'').replace(/\s/g,'').length));
-      const sum=weights.reduce((a,b)=>a+b,0);
-      let acc=ln.t;
-      const words=ln.w.map((x,j)=>{const t0=acc;acc+=total*weights[j]/sum;return {...x,t0,t1:acc};});
-      return {...ln,end,words};
+      let words;
+      if(wa){
+        words=ln.w.map(x=>({...x,t0:(x.t!=null?x.t:0)}));
+      }else{
+        const end=(i+1<v.lines.length?v.lines[i+1].t:v.end);
+        const total=Math.max(0.1,end-ln.t);
+        const weights=ln.w.map(x=>Math.max(1,(x.k||'').replace(/\s/g,'').length));
+        const sum=weights.reduce((a,b)=>a+b,0);
+        let acc=ln.t;
+        words=ln.w.map((x,j)=>{const t0=acc;acc+=total*weights[j]/sum;return {...x,t0};});
+      }
+      return {...ln,words,t:(words.length?words[0].t0:(ln.t||0))};
     });
-    return {...v,lines,start:lines[0].t};
+    return {...v,lines,start:(lines.length?lines[0].t:0)};
   });
-  return {song,verses,vIdx:0,paused:false,continuous:false,videoOffset:song.videoOffset||0,
+  // t1 каждого слова = t0 следующего (глобально по порядку) — для плавной заливки
+  const allW=[];verses.forEach(v=>v.lines.forEach(ln=>ln.words.forEach(w=>allW.push(w))));
+  for(let i=0;i<allW.length;i++){let t1=i+1<allW.length?allW[i+1].t0:allW[i].t0+0.6;if(t1<=allW[i].t0)t1=allW[i].t0+0.3;allW[i].t1=t1;}
+  // конец куплета = начало следующего (для аккуратной смены панели)
+  for(let i=0;i<verses.length;i++){verses[i].end=(i+1<verses.length)?verses[i+1].start:(wa?(allW.length?allW[allW.length-1].t1:verses[i].start+4):(song.verses[i].end||verses[i].start+4));}
+  return {song,verses,vIdx:0,videoOffset:wa?0:(song.videoOffset||0),
     get off(){return this.videoOffset},player:null,timer:null,saved:{},tok:[],lastLine:null,ready:false,readyTimer:null};
 }
 

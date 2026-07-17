@@ -613,5 +613,10 @@
     "mtime": 1784247742.427817,
     "ast_hash": "7294c5ed6d6fd4581985b2ac1ccbd881",
     "semantic_hash": ""
+  },
+  "scripts/align-songs.mjs": {
+    "mtime": 1784248012.1450555,
+    "ast_hash": "1f1b968d72abc8db47ca44011ac71d5e",
+    "semantic_hash": ""
   }
 }
