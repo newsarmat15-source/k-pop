@@ -1,11 +1,13 @@
 {
   "0": "Frontend App Logic (app.js)",
+  "1": "test-clips.mjs",
   "2": "Dance Move System (pipeline.js)",
   "3": "Kling Stack & Orchestration Decisions",
   "4": "NPM Dependencies",
   "5": "Monetization, Legal & Auth Strategy",
   "6": "test-follow-streak.mjs",
   "7": "Vote/Training Integration Test",
+  "8": "openSong",
   "9": "Multi-Segment Resume Test",
   "10": "Multi-Segment V2 Test",
   "11": "Vocal Isolation Test",
@@ -63,7 +65,6 @@
   "67": "Idol Portrait: REI",
   "68": "askTeacher",
   "69": "getLang",
-  "70": "generate",
   "72": "renderLangOpts",
   "73": "showView"
 }

@@ -964,7 +964,7 @@ function openSong(id){
     </div>`;
   document.getElementById('songBody').scrollTop=0;
   renderKaraVerse();
-  window._ytLastErr=null;
+  window._ytLastErr=null;window._ytMaxState=null;
   if(window._dbgTimer)clearInterval(window._dbgTimer);
   window._dbgTimer=setInterval(karaDbg,400);karaDbg();
   ensureYtPlayer(p=>{
@@ -1034,10 +1034,12 @@ function karaShowHint(show){const e=document.getElementById('ytHint');if(!e)retu
 // Строка-диагностика для мобильного (у iOS нет консоли под рукой) — читаем по скриншоту юзера.
 function karaDbg(){
   const e=document.getElementById('ytDbg');if(!e)return;
-  const K=window._kara;let st='-',ct='-';
-  try{if(K&&K.player&&K.player.getPlayerState){st=K.player.getPlayerState();ct=(K.player.getCurrentTime()||0).toFixed(1);}}catch(err){}
-  // state: -1 не начато · 0 конец · 1 играет · 2 пауза · 3 буфер · 5 готово(cued)
-  e.textContent=`API:${window.YT&&window.YT.Player?'ok':'НЕТ'} ready:${window._ytReady?'да':'нет'} state:${st} t:${ct} err:${window._ytLastErr!=null?window._ytLastErr:'-'}`;
+  const K=window._kara;let st=-9,ct=0;
+  try{if(K&&K.player&&K.player.getPlayerState){st=K.player.getPlayerState();ct=(K.player.getCurrentTime()||0);}}catch(err){}
+  if(st>(window._ytMaxState==null?-99:window._ytMaxState))window._ytMaxState=st; // максимум состояния (дошло ли до 1=играет)
+  const age=K&&K.loadAt?Math.round((Date.now()-K.loadAt)/1000):0;
+  // state: -1 не начато · 1 играет · 2 пауза · 3 буфер · 5 готово(cued)
+  e.textContent=`st:${st} max:${window._ytMaxState==null?'-':window._ytMaxState} t:${ct.toFixed(1)} age:${age}s err:${window._ytLastErr!=null?window._ytLastErr:'-'} api:${window.YT&&window.YT.Player?'ok':'НЕТ'}`;
 }
 function karaOnError(code){
   window._ytLastErr=code;
