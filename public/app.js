@@ -967,7 +967,11 @@ function openSong(id){
   ensureYtPlayer(p=>{
     const K=window._kara;if(!K)return;
     K.player=p;
-    try{p.cueVideoById(song.ytId)}catch(e){}
+    // loadVideoById (а не cue) — форсит загрузку+проигрывание и ВЫВОДИТ плеер из «спящего»
+    // состояния, в которое он попадает, когда оверлей закрывался (display:none усыпляет iframe).
+    // Именно это лечит «вечную загрузку» при повторном заходе в песню после ✕→кабинет.
+    try{p.loadVideoById(song.ytId)}catch(e){}
+    K.loadAt=Date.now();K.recovered=false;K.playing=false;
     if(K.timer)clearInterval(K.timer);
     K.timer=setInterval(karaTick,120);
   });
@@ -1009,8 +1013,22 @@ function karaStop(){
 
 // Непрерывный плавный караоке: ведём строго по времени клипа, никаких внутренних пауз
 // (пауза плеера сама останавливает getCurrentTime → подсветка замирает корректно).
+// Watchdog повторного захода: если getCurrentTime не растёт и плеер завис на загрузке
+// (state -1 unstarted / 3 buffering) — один раз тихо перезагружаем видео. Не трогаем, если
+// юзер просто поставил на паузу (state 2) или ждёт тапа (5 cued).
+function karaWatchdog(K){
+  let ct=0,st=-9;try{ct=K.player.getCurrentTime()||0;st=K.player.getPlayerState?K.player.getPlayerState():-9;}catch(e){}
+  if(ct>0.05){K.playing=true;return;}
+  if(K.playing)return;
+  const stuck=(st===-1||st===3);
+  if(!K.recovered&&stuck&&Date.now()-(K.loadAt||0)>4500){
+    K.recovered=true;K.loadAt=Date.now();
+    try{K.player.loadVideoById(K.song.ytId)}catch(e){}
+  }
+}
 function karaTick(){
   const K=window._kara;if(!K||!K.player||!K.player.getCurrentTime)return;
+  karaWatchdog(K);
   const t=K.player.getCurrentTime()-K.off;
   let vi=K.verses.findIndex(x=>t>=x.start&&t<x.end);
   if(vi===-1){vi=0;for(let i=0;i<K.verses.length;i++){if(t>=K.verses[i].start)vi=i;}} // в проигрыше между куплетами держим последний начавшийся
