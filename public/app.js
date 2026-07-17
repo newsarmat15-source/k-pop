@@ -1020,13 +1020,15 @@ function karaTick(){
   updateKaraWords(t);
 }
 
+// Транскрипция под язык: для русского — кириллица (rr), иначе латиница (r/rom).
+function romOf(w){const L=getLang();if(L==='ru'&&w&&w.rr)return w.rr;return (w&&(w.r!=null?w.r:w.rom))||'';}
 function renderKaraVerse(){
   const K=window._kara;const v=K.verses[K.vIdx];const L=getLang();
   K.tok=[];K.lastLine=null;
   const html=v.lines.map(ln=>{
     const toks=ln.words.map(w=>{
       const idx=K.tok.length;K.tok.push({t0:w.t0,t1:w.t1});
-      return `<span class="tok" data-i="${idx}"><span class="tok-k">${escapeHtml(w.k)}</span><span class="tok-r">${escapeHtml(w.r)}</span><span class="tok-m">${escapeHtml(w[L]||'')}</span></span>`;
+      return `<span class="tok" data-i="${idx}"><span class="tok-k">${escapeHtml(w.k)}</span><span class="tok-r">${escapeHtml(romOf(w))}</span><span class="tok-m">${escapeHtml(w[L]||'')}</span></span>`;
     }).join('');
     return `<div class="kline">${toks}</div>`;
   }).join('');
@@ -1062,7 +1064,7 @@ function renderVersePanel(){
       <div class="kpw">
         <button class="kpw-add ${s?'on':''}" ${s?'disabled':''} onclick="karaSave(${i})" title="${t('song_save')(t('wb_words'))}">${s?'✓':'+'}</button>
         <b class="kpw-k">${escapeHtml(w.kr)}</b>
-        <span class="kpw-r">${escapeHtml(w.rom||'')}</span>
+        <span class="kpw-r">${escapeHtml(romOf(w))}</span>
         <span class="kpw-m">${escapeHtml(w[L]||w.ru||'')}</span>
       </div>`;}).join('')}</div>`:''}`;
 }

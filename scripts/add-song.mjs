@@ -11,7 +11,7 @@ const ENV = readFileSync(".env", "utf8");
 const FAL = (ENV.match(/FAL_KEY=(.+)/) || [])[1].trim();
 const DBURL = (ENV.match(/DATABASE_URL=(.+)/) || [])[1].trim().replace(/^["']|["']$/g, "");
 const PY = process.env.PY || "python";
-const MAX_LINES = 8;
+const MAX_LINES = 60; // почти вся песня; собираем чанками
 const UA = { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)", "Accept-Language": "en-US" };
 
 function parseSynced(lrc) {
@@ -31,13 +31,27 @@ async function lrclibFind(artist, track) {
   const bad = /remix|sped|slow|live|inst|acoustic|cover|karaoke|version/i;
   return ok.filter((x) => !bad.test(x.trackName || "") && !bad.test(x.albumName || ""))[0] || ok[0] || null;
 }
-async function annotate(lines) {
+async function annotateChunk(lines) {
   const prompt = "Korean song lines (index, then text):\n" + lines.map((l, i) => i + " " + l.kr).join("\n") +
-    '\n\nReturn ONLY JSON: {"lines":[{"i":0,"rom":"","tr":{"ru":"","en":""},"w":[{"k":"","r":"","ru":"","en":""}]}]}. One object per line, same index, Revised Romanization, split into words. JSON only.';
+    '\n\nReturn ONLY JSON: {"lines":[{"i":0,"w":[{"k":"","r":"","rr":"","ru":"","en":""}]}]}. ' +
+    'One object per input line, same index. Split each line into meaningful words (keep particles attached). For each word: ' +
+    'k=Korean; r=Latin romanization SYLLABLE-SEPARATED with hyphens (e.g. "an-nyeong-ha-se-yo"); ' +
+    'rr=Russian Cyrillic transcription SYLLABLE-SEPARATED with hyphens, how a Russian would read it (e.g. "ан-нён-ха-се-ё"); ' +
+    'ru=Russian meaning 1-2 words; en=English meaning 1-2 words. JSON only.';
   const d = await (await fetch("https://fal.run/fal-ai/any-llm", { method: "POST", headers: { Authorization: "Key " + FAL, "Content-Type": "application/json" }, body: JSON.stringify({ model: "anthropic/claude-haiku-4.5", system_prompt: "Korean lyrics annotator. Output ONLY minified JSON.", prompt }) })).json();
   let out = (d.output || "").trim().replace(/^```json?/i, "").replace(/```$/, "").trim();
   const m = out.match(/\{[\s\S]*\}/);
   return JSON.parse(m ? m[0] : out).lines || [];
+}
+async function annotate(lines) {
+  const out = [];
+  for (let i = 0; i < lines.length; i += 12) {
+    const chunk = lines.slice(i, i + 12);
+    let res = [];
+    try { res = await annotateChunk(chunk); } catch (e) { console.log("   (чанк", i, "провал:", e.message + ")"); }
+    for (const r of res) if (r && r.i != null) out[i + r.i] = r;
+  }
+  return out;
 }
 function groupVerses(lines) {
   const verses = []; let cur = [];
@@ -61,9 +75,9 @@ async function build(artist, track, db) {
   const lines = parseSynced(rec.syncedLyrics).slice(0, MAX_LINES);
   if (!lines.length) return console.log("  ✗", track, "— нет корейского текста");
   const ann = await annotate(lines);
-  const built = lines.map((l, i) => { const a = ann.find((x) => x.i === i) || ann[i] || {}; const w = Array.isArray(a.w) && a.w.length ? a.w : [{ k: l.kr, r: a.rom || "", ru: (a.tr && a.tr.ru) || "", en: (a.tr && a.tr.en) || "" }]; return { t: l.t, kr: l.kr, w }; });
+  const built = lines.map((l, i) => { const a = ann[i] || {}; const w = Array.isArray(a.w) && a.w.length ? a.w : [{ k: l.kr, r: "", rr: "", ru: "", en: "" }]; return { t: l.t, kr: l.kr, w }; });
   const groups = groupVerses(built);
-  const verses = groups.map((g) => { const li = built.indexOf(g[g.length - 1]); const end = built[li + 1] ? built[li + 1].t : g[g.length - 1].t + 4; const vocab = []; for (const ln of g) for (const wd of ln.w) if (vocab.length < 2 && wd.k && wd.k.length > 1 && !vocab.some((v) => v.kr === wd.k)) vocab.push({ kr: wd.k, rom: wd.r, ru: wd.ru, en: wd.en }); return { end: +end.toFixed(2), tr: { ru: "", en: "" }, vocab, lines: g.map((l) => ({ t: l.t, w: l.w })) }; });
+  const verses = groups.map((g) => { const li = built.indexOf(g[g.length - 1]); const end = built[li + 1] ? built[li + 1].t : g[g.length - 1].t + 4; const vocab = []; for (const ln of g) for (const wd of ln.w) if (vocab.length < 2 && wd.k && wd.k.length > 1 && !vocab.some((v) => v.kr === wd.k)) vocab.push({ kr: wd.k, rom: wd.r, rr: wd.rr, ru: wd.ru, en: wd.en }); return { end: +end.toFixed(2), tr: { ru: "", en: "" }, vocab, lines: g.map((l) => ({ t: l.t, w: l.w })) }; });
   const ytId = await youtubeId(rec.artistName + " " + rec.trackName + " official");
   const id = "usr_" + rec.id;
   const asr = ytId ? firstKoreanAsrSec(ytId) : null;
