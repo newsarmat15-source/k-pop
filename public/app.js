@@ -950,7 +950,16 @@ function karaBuild(song){
   }
   // конец куплета = начало следующего (для аккуратной смены панели)
   for(let i=0;i<verses.length;i++){verses[i].end=(i+1<verses.length)?verses[i+1].start:(wa?(allW.length?allW[allW.length-1].t1:verses[i].start+4):(song.verses[i].end||verses[i].start+4));}
-  return {song,verses,vIdx:0,videoOffset:wa?0:(song.videoOffset||0),
+  // Глобальный список строк (для караоке-перехода в проигрышах): каждая строка —
+  // её куплет, индекс в куплете, начало (1-е слово) и конец (последнее слово).
+  const flatLines=[];
+  verses.forEach((v,vi)=>v.lines.forEach((ln,li)=>{
+    const ws=ln.words; if(!ws.length)return;
+    const start=ws[0].t0;
+    const end=Math.max(...ws.map(w=>(w.te!=null?w.te:(w.t1!=null?w.t1:w.t0))));
+    flatLines.push({vi,li,start,end});
+  }));
+  return {song,verses,lines:flatLines,vIdx:0,videoOffset:wa?0:(song.videoOffset||0),
     get off(){return this.videoOffset},player:null,timer:null,saved:{},tok:[],lastLine:null,ready:false,readyTimer:null};
 }
 
@@ -1057,14 +1066,30 @@ function karaWatchdog(K){
     try{K.player.loadVideoById(K.song.ytId)}catch(e){}
   }
 }
+// Караоке-фокус: какая строка сейчас в центре внимания и «готовится» ли она (проигрыш).
+// В паузе между строками: старая держится, потом (за LEAD до начала новой, но не раньше
+// середины паузы) фокус уводится на следующую строку — она уже показана, но НЕ закрашена.
+const KARA_LEAD=2.5; // макс. насколько заранее показать следующую строку в проигрыше
+function karaFocus(K,t){
+  const L=K.lines;if(!L||!L.length)return{vi:0,li:0,up:false};
+  if(t<L[0].start)return{vi:L[0].vi,li:L[0].li,up:true};
+  for(let i=0;i<L.length;i++){
+    if(t>=L[i].start&&t<=L[i].end)return{vi:L[i].vi,li:L[i].li,up:false};
+    if(i+1<L.length&&t>L[i].end&&t<L[i+1].start){
+      const gap=L[i+1].start-L[i].end, lead=Math.min(gap/2,KARA_LEAD), trans=L[i+1].start-lead;
+      if(t<trans)return{vi:L[i].vi,li:L[i].li,up:false};        // старая ещё висит
+      return{vi:L[i+1].vi,li:L[i+1].li,up:true};                // новая показана, ждёт (не закрашена)
+    }
+  }
+  return{vi:L[L.length-1].vi,li:L[L.length-1].li,up:false};
+}
 function karaTick(){
   const K=window._kara;if(!K||!K.player||!K.player.getCurrentTime)return;
   karaWatchdog(K);
   const t=K.player.getCurrentTime()-K.off;
-  let vi=K.verses.findIndex(x=>t>=x.start&&t<x.end);
-  if(vi===-1){vi=0;for(let i=0;i<K.verses.length;i++){if(t>=K.verses[i].start)vi=i;}} // в проигрыше между куплетами держим последний начавшийся
-  if(vi!==K.vIdx){K.vIdx=vi;renderKaraVerse();}
-  updateKaraWords(t);
+  const f=karaFocus(K,t);
+  if(f.vi!==K.vIdx){K.vIdx=f.vi;renderKaraVerse();}
+  updateKaraWords(t,f);
 }
 
 // Транскрипция под язык: для русского — кириллица (rr), иначе латиница (r/rom).
@@ -1084,17 +1109,25 @@ function renderKaraVerse(){
 }
 
 // Плавная заливка: активное слово красится слева-направо по мере произношения.
-function updateKaraWords(t){
+// Скролл/подсветка «готовности» ведёт по строке-фокусу (karaFocus) — в проигрыше
+// заранее показывает следующую строку, не закрашивая её.
+function updateKaraWords(t,f){
   const box=document.getElementById('karaLines');if(!box)return;
   const K=window._kara;const toks=box.querySelectorAll('.tok');
-  let activeEl=null;
   toks.forEach((el,i)=>{
     const tk=K.tok[i];if(!tk)return;
     if(t>=tk.t1){el.classList.add('done');el.classList.remove('on');el.style.setProperty('--fill','100%');}
-    else if(t>=tk.t0){el.classList.add('on');el.classList.remove('done');el.style.setProperty('--fill',Math.round(Math.max(0,Math.min(1,(t-tk.t0)/((tk.t1-tk.t0)||1)))*100)+'%');activeEl=el;}
+    else if(t>=tk.t0){el.classList.add('on');el.classList.remove('done');el.style.setProperty('--fill',Math.round(Math.max(0,Math.min(1,(t-tk.t0)/((tk.t1-tk.t0)||1)))*100)+'%');}
     else {el.classList.remove('on','done');el.style.setProperty('--fill','0%');}
   });
-  if(activeEl){const line=activeEl.closest('.kline');if(line&&line!==K.lastLine){K.lastLine=line;line.scrollIntoView({behavior:'smooth',block:'center'});}}
+  // строка-фокус: скроллим к ней; если «готовится» в проигрыше — помечаем .upcoming
+  const lineEls=box.querySelectorAll('.kline');
+  lineEls.forEach(el=>el.classList.remove('upcoming'));
+  const fl=f?lineEls[f.li]:null;
+  if(fl){
+    if(f.up)fl.classList.add('upcoming');
+    if(fl!==K.lastLine){K.lastLine=fl;fl.scrollIntoView({behavior:'smooth',block:'center'});}
+  }
 }
 
 // Живая панель текущего куплета (перевод + слова столбиком) — без остановки видео.
