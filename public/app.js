@@ -130,6 +130,24 @@ async function showView(name){
   if(name==='lenta'){renderLenta()}
   if(name==='feed'){loadChart().then(renderChart)}
   window.scrollTo({top:0,behavior:'instant'});
+  window._view=name;saveNav({view:name});
+}
+// Сохранение навигации — чтобы обновление страницы возвращало туда, где был.
+function saveNav(o){try{localStorage.setItem('so_nav',JSON.stringify(o))}catch(e){}}
+function loadNav(){try{return JSON.parse(localStorage.getItem('so_nav')||'null')}catch(e){return null}}
+function navOv(ov,id){saveNav({view:window._view||'cabinet-own',ov:ov,id:id||null})}
+function navClear(){saveNav({view:window._view||'cabinet-own'})}
+function restoreOverlay(nav){
+  if(!nav||!nav.ov||!currentUser)return;
+  try{
+    if(nav.ov==='lessons')openLessons();
+    else if(nav.ov==='lesson'&&nav.id)openLesson(nav.id);
+    else if(nav.ov==='lessonQuiz'&&nav.id)openLessonQuiz(nav.id);
+    else if(nav.ov==='songs')openSongs();
+    else if(nav.ov==='song'&&nav.id)openSong(nav.id);
+    else if(nav.ov==='workbook')openWorkbook();
+    else if(nav.ov==='chat')openChat();
+  }catch(e){}
 }
 document.querySelectorAll('.navtab').forEach(t=>t.onclick=()=>showView(t.dataset.view));
 
@@ -500,7 +518,7 @@ async function startCheckout(product){
 }
 
 // Чат с собственным айдолом.
-function closeChat(){document.getElementById('chatOv').classList.remove('show')}
+function closeChat(){document.getElementById('chatOv').classList.remove('show');navClear()}
 document.getElementById('chatOv').onclick=e=>{if(e.target.id==='chatOv')closeChat()};
 function fmtMsg(s){return escapeHtml(s).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/(?<![:/])\*(?!\s)(.+?)(?<!\s)\*/g,'<i>$1</i>')}
 function chatBubble(m){
@@ -510,6 +528,7 @@ function chatBubble(m){
 function escapeHtml(s){return String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))}
 async function openChat(prefill){
   if(!currentUser){openAuth('signup');return}
+  navOv('chat');
   const ov=document.getElementById('chatOv');ov.classList.add('show');
   const log=document.getElementById('chatLog');
   log.innerHTML='<div class="chat-empty">'+t('chat_loading')+'</div>';
@@ -573,11 +592,12 @@ function allLessons(){return (window.CURRICULUM?window.CURRICULUM.units:[]).flat
 function lessonPct(){const all=allLessons();if(!all.length)return 0;return lsnDone().length/all.length*100}
 function optLabel(o){return typeof o==='string'?o:o[getLang()]}
 
-function closeLessons(){document.getElementById('lessonOv').classList.remove('show')}
+function closeLessons(){document.getElementById('lessonOv').classList.remove('show');navClear()}
 document.getElementById('lessonOv').onclick=e=>{if(e.target.id==='lessonOv')closeLessons()};
 
 function openLessons(){
   if(!currentUser){openAuth('signup');return}
+  navOv('lessons');
   document.getElementById('lessonOv').classList.add('show');
   document.getElementById('lsnBack').style.visibility='hidden';
   document.getElementById('lessonTitle').textContent=t('lessons_h');
@@ -619,6 +639,7 @@ function renderBlock(b){
 function openLesson(id){
   const lesson=allLessons().find(l=>l.id===id);
   if(!lesson)return;
+  navOv('lesson',id);
   window._lsnCur=lesson;
   document.getElementById('lessonOv').classList.add('show');
   document.getElementById('lsnBack').style.visibility='visible';
@@ -662,7 +683,7 @@ function buildQuiz(lesson){
 // СТРАНИЦА 2 — проверочная (ответ не виден над вопросом, т.к. материал на прошлой странице).
 function openLessonQuiz(id){
   const lesson=allLessons().find(l=>l.id===id);if(!lesson)return;
-  window._lsnCur=lesson;window._lsnQuiz=buildQuiz(lesson);window._lsnAns={};
+  window._lsnCur=lesson;window._lsnQuiz=buildQuiz(lesson);window._lsnAns={};navOv('lessonQuiz',id);
   const L=getLang();
   document.getElementById('lessonOv').classList.add('show');
   document.getElementById('lsnBack').style.visibility='visible';
@@ -732,11 +753,12 @@ function askTeacher(){
 /* ===================== РАБОЧАЯ ТЕТРАДЬ ===================== */
 // Читает тот же реестр слов, что копят уроки (so_vocab_<uid>).
 // slang:true → вкладка «Сленг» (из песен / вручную), иначе → «Слова».
-function closeWorkbook(){document.getElementById('wbOv').classList.remove('show')}
+function closeWorkbook(){document.getElementById('wbOv').classList.remove('show');navClear()}
 document.getElementById('wbOv').onclick=e=>{if(e.target.id==='wbOv')closeWorkbook()};
 
 function openWorkbook(tab){
   if(!currentUser){openAuth('signup');return}
+  navOv('workbook');
   window._wbTab=tab||window._wbTab||'words';
   document.getElementById('wbOv').classList.add('show');
   document.getElementById('wbTitle').textContent='📓 '+t('wb_h');
@@ -794,20 +816,23 @@ function songsSaveDone(a){localStorage.setItem('so_songs_'+lsnUid(),JSON.stringi
 function userSongs(){try{return JSON.parse(localStorage.getItem('so_usersongs_'+lsnUid())||'[]')}catch(e){return[]}}
 function saveUserSong(s){const a=userSongs().filter(x=>x.id!==s.id);a.unshift(s);localStorage.setItem('so_usersongs_'+lsnUid(),JSON.stringify(a));}
 function allSongs(){return [...userSongs(),...(window.SONGS||[])]}
-function closeSongs(){karaStop();document.getElementById('songOv').classList.remove('show')}
+function closeSongs(){karaStop();document.getElementById('songOv').classList.remove('show');navClear()}
 document.getElementById('songOv').onclick=e=>{if(e.target.id==='songOv')closeSongs()};
 
 function openSongs(){
   if(!currentUser){openAuth('signup');return}
+  navOv('songs');
   karaStop();
   document.getElementById('songOv').classList.add('show');
   document.getElementById('songBack').style.visibility='hidden';
   document.getElementById('songTitle').textContent=t('songs_h');
   document.getElementById('songBody').innerHTML=`
     <div class="song-intro">${t('songs_intro')}</div>
-    <input class="song-search" id="songSearch" oninput="onSongSearchInput()" placeholder="🔎 ${t('song_search')}" autocomplete="off">
+    <div class="song-search-wrap">
+      <input class="song-search" id="songSearch" oninput="onSongSearchInput()" placeholder="🔎 ${t('song_search')}" autocomplete="off">
+      <div id="songOnline" class="song-dropdown"></div>
+    </div>
     <div class="song-search-hint">${t('song_search_hint')}</div>
-    <div id="songOnline"></div>
     <div id="songList"></div>`;
   document.getElementById('songBody').scrollTop=0;
   renderSongList();
@@ -892,6 +917,7 @@ function karaBuild(song){
 
 function openSong(id){
   const song=allSongs().find(s=>s.id===id);if(!song)return;
+  navOv('song',id);
   karaStop();
   window._kara=karaBuild(song);
   document.getElementById('songOv').classList.add('show');
@@ -908,9 +934,6 @@ function openSong(id){
       </div>
       <div class="kara-lines" id="karaLines"></div>
       <div class="kara-pause" id="karaPause" style="display:none"></div>
-      <div class="kara-bar">
-        <label class="kara-toggle"><span>${t('kara_cont')}</span><span class="tgl"><input type="checkbox" id="karaCont" onchange="karaToggleCont()"><i></i></span></label>
-      </div>
     </div>`;
   document.getElementById('songBody').scrollTop=0;
   renderKaraVerse();
@@ -920,7 +943,7 @@ function openSong(id){
       onReady:()=>{K.ready=true;if(K.readyTimer){clearTimeout(K.readyTimer);K.readyTimer=null}},
       onError:()=>karaVideoFail()
     }});
-    K.readyTimer=setTimeout(()=>{if(window._kara===K&&!K.ready)karaVideoFail()},9000);
+    K.readyTimer=setTimeout(()=>{if(window._kara===K&&!K.ready)karaVideoFail()},15000);
     K.timer=setInterval(karaTick,120);
   });
 }
@@ -946,22 +969,20 @@ function karaVideoFail(){
   if(v)v.innerHTML=`<div class="song-fail">${t('song_fail')}</div>`;
 }
 
+// Непрерывный плавный караоке: ведём строго по времени клипа, никаких внутренних пауз
+// (пауза плеера сама останавливает getCurrentTime → подсветка замирает корректно).
 function karaTick(){
   const K=window._kara;if(!K||!K.player||!K.player.getCurrentTime)return;
-  if(K.paused)return;
   const t=K.player.getCurrentTime()-K.off;
-  let v=K.verses[K.vIdx];
-  if(t<v.start-0.5){const vi=K.verses.findIndex(x=>t>=x.start&&t<x.end);if(vi!==-1&&vi!==K.vIdx){K.vIdx=vi;renderKaraVerse();v=K.verses[K.vIdx];}}
-  if(t>=v.end-0.04){
-    if(K.continuous){if(K.vIdx<K.verses.length-1){K.vIdx++;renderKaraVerse();}return;}
-    K.player.pauseVideo();K.paused=true;showVersePause();return;
-  }
+  let vi=K.verses.findIndex(x=>t>=x.start&&t<x.end);
+  if(vi===-1){vi=0;for(let i=0;i<K.verses.length;i++){if(t>=K.verses[i].start)vi=i;}} // в проигрыше между куплетами держим последний начавшийся
+  if(vi!==K.vIdx){K.vIdx=vi;renderKaraVerse();}
   updateKaraWords(t);
 }
 
 function renderKaraVerse(){
   const K=window._kara;const v=K.verses[K.vIdx];const L=getLang();
-  K.tok=[];
+  K.tok=[];K.lastLine=null;
   const html=v.lines.map(ln=>{
     const toks=ln.words.map(w=>{
       const idx=K.tok.length;K.tok.push({t0:w.t0,t1:w.t1});
@@ -970,46 +991,43 @@ function renderKaraVerse(){
     return `<div class="kline">${toks}</div>`;
   }).join('');
   document.getElementById('karaLines').innerHTML=html;
-  document.getElementById('karaPause').style.display='none';
+  renderVersePanel();
 }
 
+// Плавная заливка: активное слово красится слева-направо по мере произношения.
 function updateKaraWords(t){
   const box=document.getElementById('karaLines');if(!box)return;
   const K=window._kara;const toks=box.querySelectorAll('.tok');
   let activeEl=null;
   toks.forEach((el,i)=>{
     const tk=K.tok[i];if(!tk)return;
-    const done=t>=tk.t1,on=!done&&t>=tk.t0;
-    el.classList.toggle('done',done);
-    el.classList.toggle('on',on);
-    if(on)activeEl=el;
+    if(t>=tk.t1){el.classList.add('done');el.classList.remove('on');el.style.setProperty('--fill','100%');}
+    else if(t>=tk.t0){el.classList.add('on');el.classList.remove('done');el.style.setProperty('--fill',Math.round(Math.max(0,Math.min(1,(t-tk.t0)/((tk.t1-tk.t0)||1)))*100)+'%');activeEl=el;}
+    else {el.classList.remove('on','done');el.style.setProperty('--fill','0%');}
   });
-  // активная строка сама остаётся в поле зрения (клип закреплён сверху)
   if(activeEl){const line=activeEl.closest('.kline');if(line&&line!==K.lastLine){K.lastLine=line;line.scrollIntoView({behavior:'smooth',block:'center'});}}
 }
 
-function showVersePause(){
+// Живая панель текущего куплета (перевод + слова столбиком) — без остановки видео.
+function renderVersePanel(){
   const K=window._kara;const v=K.verses[K.vIdx];const L=getLang();
-  const last=K.vIdx>=K.verses.length-1;
   const vocab=v.vocab||[];
-  const p=document.getElementById('karaPause');
+  const p=document.getElementById('karaPause');if(!p)return;
   p.style.display='block';
-  setTimeout(()=>p.scrollIntoView({behavior:'smooth',block:'center'}),40);
   p.innerHTML=`
     <div class="kp-h">${t('kara_verse')} ${K.vIdx+1}/${K.verses.length}</div>
     ${v.tr?`<div class="kp-tr">${v.tr[L]}</div>`:''}
     ${v.note?`<div class="kp-note">💡 ${v.note[L]}</div>`:''}
-    ${vocab.length?`<div class="kp-vocab">${vocab.map((w,i)=>`<button class="kp-word ${K.saved[K.vIdx+'_'+i]?'on':''}" ${K.saved[K.vIdx+'_'+i]?'disabled':''} onclick="karaSave(${i})">${K.saved[K.vIdx+'_'+i]?'✓ ':'+ '}${escapeHtml(w.kr)}</button>`).join('')}</div>`:''}
-    <div class="kp-ctrl">
-      <button class="kp-btn ghost" onclick="karaRepeat()">↻ ${t('kara_repeat')}</button>
-      ${last?`<button class="btn accent kp-btn" onclick="songComplete()">${t('song_finish')}</button>`:`<button class="btn accent kp-btn" onclick="karaNext()">${t('kara_nextv')} ⏭</button>`}
-    </div>`;
+    ${vocab.length?`<div class="kp-vocab-col">${vocab.map((w,i)=>{const s=K.saved[K.vIdx+'_'+i];return `
+      <div class="kpw">
+        <button class="kpw-add ${s?'on':''}" ${s?'disabled':''} onclick="karaSave(${i})" title="${t('song_save')(t('wb_words'))}">${s?'✓':'+'}</button>
+        <b class="kpw-k">${escapeHtml(w.kr)}</b>
+        <span class="kpw-r">${escapeHtml(w.rom||'')}</span>
+        <span class="kpw-m">${escapeHtml(w[L]||w.ru||'')}</span>
+      </div>`;}).join('')}</div>`:''}`;
 }
 
-function karaRepeat(){const K=window._kara,v=K.verses[K.vIdx];K.paused=false;document.getElementById('karaPause').style.display='none';K.player.seekTo(v.start+K.off,true);K.player.playVideo();}
-function karaNext(){const K=window._kara;if(K.vIdx<K.verses.length-1)K.vIdx++;const v=K.verses[K.vIdx];K.paused=false;renderKaraVerse();K.player.seekTo(v.start+K.off,true);K.player.playVideo();}
-function karaToggleCont(){const K=window._kara;K.continuous=document.getElementById('karaCont').checked;if(K.continuous&&K.paused){K.paused=false;document.getElementById('karaPause').style.display='none';K.player.playVideo();}}
-function karaSave(i){const K=window._kara,v=K.verses[K.vIdx],w=(v.vocab||[])[i];if(!w)return;const voc=lsnVocab();if(!voc.some(x=>x.kr===w.kr)){voc.push({...w,from:'song'});lsnSaveVocab(voc);}K.saved[K.vIdx+'_'+i]=true;showVersePause();toast(t('song_save_toast'));}
+function karaSave(i){const K=window._kara,v=K.verses[K.vIdx],w=(v.vocab||[])[i];if(!w)return;const voc=lsnVocab();if(!voc.some(x=>x.kr===w.kr)){voc.push({...w,from:'song'});lsnSaveVocab(voc);}K.saved[K.vIdx+'_'+i]=true;renderVersePanel();toast(t('song_save_toast'));}
 
 function songComplete(){
   const K=window._kara;if(!K)return;
@@ -1140,7 +1158,9 @@ async function boot(){
   });
   updateSummary();
   CHART=[];
-  showView('cabinet-own');
+  const nav=loadNav();
+  await showView((nav&&nav.view)||'cabinet-own');
+  restoreOverlay(nav);
 }
 function renderIdolGrid(){
   const g=document.getElementById('grid');

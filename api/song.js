@@ -38,7 +38,10 @@ async function lrclibFind(artist, track) {
   if (!r.ok) return null;
   const arr = await r.json().catch(() => []);
   const ok = (arr || []).filter((x) => x.syncedLyrics && !x.instrumental && /[가-힣]/.test(x.syncedLyrics || ""));
-  return ok[0] || null;
+  // избегаем ремиксов/лайвов/каверов — их тайминг не совпадёт с официальным клипом
+  const bad = /remix|sped|slow|live|inst|acoustic|cover|karaoke|version/i;
+  const clean = ok.filter((x) => !bad.test(x.trackName || "") && !bad.test(x.albumName || ""));
+  return clean[0] || ok[0] || null;
 }
 
 // LRC → [{t, kr}] (только строки с корейским)
