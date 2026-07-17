@@ -4,6 +4,7 @@
 //   романизация+перевод+пословный разбор (LLM через fal), id клипа (поиск YouTube).
 // Текст/тайминги — из открытых источников, разбор — модель. Ничего не выдумываем на пустом месте.
 import { readUserId } from "../lib/session.js";
+import { supabase } from "../lib/supabase.js";
 
 export const config = { maxDuration: 60 };
 
@@ -119,6 +120,12 @@ async function handleBuild(req, res) {
   const rec = await lrclibFind(artist, track);
   if (!rec || !rec.syncedLyrics) return res.status(404).json({ error: "Для этой песни нет синхро-текста с корейским" });
 
+  const id = "usr_" + rec.id;
+  const db = supabase();
+  // Уже собрана кем-то раньше? — отдаём готовую из общего каталога, не пересобираем.
+  const { data: existing } = await db.from("songs").select("data").eq("id", id).maybeSingle();
+  if (existing && existing.data) return res.status(200).json({ ok: true, song: existing.data, cached: true });
+
   const allLines = parseSynced(rec.syncedLyrics);
   if (!allLines.length) return res.status(422).json({ error: "В песне нет корейского текста" });
   const lines = allLines.slice(0, MAX_LINES);
@@ -158,8 +165,8 @@ async function handleBuild(req, res) {
 
   const ytId = await youtubeId(rec.artistName + " " + rec.trackName + " official");
   const song = {
-    id: "usr_" + rec.id,
-    title: rec.trackName + (/[가-힣]/.test(rec.trackName) ? "" : ""),
+    id,
+    title: rec.trackName,
     artist: rec.artistName,
     ytId,
     duration: rec.duration,
@@ -167,6 +174,10 @@ async function handleBuild(req, res) {
     level: { ru: "по песне", en: "from a song" },
     verses,
   };
+  // Кладём в общий каталог — дальше все получат готовую.
+  try {
+    await db.from("songs").upsert({ id, title: song.title, artist: song.artist, yt_id: ytId, duration: rec.duration, video_offset: 0, data: song, added_by: readUserId(req) });
+  } catch (e) {}
   return res.status(200).json({ ok: true, song });
 }
 
@@ -181,6 +192,10 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, results: await itunesSuggest(q) });
     }
     if (action === "build") return await handleBuild(req, res);
+    if (action === "list") {
+      const { data } = await supabase().from("songs").select("data").order("created_at", { ascending: false }).limit(200);
+      return res.status(200).json({ ok: true, songs: (data || []).map((x) => x.data).filter(Boolean) });
+    }
     return res.status(400).json({ error: "Неизвестный action" });
   } catch (e) {
     return res.status(500).json({ error: String(e?.message || e) });

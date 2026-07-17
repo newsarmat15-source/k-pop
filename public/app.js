@@ -815,7 +815,17 @@ function songsDone(){try{return JSON.parse(localStorage.getItem('so_songs_'+lsnU
 function songsSaveDone(a){localStorage.setItem('so_songs_'+lsnUid(),JSON.stringify(a))}
 function userSongs(){try{return JSON.parse(localStorage.getItem('so_usersongs_'+lsnUid())||'[]')}catch(e){return[]}}
 function saveUserSong(s){const a=userSongs().filter(x=>x.id!==s.id);a.unshift(s);localStorage.setItem('so_usersongs_'+lsnUid(),JSON.stringify(a));}
-function allSongs(){return [...userSongs(),...(window.SONGS||[])]}
+// Каталог = общий с сервера (window._catalog) + локальный кэш + курируемые, без дублей.
+function allSongs(){
+  const seen=new Set(),out=[];
+  for(const s of [...(window._catalog||[]),...userSongs(),...(window.SONGS||[])]){
+    if(!s||!s.id||seen.has(s.id))continue;seen.add(s.id);out.push(s);
+  }
+  return out;
+}
+function loadCatalog(){
+  fetch('/api/song?action=list').then(r=>r.json()).then(d=>{if(d&&d.songs){window._catalog=d.songs;renderSongList();}}).catch(()=>{});
+}
 function closeSongs(){karaStop();document.getElementById('songOv').classList.remove('show');navClear()}
 document.getElementById('songOv').onclick=e=>{if(e.target.id==='songOv')closeSongs()};
 
@@ -836,6 +846,7 @@ function openSongs(){
     <div id="songList"></div>`;
   document.getElementById('songBody').scrollTop=0;
   renderSongList();
+  loadCatalog();
 }
 
 function renderSongList(){
@@ -892,6 +903,7 @@ async function addSong(artist,track,btn){
     const d=await r.json();
     if(!r.ok||d.ok===false||!d.song){toast(d.error||t('song_build_fail'));if(btn){btn.disabled=false;if(badge)badge.textContent='➕';}return;}
     saveUserSong(d.song);
+    window._catalog=[d.song,...(window._catalog||[]).filter(s=>s.id!==d.song.id)];
     toast(t('song_added'));
     openSong(d.song.id);
   }catch(e){toast(t('song_net'));if(btn){btn.disabled=false;if(badge)badge.textContent='➕';}}
