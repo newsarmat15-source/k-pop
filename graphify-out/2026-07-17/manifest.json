@@ -85,9 +85,9 @@
     "semantic_hash": "46f462e78606d0e5357edef9c690657d"
   },
   "lib/session.js": {
-    "mtime": 1783605059.2706523,
-    "ast_hash": "0080ab8ac47dbec542859c433d4ff6d2",
-    "semantic_hash": "0080ab8ac47dbec542859c433d4ff6d2"
+    "mtime": 1784274902.6319976,
+    "ast_hash": "275c59f8b93c828901cb1f1a2f8d547a",
+    "semantic_hash": ""
   },
   "lib/supabase.js": {
     "mtime": 1783605075.7816567,
@@ -100,8 +100,8 @@
     "semantic_hash": ""
   },
   "public/app.js": {
-    "mtime": 1784273641.619458,
-    "ast_hash": "209d46bed87774ba329c6584e23cf052",
+    "mtime": 1784274891.9713871,
+    "ast_hash": "6628410a8e455db08962116b5a39b764",
     "semantic_hash": ""
   },
   "public/idols.json": {

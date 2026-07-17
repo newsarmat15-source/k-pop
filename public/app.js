@@ -971,7 +971,7 @@ function openSong(id){
     // состояния, в которое он попадает, когда оверлей закрывался (display:none усыпляет iframe).
     // Именно это лечит «вечную загрузку» при повторном заходе в песню после ✕→кабинет.
     try{p.loadVideoById(song.ytId)}catch(e){}
-    K.loadAt=Date.now();K.recovered=false;K.playing=false;
+    K.loadAt=Date.now();K.recovered=false;K.playing=false;K.errored=false;karaShowErr(null);
     if(K.timer)clearInterval(K.timer);
     K.timer=setInterval(karaTick,120);
   });
@@ -984,7 +984,8 @@ function ensureYtPlayer(cb){
   window._ytCreating=true;
   loadYT(()=>{
     window._ytPlayer=new YT.Player('ytPlayer',{playerVars:{playsinline:1,rel:0,origin:location.origin},events:{
-      onReady:()=>{window._ytReady=true;}
+      onReady:()=>{window._ytReady=true;},
+      onError:(e)=>karaOnError(e&&e.data)
     }});
     const iv=setInterval(()=>{if(window._ytReady){clearInterval(iv);cb(window._ytPlayer);}},100);
   });
@@ -1016,10 +1017,23 @@ function karaStop(){
 // Watchdog повторного захода: если getCurrentTime не растёт и плеер завис на загрузке
 // (state -1 unstarted / 3 buffering) — один раз тихо перезагружаем видео. Не трогаем, если
 // юзер просто поставил на паузу (state 2) или ждёт тапа (5 cued).
+function karaShowErr(html){const e=document.getElementById('ytErr');if(!e)return;if(html){e.innerHTML=html;e.style.display='flex';}else{e.style.display='none';e.innerHTML='';}}
+// Ошибка плеера YouTube. 101/150 = владелец ЗАПРЕТИЛ встраивание (BTS/HYBE — почти все клипы);
+// 100 = видео удалено/приватное; 2 = кривой id; 5 = ошибка html5-плеера. Показываем честно
+// вместо вечного спиннера + крупную ссылку на YouTube. Заодно логируем битый id в консоль.
+function karaOnError(code){
+  const K=window._kara;const yt=K&&K.song&&K.song.ytId;
+  console.warn('[yt-error]',code,yt,K&&K.song&&K.song.title);
+  if(K)K.errored=true;
+  const url='https://www.youtube.com/watch?v='+(yt||'');
+  const embed=(code===101||code===150);
+  const msg=embed?'Владелец клипа запретил встраивание на других сайтах':(code===100?'Видео недоступно (удалено или приватное)':'Клип не запускается');
+  karaShowErr(`<div class="yt-err-msg">${msg}</div><a class="btn accent sm" href="${url}" target="_blank" rel="noopener">▶ Смотреть на YouTube</a>`);
+}
 function karaWatchdog(K){
   let ct=0,st=-9;try{ct=K.player.getCurrentTime()||0;st=K.player.getPlayerState?K.player.getPlayerState():-9;}catch(e){}
-  if(ct>0.05){K.playing=true;return;}
-  if(K.playing)return;
+  if(ct>0.05){K.playing=true;K.errored=false;karaShowErr(null);return;}
+  if(K.playing||K.errored)return;
   const stuck=(st===-1||st===3);
   if(!K.recovered&&stuck&&Date.now()-(K.loadAt||0)>4500){
     K.recovered=true;K.loadAt=Date.now();
