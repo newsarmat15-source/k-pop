@@ -329,6 +329,7 @@ function renderCabinet(chartEntry,readOnly){
   }
   const idolCreatedAt=isOther?viewedIdol.idol.created_at:myIdol.created_at;
   const streak=idolCreatedAt?Math.max(1,Math.floor((Date.now()-new Date(idolCreatedAt).getTime())/86400000)+1):1;
+  const studyStreak=isOther?0:((myTraining&&myTraining.study_streak)||0);
   const league=isOther?viewedIdol.idol.league:myIdol.league;
   const langPct=isOther?0:Math.max((myTraining?myTraining.language_pct:0),Math.round(lessonPct()));
   const movesVal=isOther?viewedIdol.movesLearned:(myTraining?myTraining.dance_moves_learned:0);
@@ -365,7 +366,10 @@ function renderCabinet(chartEntry,readOnly){
             <div class="lvl-top"><span>${t('your_korean')}</span><b>${t('level')} ${lvl} · ${langPct}%</b></div>
             <div class="bar"><i style="width:${langPct}%"></i></div>
           </div>
-          <div class="streak-chip">🔥 ${streak} ${t('days_together')}</div>
+          <div class="streak-row">
+            <span class="streak-chip">${studyStreak>0?`🔥 ${studyStreak} ${t('streak_days')}`:`🔥 ${t('streak_start')}`}</span>
+            <span class="streak-chip alt">🗓 ${streak} ${t('days_together')}</span>
+          </div>
         </div>
       </div>
 
@@ -561,9 +565,21 @@ async function sendChat(){
     const d=await r.json();
     document.getElementById('chatTyping')?.remove();
     if(!r.ok||d.ok===false){log.insertAdjacentHTML('beforeend','<div class="chat-empty">'+(d.error||t('chat_err'))+'</div>')}
-    else{log.insertAdjacentHTML('beforeend',chatBubble(d.reply))}
+    else{log.insertAdjacentHTML('beforeend',chatBubble(d.reply));pingStudy()}
   }catch(e){document.getElementById('chatTyping')?.remove();log.insertAdjacentHTML('beforeend','<div class="chat-empty">'+t('chat_net')+'</div>')}
   btn.disabled=false;log.scrollTop=log.scrollHeight;inp.focus();
+}
+
+// Засчитывает "занимался сегодня" на сервере → двигает настоящий стрик учёбы.
+// Вызывается при сдаче урока и в чате. Идемпотентно: один зачёт в день.
+async function pingStudy(){
+  if(!currentUser)return null;
+  try{
+    const r=await fetch('/api/engage?action=study',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
+    const d=await r.json();
+    if(d&&d.ok&&myTraining){myTraining.study_streak=d.streak;myTraining.best_streak=d.best;}
+    return d;
+  }catch(e){return null}
 }
 
 /* ===================== ОЗВУЧКА (корейский голос) ===================== */
@@ -741,6 +757,7 @@ function finishLesson(){
     if(next&&!lsnDone().includes(next.id))openLesson(next.id);else openLessons();
   };
   toast(t('lsn_toast'));
+  pingStudy().then(()=>{if(typeof renderCabinet==='function'&&myIdol)try{renderCabinet(null)}catch(e){}});
   if(typeof renderCabinet==='function'&&myIdol)try{renderCabinet(null)}catch(e){}
 }
 
@@ -1702,7 +1719,7 @@ const T={
     nav_home:"My idol", nav_idols:"Idols", no_idol_h:"You don’t have an idol yet", no_idol_sub:"Pick an idol — he becomes your tutor and friend.", no_idol_btn:"Pick an idol →", footer:"Idolingo · learn Korean with an AI idol you pick · your friend and tutor in one", lang_cap:"learning language",
     pick_h:"Pick an idol — they become your friend and teach you Korean 🇰🇷", pick_sub:"One idol free, yours forever. Chat every day and learn Korean the fun way.",
     tab_girls:"Girls", tab_boys:"Boys",
-    concept_suffix:"· your idol tutor", your_korean:"Your Korean", level:"level", days_together:"days together",
+    concept_suffix:"· your idol tutor", your_korean:"Your Korean", level:"level", days_together:"days together", streak_days:"day streak", streak_start:"Start your streak — study today",
     lesson_start:"Start a lesson", lesson_sub:n=>`${n} teaches you Korean, step by step`,
     lessons_h:"Lessons", lsn_vocab_note:n=>`${n} new words will be saved to your Workbook`, lsn_quiz_h:"Check yourself", lsn_check:"Check answers", lsn_next_quiz:"Next: quick check →", lsn_toinfo:"back to the material", lsn_retry:"Try again", lsn_ask:"Ask the teacher a question", lsn_answer_all:"Answer every question first.", lsn_wrong:n=>`${n} wrong — look again and retry.`, lsn_passed:"All correct! Lesson complete 🎉", lsn_next:"Next lesson →", lsn_toast:"Lesson done · words saved · card progress +", lsn_ask_seed:tt=>`I have a question about the lesson "${tt}": `,
     tile_wb:"Workbook", tile_wb_sub:"your words & slang",
@@ -1729,7 +1746,7 @@ const T={
     nav_home:"Мой айдол", nav_idols:"Айдолы", no_idol_h:"У тебя ещё нет айдола", no_idol_sub:"Выбери айдола — он станет твоим учителем и другом.", no_idol_btn:"Выбрать айдола →", footer:"Idolingo · учи корейский с AI-айдолом, которого выбрал сам · твой друг и преподаватель в одном лице", lang_cap:"язык обучения",
     pick_h:"Выбери айдола — он станет твоим другом и научит тебя корейскому 🇰🇷", pick_sub:"Один айдол бесплатно и навсегда твой. Общайся каждый день — учи корейский играючи.",
     tab_girls:"Девушки", tab_boys:"Парни",
-    concept_suffix:"· твой айдол-учитель", your_korean:"Твой корейский", level:"уровень", days_together:"дней вместе",
+    concept_suffix:"· твой айдол-учитель", your_korean:"Твой корейский", level:"уровень", days_together:"дней вместе", streak_days:"дней подряд", streak_start:"Начни стрик — позанимайся сегодня",
     lesson_start:"Начать урок", lesson_sub:n=>`${n} учит корейскому — шаг за шагом`,
     lessons_h:"Уроки", lsn_vocab_note:n=>`${n} новых слов сохранятся в Рабочую тетрадь`, lsn_quiz_h:"Проверь себя", lsn_check:"Проверить", lsn_next_quiz:"Далее — проверка →", lsn_toinfo:"назад к материалу", lsn_retry:"Переписать", lsn_ask:"Задать вопрос учителю", lsn_answer_all:"Сначала ответь на все вопросы.", lsn_wrong:n=>`Ошибок: ${n} — посмотри ещё раз и попробуй снова.`, lsn_passed:"Всё верно! Урок пройден 🎉", lsn_next:"Следующий урок →", lsn_toast:"Урок пройден · слова сохранены · прогресс карточек +", lsn_ask_seed:tt=>`У меня вопрос по уроку «${tt}»: `,
     tile_wb:"Рабочая тетрадь", tile_wb_sub:"твои слова и сленг",

@@ -138,6 +138,37 @@ async function handleTrain(req, res) {
   return res.status(200).json({ ok: true, training: updated });
 }
 
+// Настоящий стрик учёбы: засчитывает "занимался сегодня" (урок / проверочная / чат).
+// Идёт подряд, если занимался вчера; иначе сбрасывается на 1. Один зачёт в день.
+async function handleStudy(req, res) {
+  const uid = readUserId(req);
+  if (!uid) return res.status(401).json({ error: "Нужно войти в аккаунт" });
+
+  const db = supabase();
+  const { data: idol, error: idolErr } = await db.from("idols").select("id").eq("owner_id", uid).limit(1).maybeSingle();
+  if (idolErr) return res.status(500).json({ error: idolErr.message });
+  if (!idol) return res.status(400).json({ error: "У тебя ещё нет айдола" });
+
+  const { data: ts, error: tsErr } = await db.from("training_stats")
+    .select("study_streak,best_streak,last_study_date").eq("idol_id", idol.id).single();
+  if (tsErr) return res.status(500).json({ error: tsErr.message });
+
+  const today = ymd(Date.now());
+  if (ts.last_study_date === today) {
+    return res.status(200).json({ ok: true, streak: ts.study_streak || 0, best: ts.best_streak || 0, already: true });
+  }
+  const yesterday = ymd(Date.now() - 86400000);
+  const streak = ts.last_study_date === yesterday ? (ts.study_streak || 0) + 1 : 1;
+  const best = Math.max(ts.best_streak || 0, streak);
+
+  const { data: updated, error: updErr } = await db.from("training_stats")
+    .update({ study_streak: streak, best_streak: best, last_study_date: today, updated_at: new Date().toISOString() })
+    .eq("idol_id", idol.id).select("study_streak,best_streak,last_study_date").single();
+  if (updErr) return res.status(500).json({ error: updErr.message });
+
+  return res.status(200).json({ ok: true, streak: updated.study_streak, best: updated.best_streak });
+}
+
 export default async function handler(req, res) {
   const action = req.query.action;
   if (req.method === "GET" || action === "chart") return handleChart(req, res);
@@ -145,5 +176,6 @@ export default async function handler(req, res) {
   if (action === "vote") return handleVote(req, res);
   if (action === "follow") return handleFollow(req, res);
   if (action === "train") return handleTrain(req, res);
+  if (action === "study") return handleStudy(req, res);
   return res.status(400).json({ error: "Неизвестный action" });
 }

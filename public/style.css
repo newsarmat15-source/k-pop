@@ -159,7 +159,9 @@ main{display:none}main.show{display:block}
 .idol-concept{font-size:13px;color:var(--muted,#a99cc0);margin:2px 0 12px}
 .lvl-top{display:flex;justify-content:space-between;align-items:baseline;font-size:12px;color:var(--muted,#a99cc0);margin-bottom:5px}
 .lvl-top b{color:var(--champ,#f3d9ac);font-size:12.5px;font-weight:700}
-.streak-chip{display:inline-block;margin-top:10px;font-size:12px;font-weight:600;padding:5px 11px;background:var(--panel2);border:1px solid var(--line)}
+.streak-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.streak-chip{display:inline-block;font-size:12px;font-weight:600;padding:5px 11px;background:var(--panel2);border:1px solid var(--gold);color:var(--gold-soft,#f3d9ac)}
+.streak-chip.alt{border-color:var(--line);color:var(--mut)}
 
 .lesson-cta{display:flex;align-items:center;gap:14px;width:100%;text-align:left;cursor:pointer;
   border:none;padding:18px 18px;color:#fff;font:inherit;
