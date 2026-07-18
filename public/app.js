@@ -355,7 +355,7 @@ function renderCabinet(chartEntry,readOnly){
       </div>
     </div>` : `
     <div class="home">
-      <button class="onb-help" onclick="openOnb()" title="${t('onb_title')}">i</button>
+      <button class="onb-help" onclick="openOnb()" title="${t('onb_title')}">${t('onb_help_chip')}</button>
       <div class="idol-hero">
         <div class="idol-ph holo-frame"><div class="ph-inner"><img src="${idol.img}"></div></div>
         <div class="idol-meta">
@@ -622,7 +622,7 @@ function openLessons(){
     html+='</div>';
   });
   const pct=Math.round(lessonPct());
-  html=`<div class="lsn-progress"><div class="lsn-pbar"><i style="width:${pct}%"></i></div><span>${done.length}/${flat.length} · ${pct}%</span></div>`+html;
+  html=`<div class="lsn-progress"><div class="lsn-pbar"><i style="width:${pct}%"></i></div><span>${done.length}/${flat.length} · ${pct}%</span></div><div class="topik-note"><span>🏅</span><span>${t('topik_note')}</span></div>`+html;
   document.getElementById('lessonBody').innerHTML=html;
   document.getElementById('lessonBody').scrollTop=0;
 }
@@ -1699,7 +1699,7 @@ function getLang(){return localStorage.getItem('s1_lang')||'en'}
 function setLang(v){localStorage.setItem('s1_lang',v);location.reload()}
 const T={
   en:{
-    nav_home:"My idol", nav_idols:"Idols", no_idol_h:"You don’t have an idol yet", no_idol_sub:"Pick an idol — he becomes your tutor and friend.", no_idol_btn:"Pick an idol →", footer:"STAGE ONE · learn Korean with an AI idol you pick · your friend and tutor in one",
+    nav_home:"My idol", nav_idols:"Idols", no_idol_h:"You don’t have an idol yet", no_idol_sub:"Pick an idol — he becomes your tutor and friend.", no_idol_btn:"Pick an idol →", footer:"Idolingo · learn Korean with an AI idol you pick · your friend and tutor in one", lang_cap:"learning language",
     pick_h:"Pick an idol — they become your friend and teach you Korean 🇰🇷", pick_sub:"One idol free, yours forever. Chat every day and learn Korean the fun way.",
     tab_girls:"Girls", tab_boys:"Boys",
     concept_suffix:"· your idol tutor", your_korean:"Your Korean", level:"level", days_together:"days together",
@@ -1711,7 +1711,8 @@ const T={
     wb_hint_words:"📘 auto from lessons · ✍️ added by you", wb_hint_slang:"🎵 from songs · ✍️ added by you",
     songs_h:"Break a song", songs_intro:"Pick a song — your idol walks you through it line by line.", songs_empty:"No songs yet.", songs_done_h:"Songs you’ve done", song_search:"e.g. BLACKPINK DDU-DU or Ditto", song_search_hint:"Type the title/artist in English or Korean — not transliterated.", song_none:q=>`“${q}” isn’t here yet. Soon you’ll add any song — we’ll pull lyrics, translation and sync automatically.`, song_botnote:"Asks to sign in? That’s YouTube’s bot-check (worse on VPN) →", song_fail:"The clip couldn’t load — open it on YouTube below 👇 (the breakdown still works)", song_online_h:"Add from search", song_searching:"Searching the database…", song_search_empty:"Nothing with synced lyrics — try another spelling (English or Korean).", song_need_login:"Log in to search and add songs.", song_building:"Building the breakdown… (~30 sec)", song_build_fail:"Couldn’t build this one — try another song", song_added:"Added 🎉", song_net:"Network unavailable", song_guide:"Play the video, then step through the lyrics line by line below.", song_next:"Next line", song_finish:"Finish song ✓", song_save:tab=>`+ ${tab}`, song_saved:"Saved ✓", song_save_toast:"Saved to your Workbook", song_done_toast:"Song complete 🎉", song_open_yt:"Open on YouTube", song_reload:"Reload video",
     kara_hint:"Press play — words light up in time. At each verse end it pauses for the breakdown. If the highlight drifts from the clip, tap “Sync” exactly when you hear the verse’s first word.", kara_synctap:"Sync", kara_syncdone:"Synced to the clip ✓", kara_cont:"Don’t stop", kara_verse:"Verse", kara_repeat:"Repeat verse", kara_nextv:"Next verse",
-    onb_title:"How it all works", onb_tour:"Show me around →", onb_ok:"Got it", onb_next:"Next", onb_done:"Done",
+    onb_title:"How it all works", onb_help_chip:"How it works", onb_tour:"Show me around →", onb_ok:"Got it", onb_next:"Next", onb_done:"Done",
+    topik_note:"Built to the <b>TOPIK I</b> standard, modeled on the King Sejong Institute — steps you toward the official TOPIK proficiency exam.",
     tile_song:"Break a song", tile_song_sub:"line by line", tile_slang:"Song slang", tile_slang_sub:"real Korean", tile_phrase:"Chat with your idol", tile_phrase_sub:"just talk, in Korean",
     seed_song:"Break down this song: ", seed_slang:"Teach me some Korean slang from songs 🙂", seed_phrase:"How do you say in Korean: ",
     coll_h:"Photocards", coll_note:n=>`New ${n} cards unlock as you finish lessons and quizzes — keep going to reveal them all.`,
@@ -1725,7 +1726,7 @@ const T={
     forgot_link:"Forgot password?", forgot_h:"Reset password", forgot_send:"Send reset link", forgot_sent:"If that email exists, we sent a reset link. Check your inbox.", back_login:"← Back to log in",
   },
   ru:{
-    nav_home:"Мой айдол", nav_idols:"Айдолы", no_idol_h:"У тебя ещё нет айдола", no_idol_sub:"Выбери айдола — он станет твоим учителем и другом.", no_idol_btn:"Выбрать айдола →", footer:"STAGE ONE · учи корейский с AI-айдолом, которого выбрал сам · твой друг и преподаватель в одном лице",
+    nav_home:"Мой айдол", nav_idols:"Айдолы", no_idol_h:"У тебя ещё нет айдола", no_idol_sub:"Выбери айдола — он станет твоим учителем и другом.", no_idol_btn:"Выбрать айдола →", footer:"Idolingo · учи корейский с AI-айдолом, которого выбрал сам · твой друг и преподаватель в одном лице", lang_cap:"язык обучения",
     pick_h:"Выбери айдола — он станет твоим другом и научит тебя корейскому 🇰🇷", pick_sub:"Один айдол бесплатно и навсегда твой. Общайся каждый день — учи корейский играючи.",
     tab_girls:"Девушки", tab_boys:"Парни",
     concept_suffix:"· твой айдол-учитель", your_korean:"Твой корейский", level:"уровень", days_together:"дней вместе",
@@ -1737,7 +1738,8 @@ const T={
     wb_hint_words:"📘 авто с уроков · ✍️ добавил ты", wb_hint_slang:"🎵 из песен · ✍️ добавил ты",
     songs_h:"Разбор песни", songs_intro:"Выбери песню — айдол разберёт её строка за строкой.", songs_empty:"Пока нет песен.", songs_done_h:"Пройденные песни", song_search:"напр. BLACKPINK DDU-DU или Ditto", song_search_hint:"Пиши название/артиста по-английски или по-корейски — не русскими буквами.", song_none:q=>`«${q}» пока нет. Скоро можно будет добавить любую — текст, перевод и синхрон соберём автоматически.`, song_botnote:"Просит войти? Это бот-чек YouTube (чаще на VPN) →", song_fail:"Клип не загрузился — открой его на YouTube ниже 👇 (разбор всё равно работает)", song_online_h:"Добавить из поиска", song_searching:"Ищу в базе…", song_search_empty:"Нет с синхро-текстом — попробуй другое написание (англ. или кор.).", song_need_login:"Войди, чтобы искать и добавлять песни.", song_building:"Собираю разбор… (~30 сек)", song_build_fail:"Эту не получилось собрать — попробуй другую", song_added:"Добавлено 🎉", song_net:"Сеть недоступна", song_guide:"Включи видео, а затем разбирай текст строку за строкой ниже.", song_next:"Следующая строка", song_finish:"Завершить песню ✓", song_save:tab=>`+ в ${tab}`, song_saved:"Сохранено ✓", song_save_toast:"Сохранено в Рабочую тетрадь", song_done_toast:"Песня пройдена 🎉", song_open_yt:"Открыть на YouTube", song_reload:"Перезагрузить видео",
     kara_hint:"Нажми play — слова подсвечиваются в такт. В конце куплета — пауза для разбора. Если подсветка не совпадает с клипом — жми «Синхрон» ровно когда слышишь первое слово куплета.", kara_synctap:"Синхрон", kara_syncdone:"Синхронизировано ✓", kara_cont:"Не останавливать", kara_verse:"Куплет", kara_repeat:"Повторить куплет", kara_nextv:"Следующий куплет",
-    onb_title:"Как здесь всё устроено", onb_tour:"Показать по экрану →", onb_ok:"Понятно", onb_next:"Далее", onb_done:"Готово",
+    onb_title:"Как здесь всё устроено", onb_help_chip:"Как это устроено", onb_tour:"Показать по экрану →", onb_ok:"Понятно", onb_next:"Далее", onb_done:"Готово",
+    topik_note:"Программа построена по стандарту <b>TOPIK I</b> — по образцу King Sejong Institute. Ведёт к официальному экзамену TOPIK.",
     tile_song:"Разбор песни", tile_song_sub:"строка за строкой", tile_slang:"Сленг из песен", tile_slang_sub:"живой корейский", tile_phrase:"Чат с айдолом", tile_phrase_sub:"живое общение",
     seed_song:"Разбери песню: ", seed_slang:"Научи меня корейскому сленгу из песен 🙂", seed_phrase:"Как сказать по-корейски: ",
     coll_h:"Фотокарточки", coll_note:n=>`Новые карточки ${n} открываются за пройденные уроки и проверочные — учись, чтобы открыть все.`,
@@ -1754,6 +1756,7 @@ const T={
 function t(k){const d=T[getLang()]||T.en;return d[k]!==undefined?d[k]:(T.en[k]!==undefined?T.en[k]:k)}
 function applyStatic(){
   const s=document.getElementById('langSel');if(s)s.value=getLang();
+  const lc=document.getElementById('langCap');if(lc)lc.textContent=t('lang_cap');
   const nav=document.querySelector('.navtab[data-view="cabinet-own"]');if(nav)nav.textContent=t('nav_home');
   const navi=document.querySelector('.navtab[data-view="roster"]');if(navi)navi.textContent=t('nav_idols');
   const f=document.querySelector('footer.wrap');if(f)f.innerHTML=t('footer');

@@ -64,7 +64,7 @@ header{position:sticky;top:0;z-index:40;backdrop-filter:blur(14px);background:rg
 /* iOS не зумит поля с font-size>=16px */
 .song-search,.wb-add input,.chat-input input,#forgotEmail{font-size:16px}
 .spinner.sm{width:14px;height:14px;border-width:2px;display:inline-block;vertical-align:middle}
-.onb-help{font-family:Georgia,serif;font-style:italic}
+.topik-note{display:flex;gap:9px;align-items:flex-start;font-size:12.5px;line-height:1.4;color:var(--gold);border:1px solid var(--gold);background:rgba(217,164,65,.06);padding:10px 12px;margin-bottom:14px;letter-spacing:.01em}
 .auth-switch{color:var(--dim);font-size:12.5px;margin-top:12px;text-align:center}
 .auth-switch a{color:var(--accent2);cursor:pointer;text-decoration:underline}
 main{display:none}main.show{display:block}
@@ -205,7 +205,9 @@ main{display:none}main.show{display:block}
 .close-stage{font-size:17px;font-weight:800;margin:6px 0 9px}
 .close-note{font-size:12px;color:var(--muted,#a99cc0);margin-top:9px;line-height:1.45}
 .close-note b{color:var(--champ,#f3d9ac)}
-.lang-sel{background:var(--panel2);color:var(--ink);border:1px solid var(--line);font:inherit;font-size:12.5px;padding:6px 9px;cursor:pointer;margin-left:auto}
+.lang-wrap{margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:2px;line-height:1}
+.lang-cap{font-family:var(--f-tech);font-size:8px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold)}
+.lang-sel{background:var(--panel2);color:var(--ink);border:1px solid var(--gold);font:inherit;font-size:12.5px;padding:6px 9px;cursor:pointer}
 .lang-sel:focus{outline:none;border-color:var(--accent2,#f3d9ac)}
 
 @media(max-width:480px){
@@ -413,8 +415,14 @@ main{display:none}main.show{display:block}
 .onb-tour{width:100%;justify-content:center;margin-left:0}
 .onb-ok{width:100%;background:none;border:1px solid var(--line);color:var(--muted,#a99cc0);font:inherit;font-size:14px;padding:11px;cursor:pointer}
 .onb-ok:hover{border-color:var(--accent2);color:var(--accent2)}
-.onb-help{position:absolute;top:0;right:0;z-index:5;width:30px;height:30px;border-radius:50%;background:var(--panel,rgba(52,38,78,.42));border:1px solid var(--line);color:var(--muted,#a99cc0);font-size:15px;font-weight:700;cursor:pointer;line-height:1}
-.onb-help:hover{border-color:var(--accent2);color:var(--accent2)}
+.onb-help{align-self:flex-end;display:inline-flex;align-items:center;gap:6px;margin-bottom:-6px;
+  padding:6px 11px;background:transparent;border:1px solid var(--gold);color:var(--gold);
+  font-family:var(--f-display);font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;
+  cursor:pointer;line-height:1;transition:.15s}
+.onb-help::before{content:"?";display:inline-flex;align-items:center;justify-content:center;
+  width:16px;height:16px;border:1px solid var(--gold);font-family:var(--f-serif);font-style:italic;font-size:11px;font-weight:700}
+.onb-help:hover{background:var(--gold);color:#241436;border-color:var(--gold)}
+.onb-help:hover::before{border-color:#241436}
 .home{position:relative}
 
 /* гид-подсветка */
