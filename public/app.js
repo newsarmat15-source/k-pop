@@ -583,8 +583,25 @@ async function pingStudy(){
 }
 
 /* ===================== ОЗВУЧКА (корейский голос) ===================== */
-// Браузерный TTS. На iOS есть корейский голос (Yuna), на Android — Google 한국어.
+// Приоритет — заранее сгенерённые нативные mp3 (MiniMax, кэш в /tts/), файл по хешу строки.
+// Если файла нет (новое слово из чата/песни) — фолбэк на браузерный TTS.
+// ВАЖНО: хеш ttsKey должен совпадать со скриптом генерации (scratch_gen_lessons.mjs).
+function ttsKey(s){let h=5381;for(let i=0;i<s.length;i++)h=((h<<5)+h+s.charCodeAt(i))>>>0;return h.toString(36);}
+let _ttsAudio=null;
 function speak(txt){
+  if(!txt)return;
+  const key=ttsKey(txt.trim());
+  try{
+    if(_ttsAudio){_ttsAudio.pause();_ttsAudio=null;}
+    const a=new Audio('/tts/'+key+'.mp3');
+    _ttsAudio=a;
+    let fell=false;const fb=()=>{if(fell)return;fell=true;speakBrowser(txt);};
+    a.play().catch(fb);
+    a.addEventListener('error',fb,{once:true});
+  }catch(e){speakBrowser(txt);}
+}
+// Резерв: системный голос ОС. На iOS есть корейский (Yuna), на Android — Google 한국어.
+function speakBrowser(txt){
   if(!txt||!window.speechSynthesis)return;
   try{
     const u=new SpeechSynthesisUtterance(txt);
