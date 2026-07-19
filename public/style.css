@@ -201,6 +201,21 @@ main{display:none}main.show{display:block}
 .bio-box .bio-text:focus{outline:none}
 .sub-link{width:100%;cursor:pointer;font:inherit;font-size:13px;color:var(--champ,#f3d9ac);background:transparent;border:1px dashed var(--line2,#54426f);padding:13px}
 .sub-link:hover{border-color:var(--champ,#f3d9ac)}
+.connect-link{width:100%;cursor:pointer;font:inherit;font-size:13px;font-weight:600;color:var(--gold);background:rgba(217,164,65,.06);border:1px solid var(--gold);padding:13px;margin-bottom:9px}
+.connect-link:hover{background:rgba(217,164,65,.12)}
+.connect-sub{font-size:13px;line-height:1.45;color:var(--muted,#a99cc0);margin:6px 0 14px}
+.connect-rows{display:flex;flex-direction:column;gap:9px}
+.connect-row{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;cursor:pointer;font:inherit;background:var(--panel2);border:1px solid var(--line);padding:12px 14px;position:relative}
+.connect-row:hover{border-color:var(--gold)}
+.connect-row .cr-ic{font-size:20px;position:absolute;right:14px;top:12px}
+.connect-row b{font-size:14px;color:var(--ink)}
+.connect-row small{font-size:11.5px;color:var(--muted,#a99cc0)}
+.connect-done{margin-top:14px;font-size:13px;color:#7fd6a0;font-weight:600}
+.connect-err{margin-top:12px;font-size:13px;color:#e88}
+.connect-loading{margin-top:12px;font-size:20px;text-align:center;color:var(--gold)}
+.connect-code-box{margin-top:16px;text-align:center}
+.ccb-step{font-size:13px;color:var(--muted,#a99cc0);line-height:1.4;margin:8px 0}
+.ccb-code{font-family:var(--f-tech,monospace);font-size:30px;font-weight:700;letter-spacing:.24em;color:var(--gold);padding:12px;border:1px dashed var(--gold);background:rgba(217,164,65,.06);margin:6px auto;display:inline-block}
 .idol-bio-ro{font-size:13px;color:var(--muted,#a99cc0);margin-top:8px}
 .closeness{background:var(--glass,rgba(52,38,78,.42));border:1px solid var(--line);padding:16px;backdrop-filter:blur(8px)}
 .close-h{font-size:13px;font-weight:700;color:var(--accent,#e8a9c9)}

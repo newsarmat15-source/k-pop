@@ -1,0 +1,26 @@
+# Fly.io config for the Idolingo Discord Gateway worker.
+# This is an outbound-only WebSocket worker: it opens a persistent connection
+# to Discord and never accepts inbound HTTP. So there is NO [http_service] and
+# NO exposed ports — Fly will not run health checks against a port.
+#
+# Rename `app` if you register a different name (`fly apps create <name>`).
+
+app = "idolingo-discord-worker"
+primary_region = "iad"   # pick a region near your Vercel deployment
+
+[build]
+  dockerfile = "Dockerfile"
+
+# Single always-on worker process. `min_machines_running` via the process
+# group keeps exactly one machine up.
+[processes]
+  worker = "node index.js"
+
+# One small always-on machine is plenty for a transport worker.
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"
+  processes = ["worker"]
+
+# Secrets (DISCORD_BOT_TOKEN, INGEST_URL, INGEST_SECRET) are NOT stored here.
+# Set them with:  fly secrets set KEY=value

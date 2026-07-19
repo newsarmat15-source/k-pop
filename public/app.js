@@ -400,6 +400,7 @@ function renderCabinet(chartEntry,readOnly){
         <div class="close-note">${t('close_note')(idol.name,t('speech')[si])}</div>
       </div>
 
+      <button class="connect-link" onclick="openConnect()">${t('connect_link')}</button>
       <button class="sub-link" onclick="startCheckout('sub')">${t('sub_link')}</button>
     </div>
   `;
@@ -1226,6 +1227,57 @@ function openOnb(){
   document.getElementById('onbOv').classList.add('show');
 }
 
+/* ===================== Привязка мессенджеров (омниканальность) ===================== */
+// Мессенджер = то же окно в тот же тред. Discord — через OAuth (одна кнопка), LINE/Telegram —
+// одноразовый код: юзер получает код в приложении и присылает его боту.
+function closeConnect(){document.getElementById('connectOv').classList.remove('show')}
+document.getElementById('connectOv').onclick=e=>{if(e.target.id==='connectOv')closeConnect()};
+async function openConnect(){
+  const box=document.getElementById('connectBody');
+  box.innerHTML=`<div class="onb-title">${t('connect_h')}</div>
+    <p class="connect-sub">${t('connect_sub')}</p>
+    <div class="connect-rows">
+      <button class="connect-row" onclick="connectDiscord()"><span class="cr-ic">🎮</span><b>Discord</b><small>${t('connect_discord_sub')}</small></button>
+      <button class="connect-row" onclick="connectCode('line')"><span class="cr-ic">💬</span><b>LINE</b><small>${t('connect_line_sub')}</small></button>
+    </div>
+    <div id="connectResult"></div>`;
+  document.getElementById('connectOv').classList.add('show');
+  // Отметим уже привязанные каналы.
+  try{
+    const r=await fetch('/api/bot?action=links');const d=await r.json();
+    if(d.links&&d.links.length){
+      const names=d.links.map(l=>l.platform).join(', ');
+      document.getElementById('connectResult').innerHTML=`<div class="connect-done">✓ ${t('connect_active')}: ${names}</div>`;
+    }
+  }catch(e){}
+}
+function connectDiscord(){
+  // Уводим на серверный OAuth-старт (он знает сессию и создаёт state-токен).
+  window.location.href='/api/bot?action=discord-oauth&lang='+encodeURIComponent(getLang());
+}
+async function connectCode(platform){
+  const res=document.getElementById('connectResult');
+  res.innerHTML=`<div class="connect-loading">…</div>`;
+  try{
+    const r=await fetch('/api/bot?action=link-token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lang:getLang()})});
+    const d=await r.json();
+    if(!r.ok||!d.code){res.innerHTML=`<div class="connect-err">${d.error||'Ошибка'}</div>`;return}
+    res.innerHTML=`<div class="connect-code-box">
+      <div class="ccb-step">${t('connect_step1')}</div>
+      <div class="ccb-code">${d.code}</div>
+      <div class="ccb-step">${t('connect_step2')}</div>
+    </div>`;
+  }catch(e){res.innerHTML=`<div class="connect-err">${e.message}</div>`}
+}
+// Возврат с Discord OAuth: показать результат из ?link=.
+function handleLinkReturn(){
+  const p=new URLSearchParams(location.search).get('link');
+  if(!p)return;
+  const map={discord_ok:t('link_ok'),discord_fail:t('link_fail'),discord_expired:t('link_fail'),need_login:t('link_login'),no_idol:t('link_noidol')};
+  if(map[p])toast(map[p]);
+  history.replaceState({},'',location.pathname);
+}
+
 let _tourI=0;
 function startTour(){_tourI=0;document.getElementById('tourLayer').classList.add('on');tourShow()}
 function tourShow(){
@@ -1317,6 +1369,7 @@ async function boot(){
   const nav=loadNav();
   await showView((nav&&nav.view)||'cabinet-own');
   restoreOverlay(nav);
+  handleLinkReturn();
 }
 function renderIdolGrid(){
   const g=document.getElementById('grid');
@@ -1754,6 +1807,11 @@ const T={
     close_note:(n,s)=>`${n} speaks to you in <b>${s}</b> — the more you learn, the closer you get, and speech turns friendly.`,
     speech:["polite 존댓말 (jondaetmal)","존댓말, soon 반말","friendly 반말 (banmal)"],
     sub_link:"Subscribe · unlimited lessons · $10/mo →",
+    connect_link:"💬 Chat with your idol in a messenger →",
+    connect_h:"Chat in your messenger", connect_sub:"Same conversation, one more window. Reply to your idol from your favorite app — lessons and your notebook stay here.",
+    connect_discord_sub:"one tap, no server needed", connect_line_sub:"Japan · Taiwan · Thailand",
+    connect_active:"Connected", connect_step1:"1. Add the Idolingo bot and send it this code:", connect_step2:"2. Done — keep chatting right there. It's the same thread.",
+    link_ok:"Discord connected 🎉 Open a DM with the bot and say hi!", link_fail:"Couldn't connect Discord — try again", link_login:"Log in first", link_noidol:"Get an idol first",
     chat_title:n=>`Lesson with ${n}`, chat_ph:"Answer or ask in Korean…",
     chat_loading:"Loading chat…", chat_first:"Say hi first — your idol will reply 💛", chat_need_idol:"Get an idol first.", chat_err:"Idol didn't reply", chat_net:"Network unavailable",
     au_signup:"Sign up", au_login:"Log in", au_logout:"Log out", au_user:"Name", au_email:"Email", au_pass:"Password (min 8 chars)", au_create:"Create account", au_have:"Already have an account?", au_no:"No account yet?",
@@ -1781,6 +1839,11 @@ const T={
     close_note:(n,s)=>`${n} говорит с тобой на <b>${s}</b> — чем больше учишься, тем ближе вы, и речь становится дружеской.`,
     speech:["вежливом 존댓말 (jondaetmal)","존댓말, скоро перейдёт на 반말","дружеском 반말 (banmal)"],
     sub_link:"Подписка · безлимит уроков · $10/мес →",
+    connect_link:"💬 Общайся с айдолом в мессенджере →",
+    connect_h:"Общение в мессенджере", connect_sub:"Тот же разговор — просто ещё одно окно. Отвечай айдолу в удобном приложении, а уроки и тетрадь остаются здесь.",
+    connect_discord_sub:"одна кнопка, сервер не нужен", connect_line_sub:"Япония · Тайвань · Таиланд",
+    connect_active:"Подключено", connect_step1:"1. Добавь бота Idolingo и пришли ему этот код:", connect_step2:"2. Готово — продолжай прямо там. Это тот же тред.",
+    link_ok:"Discord подключён 🎉 Открой личку с ботом и напиши ему!", link_fail:"Не удалось подключить Discord — попробуй ещё раз", link_login:"Сначала войди", link_noidol:"Сначала заведи айдола",
     chat_title:n=>`Урок с ${n}`, chat_ph:"Ответь или спроси по-корейски…",
     chat_loading:"Загружаю переписку…", chat_first:"Напиши первым — твой айдол ответит 💛", chat_need_idol:"Сначала заведи айдола.", chat_err:"Айдол не ответил", chat_net:"Сеть недоступна",
     au_signup:"Регистрация", au_login:"Вход", au_logout:"Выйти", au_user:"Имя", au_email:"Email", au_pass:"Пароль (мин. 8 символов)", au_create:"Создать аккаунт", au_have:"Уже есть аккаунт?", au_no:"Нет аккаунта?",

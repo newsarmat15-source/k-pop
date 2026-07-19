@@ -1,0 +1,16 @@
+{
+  "name": "idolingo-discord-worker",
+  "version": "1.0.0",
+  "description": "Standalone Discord Gateway worker for Idolingo — dumb transport that forwards DMs to the main app's ingest endpoint and returns the idol's reply.",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "discord.js": "^14.14.1"
+  }
+}

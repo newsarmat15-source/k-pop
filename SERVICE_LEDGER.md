@@ -33,10 +33,13 @@
 
 | Функция | Через что реализовано | Устроило | Что не так | Как решить | Когда |
 |---|---|---|---|---|---|
-| Архитектура | бэкенд = единый источник правды (`chat_messages`), мессенджеры = окна в один тред | ✅ (план) | не построено | тонкие адаптеры на общее ядро | по фазам ниже |
-| Discord-бот | US/EU фандом | ⏳ | — | адаптер + OAuth-привязка | фаза 2 (после теста) |
-| Telegram-бот | СНГ | ⏳ | — | адаптер + deep-link токен | фаза 2 |
-| LINE-бот | Япония/Таиланд/Тайвань | ⏳ | — | адаптер | фаза 3 |
+| Архитектура (Фаза 0) | ядро ответа вынесено в `lib/reply.js` (persona+LLM+запись в тред), `chat.js` = тонкий адаптер; миграция 0006: `linked_accounts`, `link_tokens`, `channel` в chat_messages | ✅ построено 18.07 | — | — | сделано |
+| Ingest-эндпоинт | `api/bot.js?action=ingest` — общий приёмник для транспортов без вебхука (Discord-воркер): secret-auth → resolveLinkedIdol → generateReply → reply. Мозг только тут | ✅ построено 19.07 | — | нужен env `INGEST_SECRET` в Vercel+воркере | код готов, ждёт env |
+| Discord-бот | КОД ГОТОВ. `discord-worker/` (агент) — 24/7 Gateway-воркер (discord.js v14, DM-only, зовёт ingest); привязка через OAuth (`api/bot.js?action=discord-oauth`), кнопка в приложении | 🟡 код | serverless Gateway держать не может → нужен always-on хост (Fly.io) + провижининг Сармата (Discord app, MESSAGE CONTENT intent, User-Install, Fly deploy) | развернуть воркер + env | ждёт провижининг |
+| LINE-бот | КОД ГОТОВ. `api/bot.js?platform=line` — вебхук с X-Line-Signature → ядро; привязка одноразовым кодом (юзер шлёт код боту) | 🟡 код | японский движок работает, UI уроков падает на англ. (мягкий долг) | завести LINE OA + env `LINE_CHANNEL_SECRET`/`LINE_CHANNEL_ACCESS_TOKEN`, webhook URL | ждёт провижининг |
+| Привязка аккаунта | `link_tokens` (одноразовый код 30 мин) для LINE/Telegram; OAuth-state для Discord. UI: кнопка «Общайся в мессенджере» → оверлей (Discord=1 клик OAuth, LINE=код). `?action=links` показывает подключённое | ✅ построено 19.07 | — | — | сделано |
+| Telegram-бот | СНГ — **последним** (низкий ARPU) | ⏳ | не построено | тот же `bot.js`, deep-link `/start <token>` из `link_tokens` | после Discord+LINE |
+| WhatsApp | массовая Европа/ЛатАм | ⛔ пока | платный per-message + верификация Meta + нужно юрлицо (нет); проактив вне 72ч окна = платные шаблоны | вернуться после юрлица+выручки | отложено |
 | KakaoTalk / iMessage | — | ⛔ | API недоступны (Kakao = корейское юрлицо; iMessage закрыт) | пропускаем | — |
 
 ## Инфраструктура / бренд
