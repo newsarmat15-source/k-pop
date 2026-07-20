@@ -1,0 +1,20 @@
+▶ Ditto: качаю + независимый ASR…
+C:\Users\user\AppData\Roaming\Python\Python314\site-packages\modal\_utils\async_utils.py:42: DeprecationWarning: 'asyncio.WindowsSelectorEventLoopPolicy' is deprecated and slated for removal in Python 3.16
+  asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+C:\Users\user\AppData\Roaming\Python\Python314\site-packages\modal\_utils\async_utils.py:42: DeprecationWarning: 'asyncio.set_event_loop_policy' is deprecated and slated for removal in Python 3.16
+  asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+  наших слов 124, ASR-слов 314
+  совпало 71 слов | медиана Δ(наш−asr) 0.3с | медиана |Δ| 1.63с | p90 |Δ| 53.1с
+  худшие 12 (t_asr | наш_t | Δ | слово):
+    101.52	24.32	-77.2	말해줘
+    103.74	42.48	-61.26	Oh
+    112	56	-56	커버렸어
+    111.32	55.62	-55.7	훌쩍
+    112.68	56.98	-55.7	함께한
+    106.4	52.86	-53.54	너무
+    106.68	53.38	-53.3	멀어
+    105.1	52	-53.1	아침은
+    113.52	61.48	-52.04	기억처럼
+    207.42	240.73	+33.31	this
+    114.96	83.84	-31.12	보는
+    114.42	83.42	-31	널

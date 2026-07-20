@@ -60,9 +60,9 @@
     "semantic_hash": "abaa01eda3c409ecbab7a57eaf74e914"
   },
   "api/engage.js": {
-    "mtime": 1783648284.791279,
-    "ast_hash": "e1de1f97aa2f6633cc449b0032fe53ca",
-    "semantic_hash": "e1de1f97aa2f6633cc449b0032fe53ca"
+    "mtime": 1784372788.5727668,
+    "ast_hash": "1db9a310839e7ac27a0ce541c91dff59",
+    "semantic_hash": ""
   },
   "api/idol.js": {
     "mtime": 1783648144.2843132,
@@ -100,8 +100,8 @@
     "semantic_hash": ""
   },
   "public/app.js": {
-    "mtime": 1784281099.4106255,
-    "ast_hash": "be130a2b77ec74976dc5b778af6ace15",
+    "mtime": 1784393677.328246,
+    "ast_hash": "1e7be60124c5a12410ae68fb2d89b197",
     "semantic_hash": ""
   },
   "public/idols.json": {
@@ -290,9 +290,9 @@
     "semantic_hash": "548498881e896d793fd28a21e4c21e95"
   },
   "vercel.json": {
-    "mtime": 1783648619.108662,
-    "ast_hash": "b7cb420ddd36a0e860d2fd241ba2040d",
-    "semantic_hash": "b7cb420ddd36a0e860d2fd241ba2040d"
+    "mtime": 1784393529.6924365,
+    "ast_hash": "fa320988f05834bd6e64490e78dcad74",
+    "semantic_hash": ""
   },
   "CLAUDE.md": {
     "mtime": 1783935874.4691303,
@@ -315,8 +315,8 @@
     "semantic_hash": "78b09be567d0a059a16e8edb18d4a371"
   },
   "public/index.html": {
-    "mtime": 1784281072.4486992,
-    "ast_hash": "127b07bf60cd10dbc40ca3719bdcd1b8",
+    "mtime": 1784393586.906222,
+    "ast_hash": "616ab3e6d4dd9503c2c7542fd4b1f49e",
     "semantic_hash": ""
   },
   "review/rap_final_url.txt": {
@@ -505,8 +505,8 @@
     "semantic_hash": ""
   },
   "api/chat.js": {
-    "mtime": 1784070549.537787,
-    "ast_hash": "8d7b5a3c723f136eac72e7d822030a78",
+    "mtime": 1784388176.3859096,
+    "ast_hash": "535204df35a4de3f23d842e56e1c74e8",
     "semantic_hash": ""
   },
   "api/pay.js": {
@@ -605,8 +605,8 @@
     "semantic_hash": ""
   },
   "api/song.js": {
-    "mtime": 1784247827.681975,
-    "ast_hash": "11be674896c0c12e6a5e01484bb09554",
+    "mtime": 1784587274.4069085,
+    "ast_hash": "d92b8f38295570ed6e26ac2516b8e75d",
     "semantic_hash": ""
   },
   "supabase/migrations/0004_songs.sql": {
@@ -632,6 +632,646 @@
   "public/yttest.html": {
     "mtime": 1784280141.0024712,
     "ast_hash": "3106275450450c4a14932f20861e4e71",
+    "semantic_hash": ""
+  },
+  "scratch_eval.mjs": {
+    "mtime": 1784297931.2801168,
+    "ast_hash": "505c5ce98495f59ef9c2ea34a2c3acf4",
+    "semantic_hash": ""
+  },
+  "scratch_supernova_asr.json": {
+    "mtime": 1784297798.0331466,
+    "ast_hash": "ae5f007f2815d602b86e1766618ade42",
+    "semantic_hash": ""
+  },
+  "scratch_supernova_ctc.json": {
+    "mtime": 1784298358.6478,
+    "ast_hash": "45667f61036078503e3eb6ef7bb54c34",
+    "semantic_hash": ""
+  },
+  "scratch_supernova_ctc2.json": {
+    "mtime": 1784300886.4093013,
+    "ast_hash": "d707a19ea089c8bab7846c4d6f2470a5",
+    "semantic_hash": ""
+  },
+  "scratch_supernova_words.json": {
+    "mtime": 1784297998.8116431,
+    "ast_hash": "061695afed4c6c3f4d5b6167870d4cdf",
+    "semantic_hash": ""
+  },
+  "scripts/align-modal.mjs": {
+    "mtime": 1784306598.8428378,
+    "ast_hash": "24f59ce515fada237af50fdc020146a2",
+    "semantic_hash": ""
+  },
+  "scripts/match-modal.mjs": {
+    "mtime": 1784297862.4005284,
+    "ast_hash": "7bdd211d46690864b4c335ec6b408554",
+    "semantic_hash": ""
+  },
+  "scripts/modal_align.py": {
+    "mtime": 1784328487.4220016,
+    "ast_hash": "3a8528232180394d56841146bc40d4a2",
+    "semantic_hash": ""
+  },
+  "scripts/write-ctc.mjs": {
+    "mtime": 1784301056.564256,
+    "ast_hash": "b119e25bdfbf66d62fcd2b297ffa4004",
+    "semantic_hash": ""
+  },
+  "scratch_align_out.txt": {
+    "mtime": 1784307122.858482,
+    "ast_hash": "6589aab3b3e4782e27473b0603c6e7e7",
+    "semantic_hash": ""
+  },
+  "scratch_ditto_out.txt": {
+    "mtime": 1784301199.767212,
+    "ast_hash": "0eb45539aaad478a1a4ccdff31a32734",
+    "semantic_hash": ""
+  },
+  "scratch_supernova.m4a": {
+    "mtime": 1784296384.6796918,
+    "ast_hash": "11c77ae697cf6f48339f0c9b3f43739b",
+    "semantic_hash": ""
+  },
+  "scratch_supernova_2pass.json": {
+    "mtime": 1784307133.239614,
+    "ast_hash": "26e5c0ddb206538bb3dd21b0845639c1",
+    "semantic_hash": ""
+  },
+  "scratch_supernova_lines.json": {
+    "mtime": 1784306622.72221,
+    "ast_hash": "35961ebf3aabacbd84152ce17382c19a",
+    "semantic_hash": ""
+  },
+  "scratch_all_out.txt": {
+    "mtime": 1784307652.4183974,
+    "ast_hash": "19d9e534b312cbe4be640cb8a25424ad",
+    "semantic_hash": ""
+  },
+  "lib/limits.js": {
+    "mtime": 1784328928.1594996,
+    "ast_hash": "8afc569c3c9fd00f6b06c7022b8e4914",
+    "semantic_hash": ""
+  },
+  "scripts/validate.mjs": {
+    "mtime": 1784328343.4472091,
+    "ast_hash": "61b26b4f4e8077905edcfc43b5569824",
+    "semantic_hash": ""
+  },
+  "scratch_val_ditto.txt": {
+    "mtime": 1784329390.444278,
+    "ast_hash": "1c5c8078a915f71046c485a72ab51794",
+    "semantic_hash": ""
+  },
+  "scratch_val_lovedive.txt": {
+    "mtime": 1784328434.4396493,
+    "ast_hash": "a4e28464c7721707c9dad63d59b9fa09",
+    "semantic_hash": ""
+  },
+  "scripts/modal_dltest.py": {
+    "mtime": 1784330267.7962222,
+    "ast_hash": "d993655fd66098473fb6c18aeb4f8059",
+    "semantic_hash": ""
+  },
+  "scratch_dltest.txt": {
+    "mtime": 1784330323.879538,
+    "ast_hash": "9d4355cd54643fb2813a1241e4333c21",
+    "semantic_hash": ""
+  },
+  "supabase/migrations/0005_study_streak.sql": {
+    "mtime": 1784372748.492904,
+    "ast_hash": "6072b617cf39d9e7b879db73e7bf5341",
+    "semantic_hash": ""
+  },
+  "SERVICE_LEDGER.md": {
+    "mtime": 1784589794.9884207,
+    "ast_hash": "aa2110a2e32d487e13aeae28532e22b6",
+    "semantic_hash": ""
+  },
+  "public/tts/135lx11.mp3": {
+    "mtime": 1784386273.9016988,
+    "ast_hash": "e427b842aebc77bc785e9353e3c507eb",
+    "semantic_hash": ""
+  },
+  "public/tts/14qdkeb.mp3": {
+    "mtime": 1784386295.6344838,
+    "ast_hash": "8069bc4e867f9b7d92e77444cba9fa43",
+    "semantic_hash": ""
+  },
+  "public/tts/18312uu.mp3": {
+    "mtime": 1784386274.935933,
+    "ast_hash": "917c14531843b879a2021cb5542a293f",
+    "semantic_hash": ""
+  },
+  "public/tts/1aa83sv.mp3": {
+    "mtime": 1784386282.486009,
+    "ast_hash": "b58d5ccbdc7652f6c8788ad6f719e39b",
+    "semantic_hash": ""
+  },
+  "public/tts/1egskx8.mp3": {
+    "mtime": 1784386278.9058962,
+    "ast_hash": "eb5d1054af218765c5af3e7a5699d073",
+    "semantic_hash": ""
+  },
+  "public/tts/1j1bgnr.mp3": {
+    "mtime": 1784386294.1139235,
+    "ast_hash": "7d49ceb97c0a641310bbca7cb1fc1198",
+    "semantic_hash": ""
+  },
+  "public/tts/1ptbtif.mp3": {
+    "mtime": 1784386282.3136382,
+    "ast_hash": "7eefc62d334c3116a607d0fa2606e767",
+    "semantic_hash": ""
+  },
+  "public/tts/1szgalt.mp3": {
+    "mtime": 1784386296.2066061,
+    "ast_hash": "8a4df179d3984d0ae30c5c6ca14ddfc0",
+    "semantic_hash": ""
+  },
+  "public/tts/1t25hks.mp3": {
+    "mtime": 1784386277.7455153,
+    "ast_hash": "0ebd173b6934a6caa1e4175b81f63f3b",
+    "semantic_hash": ""
+  },
+  "public/tts/40sg9l.mp3": {
+    "mtime": 1784386272.5661314,
+    "ast_hash": "5e68299274fb34fc1733bcbeb54a5790",
+    "semantic_hash": ""
+  },
+  "public/tts/42qe.mp3": {
+    "mtime": 1784386247.7546506,
+    "ast_hash": "5b81905e0100a4029260a4f1a91b0ce5",
+    "semantic_hash": ""
+  },
+  "public/tts/42qf.mp3": {
+    "mtime": 1784386262.6679978,
+    "ast_hash": "4e56c483e4697a2f9be6ad5ab2ab4189",
+    "semantic_hash": ""
+  },
+  "public/tts/42qh.mp3": {
+    "mtime": 1784386248.1646411,
+    "ast_hash": "19919a29b2d0ec185b215c1802372755",
+    "semantic_hash": ""
+  },
+  "public/tts/42qk.mp3": {
+    "mtime": 1784386251.2973683,
+    "ast_hash": "0edc222b2a348ba695680ddd42c6ceb6",
+    "semantic_hash": ""
+  },
+  "public/tts/42ql.mp3": {
+    "mtime": 1784386262.2137113,
+    "ast_hash": "679bf223cc77753832405348691eb60e",
+    "semantic_hash": ""
+  },
+  "public/tts/42qm.mp3": {
+    "mtime": 1784386250.1314578,
+    "ast_hash": "a6b7c65433abe35c03438f8bdec5b1f5",
+    "semantic_hash": ""
+  },
+  "public/tts/42qu.mp3": {
+    "mtime": 1784386250.6932015,
+    "ast_hash": "1385542bbf37f697a63f3566dada7a6c",
+    "semantic_hash": ""
+  },
+  "public/tts/42qv.mp3": {
+    "mtime": 1784386250.9720826,
+    "ast_hash": "4bf2609085fbca9aec7582924aeb7368",
+    "semantic_hash": ""
+  },
+  "public/tts/42qw.mp3": {
+    "mtime": 1784386266.8068843,
+    "ast_hash": "86126659dfb7a7f2253f08ed64becd96",
+    "semantic_hash": ""
+  },
+  "public/tts/42qy.mp3": {
+    "mtime": 1784386254.40581,
+    "ast_hash": "e1f014a310ca405ae3b518d3e4c6a58c",
+    "semantic_hash": ""
+  },
+  "public/tts/42qz.mp3": {
+    "mtime": 1784386263.6789005,
+    "ast_hash": "58e407cb2dad5a1e82b57f84198e0092",
+    "semantic_hash": ""
+  },
+  "public/tts/42r1.mp3": {
+    "mtime": 1784386252.9498794,
+    "ast_hash": "c74c11e797ed204b337c574d2bf3c650",
+    "semantic_hash": ""
+  },
+  "public/tts/42r2.mp3": {
+    "mtime": 1784386265.3360136,
+    "ast_hash": "fdf57fe64c9195c0a7e507caf25d6078",
+    "semantic_hash": ""
+  },
+  "public/tts/42r7.mp3": {
+    "mtime": 1784386253.1690888,
+    "ast_hash": "52b03f741182755eebb306e8b1969c63",
+    "semantic_hash": ""
+  },
+  "public/tts/42r8.mp3": {
+    "mtime": 1784386242.2519734,
+    "ast_hash": "c8dc216b7d6d61450d729dae788a6c90",
+    "semantic_hash": ""
+  },
+  "public/tts/42r9.mp3": {
+    "mtime": 1784386245.0111735,
+    "ast_hash": "464c37b399b94d2856d4cc474a0a5008",
+    "semantic_hash": ""
+  },
+  "public/tts/42ra.mp3": {
+    "mtime": 1784386255.8281467,
+    "ast_hash": "689fe1c6e4e05cc554cde0cf408d01c9",
+    "semantic_hash": ""
+  },
+  "public/tts/42rc.mp3": {
+    "mtime": 1784386242.2043824,
+    "ast_hash": "441a302d647be52576cacf0caeb0bd62",
+    "semantic_hash": ""
+  },
+  "public/tts/42rd.mp3": {
+    "mtime": 1784386245.3119044,
+    "ast_hash": "752750ed3709e1ff1d3bca1468d9b8bb",
+    "semantic_hash": ""
+  },
+  "public/tts/42re.mp3": {
+    "mtime": 1784386256.331446,
+    "ast_hash": "d56e648ad48ae416c46f733975e0247f",
+    "semantic_hash": ""
+  },
+  "public/tts/42rf.mp3": {
+    "mtime": 1784386260.1838481,
+    "ast_hash": "d95b0658924e62bfab71608179a57237",
+    "semantic_hash": ""
+  },
+  "public/tts/42rg.mp3": {
+    "mtime": 1784386242.1575007,
+    "ast_hash": "630400c443aa5afa32f39437079a6510",
+    "semantic_hash": ""
+  },
+  "public/tts/42rk.mp3": {
+    "mtime": 1784386260.3598652,
+    "ast_hash": "b8ce4e005ae17a31ea23f0848e1d3706",
+    "semantic_hash": ""
+  },
+  "public/tts/42rl.mp3": {
+    "mtime": 1784386242.0805335,
+    "ast_hash": "616afc00857562ef28689b76b8e6b399",
+    "semantic_hash": ""
+  },
+  "public/tts/42rp.mp3": {
+    "mtime": 1784386258.1560974,
+    "ast_hash": "24931bc167ebcc784a553fdf92812dba",
+    "semantic_hash": ""
+  },
+  "public/tts/42rq.mp3": {
+    "mtime": 1784386245.6133454,
+    "ast_hash": "b6946d0a0913a36f2affdbb94733d772",
+    "semantic_hash": ""
+  },
+  "public/tts/42rs.mp3": {
+    "mtime": 1784386244.6906917,
+    "ast_hash": "cdbfc4a421024848733e04cac77af915",
+    "semantic_hash": ""
+  },
+  "public/tts/432d5y.mp3": {
+    "mtime": 1784386304.9078825,
+    "ast_hash": "d8b70633d6cb50f7b148c104c200cbd9",
+    "semantic_hash": ""
+  },
+  "public/tts/44sxad.mp3": {
+    "mtime": 1784386280.560372,
+    "ast_hash": "55055c97c89554414899e00f8484ebaa",
+    "semantic_hash": ""
+  },
+  "public/tts/44zdv7.mp3": {
+    "mtime": 1784386302.1239085,
+    "ast_hash": "06111c9089c86bec6176314d889d1b5b",
+    "semantic_hash": ""
+  },
+  "public/tts/459vzp.mp3": {
+    "mtime": 1784386307.7453668,
+    "ast_hash": "ec48d458612ad8473c9002490b647f91",
+    "semantic_hash": ""
+  },
+  "public/tts/4drvy.mp3": {
+    "mtime": 1784386255.7437391,
+    "ast_hash": "2ff41f8cf67731a04f6d4aec55f8fd94",
+    "semantic_hash": ""
+  },
+  "public/tts/4dty1.mp3": {
+    "mtime": 1784386310.4185567,
+    "ast_hash": "2641c309e1f23453d6f8c4c7d2d17a0f",
+    "semantic_hash": ""
+  },
+  "public/tts/4e1m5.mp3": {
+    "mtime": 1784386299.449518,
+    "ast_hash": "627e935b11ad70035b636fdf339b181b",
+    "semantic_hash": ""
+  },
+  "public/tts/4ekwp.mp3": {
+    "mtime": 1784386279.5139656,
+    "ast_hash": "84ceff474e520ec6ba54af0be94368c1",
+    "semantic_hash": ""
+  },
+  "public/tts/4f1so.mp3": {
+    "mtime": 1784386284.832754,
+    "ast_hash": "001301f5ea432a79743bc2ea047ecde8",
+    "semantic_hash": ""
+  },
+  "public/tts/4hhq5.mp3": {
+    "mtime": 1784386278.177581,
+    "ast_hash": "c6b7d67d7322be9b322b4f664fe6cf45",
+    "semantic_hash": ""
+  },
+  "public/tts/4iajm.mp3": {
+    "mtime": 1784386271.221792,
+    "ast_hash": "50c70f3d6768c256ad280972d7e940bb",
+    "semantic_hash": ""
+  },
+  "public/tts/4ib3h.mp3": {
+    "mtime": 1784386259.1358519,
+    "ast_hash": "d1cc86e17e17970bd51d21fb49af207a",
+    "semantic_hash": ""
+  },
+  "public/tts/4id0p.mp3": {
+    "mtime": 1784386269.517835,
+    "ast_hash": "4335b160fc2744744c19c7c272cd85bb",
+    "semantic_hash": ""
+  },
+  "public/tts/4iet9.mp3": {
+    "mtime": 1784386248.7046888,
+    "ast_hash": "14b73b80778e0d427478da6d8adfdfeb",
+    "semantic_hash": ""
+  },
+  "public/tts/4if4g.mp3": {
+    "mtime": 1784386287.6760552,
+    "ast_hash": "3b9b9c4682d4e89ddc3fc1a551d51437",
+    "semantic_hash": ""
+  },
+  "public/tts/4ihqq.mp3": {
+    "mtime": 1784386287.2948096,
+    "ast_hash": "c3dc8b29aa5a4f649d914de268ab05d3",
+    "semantic_hash": ""
+  },
+  "public/tts/4ihuo.mp3": {
+    "mtime": 1784386290.0934863,
+    "ast_hash": "1a87b05b91fef17f738fa4b7ddcd09b0",
+    "semantic_hash": ""
+  },
+  "public/tts/4iiq1.mp3": {
+    "mtime": 1784386265.3041174,
+    "ast_hash": "bd5fd5c939016267e6c9ed0a30480f02",
+    "semantic_hash": ""
+  },
+  "public/tts/4ij41.mp3": {
+    "mtime": 1784386263.2324278,
+    "ast_hash": "848ff15d02a91936cd72c007f79ff802",
+    "semantic_hash": ""
+  },
+  "public/tts/4ikil.mp3": {
+    "mtime": 1784386247.2238102,
+    "ast_hash": "43848a6eb97fcb8e9df7a1b9eeb5fa7b",
+    "semantic_hash": ""
+  },
+  "public/tts/4inqh.mp3": {
+    "mtime": 1784386304.3579779,
+    "ast_hash": "b1add01d9f22ed8fa4ee34f744c390e4",
+    "semantic_hash": ""
+  },
+  "public/tts/4io0l.mp3": {
+    "mtime": 1784386260.941042,
+    "ast_hash": "f06bcb4ed2855d1d64250c444b24489c",
+    "semantic_hash": ""
+  },
+  "public/tts/4io1e.mp3": {
+    "mtime": 1784386285.6995912,
+    "ast_hash": "7b64cb77badf433574443b099cb4ae87",
+    "semantic_hash": ""
+  },
+  "public/tts/4iqbh.mp3": {
+    "mtime": 1784386276.813779,
+    "ast_hash": "7ac937f58d0fa1434bf4ad564719763b",
+    "semantic_hash": ""
+  },
+  "public/tts/4irat.mp3": {
+    "mtime": 1784386301.6010902,
+    "ast_hash": "39be7b9f9e0bfa0b4f587fd377b4977e",
+    "semantic_hash": ""
+  },
+  "public/tts/4itm1.mp3": {
+    "mtime": 1784386306.8859594,
+    "ast_hash": "60cd0cd8717f5ae340004045673021de",
+    "semantic_hash": ""
+  },
+  "public/tts/4j30t.mp3": {
+    "mtime": 1784386301.489416,
+    "ast_hash": "7a558cd2af2f2a62543c0fc85d8934ca",
+    "semantic_hash": ""
+  },
+  "public/tts/4l6ku.mp3": {
+    "mtime": 1784386280.600739,
+    "ast_hash": "b67bfa2c1102b2a2a2d168996cbe5286",
+    "semantic_hash": ""
+  },
+  "public/tts/4l73p.mp3": {
+    "mtime": 1784386256.7237725,
+    "ast_hash": "ccbba2cc74cde9a98bb36d227633b456",
+    "semantic_hash": ""
+  },
+  "public/tts/4lc5p.mp3": {
+    "mtime": 1784386307.5756454,
+    "ast_hash": "eba4da032def9a86e553ead7a75e0881",
+    "semantic_hash": ""
+  },
+  "public/tts/4rql.mp3": {
+    "mtime": 1784386266.4718125,
+    "ast_hash": "a642fd5c3f91e4fde26f2876e9b762ed",
+    "semantic_hash": ""
+  },
+  "public/tts/4rwd.mp3": {
+    "mtime": 1784386253.6768184,
+    "ast_hash": "5298b0a32683f12f7ed2b253d91e3617",
+    "semantic_hash": ""
+  },
+  "public/tts/4s09.mp3": {
+    "mtime": 1784386283.3325057,
+    "ast_hash": "d16f89f9d7a5dc7d44fa9086397dabba",
+    "semantic_hash": ""
+  },
+  "public/tts/4s0s.mp3": {
+    "mtime": 1784386285.1629732,
+    "ast_hash": "a8eda247cea33fa3476653e3fd9007b5",
+    "semantic_hash": ""
+  },
+  "public/tts/4sn1.mp3": {
+    "mtime": 1784386285.906891,
+    "ast_hash": "67335c205ec60a457490a76434eb8907",
+    "semantic_hash": ""
+  },
+  "public/tts/4tv0.mp3": {
+    "mtime": 1784386296.9559765,
+    "ast_hash": "fab1e433a6a0d54639ab74bc2c63917a",
+    "semantic_hash": ""
+  },
+  "public/tts/4tzx.mp3": {
+    "mtime": 1784386269.4259937,
+    "ast_hash": "7b538baa6fe9ddc344ba16beb5d97f17",
+    "semantic_hash": ""
+  },
+  "public/tts/4u01.mp3": {
+    "mtime": 1784386304.145781,
+    "ast_hash": "6af1371431170e61266b308a606df1da",
+    "semantic_hash": ""
+  },
+  "public/tts/4u0l.mp3": {
+    "mtime": 1784386276.4097688,
+    "ast_hash": "05523e943681813d7bb5e7441fb25560",
+    "semantic_hash": ""
+  },
+  "public/tts/4u6i.mp3": {
+    "mtime": 1784386268.3859327,
+    "ast_hash": "e1f855fc782c27999969a894842aa8e6",
+    "semantic_hash": ""
+  },
+  "public/tts/4u6u.mp3": {
+    "mtime": 1784386293.063951,
+    "ast_hash": "7886a1bf289f61d477e97802f1bec225",
+    "semantic_hash": ""
+  },
+  "public/tts/4v2p.mp3": {
+    "mtime": 1784386295.9398785,
+    "ast_hash": "f6704c232584fb6eafbf5a7768f29719",
+    "semantic_hash": ""
+  },
+  "public/tts/4v2x.mp3": {
+    "mtime": 1784386298.8475862,
+    "ast_hash": "dc652a445705149c66d32bd8876a9e17",
+    "semantic_hash": ""
+  },
+  "public/tts/4v35.mp3": {
+    "mtime": 1784386290.0190294,
+    "ast_hash": "1c3025615ce7e8ee7343b01fec92d945",
+    "semantic_hash": ""
+  },
+  "public/tts/4v74.mp3": {
+    "mtime": 1784386283.2808847,
+    "ast_hash": "3551b29a899d57f8a5c0562995edc59b",
+    "semantic_hash": ""
+  },
+  "public/tts/4vi9.mp3": {
+    "mtime": 1784386298.5226955,
+    "ast_hash": "ac031dda308b4aa75187947a23111deb",
+    "semantic_hash": ""
+  },
+  "public/tts/4viq.mp3": {
+    "mtime": 1784386293.3028646,
+    "ast_hash": "683614a8d3c9cbfe7ae0b153350f7120",
+    "semantic_hash": ""
+  },
+  "public/tts/4w49.mp3": {
+    "mtime": 1784386293.240651,
+    "ast_hash": "42be58a7f0c2f40c29980f30de30387a",
+    "semantic_hash": ""
+  },
+  "public/tts/4w5l.mp3": {
+    "mtime": 1784386291.340047,
+    "ast_hash": "171eb85962b022ce25f33098f32e3d8d",
+    "semantic_hash": ""
+  },
+  "public/tts/4wex.mp3": {
+    "mtime": 1784386290.8087547,
+    "ast_hash": "17f3e3b8601b11ebd3e4f4d0b040e056",
+    "semantic_hash": ""
+  },
+  "public/tts/4wf5.mp3": {
+    "mtime": 1784386288.3212917,
+    "ast_hash": "f2fd84cc73e5b3a4791fa1f1e95e114f",
+    "semantic_hash": ""
+  },
+  "public/tts/4wit.mp3": {
+    "mtime": 1784386275.3458283,
+    "ast_hash": "77ee2db82ebc0cc3925293af281a611e",
+    "semantic_hash": ""
+  },
+  "public/tts/4wvq.mp3": {
+    "mtime": 1784386272.2087681,
+    "ast_hash": "edbc68f5546ee1320ba611d8ced8836c",
+    "semantic_hash": ""
+  },
+  "public/tts/4xd6.mp3": {
+    "mtime": 1784386268.2396388,
+    "ast_hash": "5b54c6d3b2f6caecabaa7ea201eb8143",
+    "semantic_hash": ""
+  },
+  "public/tts/4xfl.mp3": {
+    "mtime": 1784386298.3594537,
+    "ast_hash": "735a91a19347ec3ee2f7c14edaf95e2a",
+    "semantic_hash": ""
+  },
+  "public/tts/5cmp78.mp3": {
+    "mtime": 1784386301.0968058,
+    "ast_hash": "e4ba8d43a8206ae185c60a622f287af7",
+    "semantic_hash": ""
+  },
+  "public/tts/qb7pom.mp3": {
+    "mtime": 1784386270.965924,
+    "ast_hash": "70d13756cd83c7000b25428a12c42c44",
+    "semantic_hash": ""
+  },
+  "public/tts/urx0ul.mp3": {
+    "mtime": 1784386273.8202708,
+    "ast_hash": "779844a65e04e056d9ba29539d1f1813",
+    "semantic_hash": ""
+  },
+  "public/tts/znt0fo.mp3": {
+    "mtime": 1784386304.704659,
+    "ast_hash": "a2260aa39c787a1f0f1753f58abd4826",
+    "semantic_hash": ""
+  },
+  "api/bot.js": {
+    "mtime": 1784589532.839314,
+    "ast_hash": "b4cdf74c5498e3f8edfe45a0896b2705",
+    "semantic_hash": ""
+  },
+  "discord-worker/index.js": {
+    "mtime": 1784588046.2754326,
+    "ast_hash": "965fdf610ee8db53fea4e671dedb1f92",
+    "semantic_hash": ""
+  },
+  "discord-worker/package.json": {
+    "mtime": 1784393466.1101606,
+    "ast_hash": "13f71cc6877b37dc4dc8b14eae054484",
+    "semantic_hash": ""
+  },
+  "lib/reply.js": {
+    "mtime": 1784589497.0267837,
+    "ast_hash": "b4fc8a21cf3f27b1952b59ffebaa8572",
+    "semantic_hash": ""
+  },
+  "supabase/migrations/0006_channels.sql": {
+    "mtime": 1784388197.3236246,
+    "ast_hash": "42fe86d618a957f227343e41fb76ddd1",
+    "semantic_hash": ""
+  },
+  "discord-worker/README.md": {
+    "mtime": 1784393560.8170424,
+    "ast_hash": "d94587f42ac37eefd78825366ad3881c",
+    "semantic_hash": ""
+  },
+  "docs/IDOL_BRAIN_SPEC.md": {
+    "mtime": 1784550188.61112,
+    "ast_hash": "4319110ac7e6af185780dabc309aae54",
+    "semantic_hash": ""
+  },
+  "supabase/migrations/0007_proactive.sql": {
+    "mtime": 1784587786.8707361,
+    "ast_hash": "70f4d22caf5b4bce1aa86bab9ff8a873",
+    "semantic_hash": ""
+  },
+  "supabase/migrations/0008_migration.sql": {
+    "mtime": 1784589413.298949,
+    "ast_hash": "c38e4eb3ca0e989a3ddaf6f014ace2f9",
     "semantic_hash": ""
   }
 }

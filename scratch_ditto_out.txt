@@ -1,0 +1,8 @@
+▶ Ditto (pSUydWEqKwE) — качаю аудио…
+  выравниваю на Modal (124 слов)…
+C:\Users\user\AppData\Roaming\Python\Python314\site-packages\modal\_utils\async_utils.py:42: DeprecationWarning: 'asyncio.WindowsSelectorEventLoopPolicy' is deprecated and slated for removal in Python 3.16
+  asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+C:\Users\user\AppData\Roaming\Python\Python314\site-packages\modal\_utils\async_utils.py:42: DeprecationWarning: 'asyncio.set_event_loop_policy' is deprecated and slated for removal in Python 3.16
+  asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+  ✓ Ditto: 124 слов, CTC-токенов 166, обратных скачков 0, t[0]=19.16, t[конец]=333.22
+Готово.

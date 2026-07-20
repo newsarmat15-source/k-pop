@@ -1,0 +1,31 @@
+▶ BABYMONSTER - ‘PSYCHO’ (Official Audio) (mMZQkRyErvA) — качаю аудио…
+  выравниваю на Modal (27 слов, 8 строк, 2 прохода)…
+C:\Users\user\AppData\Roaming\Python\Python314\site-packages\modal\_utils\async_utils.py:42: DeprecationWarning: 'asyncio.WindowsSelectorEventLoopPolicy' is deprecated and slated for removal in Python 3.16
+  asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+C:\Users\user\AppData\Roaming\Python\Python314\site-packages\modal\_utils\async_utils.py:42: DeprecationWarning: 'asyncio.set_event_loop_policy' is deprecated and slated for removal in Python 3.16
+  asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+  ✓ BABYMONSTER - ‘PSYCHO’ (Official Audio): 27 слов, обратных скачков 0, низкой уверенности 2, t[0]=7.68, t[конец]=190.78
+▶ Ditto (pSUydWEqKwE) — качаю аудио…
+  выравниваю на Modal (124 слов, 29 строк, 2 прохода)…
+C:\Users\user\AppData\Roaming\Python\Python314\site-packages\modal\_utils\async_utils.py:42: DeprecationWarning: 'asyncio.WindowsSelectorEventLoopPolicy' is deprecated and slated for removal in Python 3.16
+  asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+C:\Users\user\AppData\Roaming\Python\Python314\site-packages\modal\_utils\async_utils.py:42: DeprecationWarning: 'asyncio.set_event_loop_policy' is deprecated and slated for removal in Python 3.16
+  asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+  ✓ Ditto: 124 слов, обратных скачков 0, низкой уверенности 46, t[0]=19.14, t[конец]=333.22
+▶ LOVE DIVE (Y8JFxS1HlDo) — качаю аудио…
+  выравниваю на Modal (124 слов, 30 строк, 2 прохода)…
+C:\Users\user\AppData\Roaming\Python\Python314\site-packages\modal\_utils\async_utils.py:42: DeprecationWarning: 'asyncio.WindowsSelectorEventLoopPolicy' is deprecated and slated for removal in Python 3.16
+  asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+C:\Users\user\AppData\Roaming\Python\Python314\site-packages\modal\_utils\async_utils.py:42: DeprecationWarning: 'asyncio.set_event_loop_policy' is deprecated and slated for removal in Python 3.16
+  asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+  ✓ LOVE DIVE: 124 слов, обратных скачков 0, низкой уверенности 33, t[0]=8.67, t[конец]=171.9
+▶ Love wins all (JleoAppaxi0) — качаю аудио…
+  выравниваю на Modal (133 слов, 34 строк, 2 прохода)…
+C:\Users\user\AppData\Roaming\Python\Python314\site-packages\modal\_utils\async_utils.py:42: DeprecationWarning: 'asyncio.WindowsSelectorEventLoopPolicy' is deprecated and slated for removal in Python 3.16
+  asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+C:\Users\user\AppData\Roaming\Python\Python314\site-packages\modal\_utils\async_utils.py:42: DeprecationWarning: 'asyncio.set_event_loop_policy' is deprecated and slated for removal in Python 3.16
+  asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+  ✓ Love wins all: 133 слов, обратных скачков 0, низкой уверенности 17, t[0]=61.66, t[конец]=322.92
+▶ Supernova (phuiiNCxRMg) — качаю аудио…
+  ✗ Supernova: Command failed: C:/Python314/python -m yt_dlp -f bestaudio[ext=m4a]/bestaudio -o C:\Users\user\AppData\Local\Temp\clip_phuiiNCxRMg.m4a --no-playlist https://www.youtube.com/watch?v=phuiiNCxRMg
+Готово.

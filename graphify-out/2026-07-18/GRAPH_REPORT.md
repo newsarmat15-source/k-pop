@@ -1,16 +1,16 @@
-# Graph Report - StageOne  (2026-07-21)
+# Graph Report - StageOne  (2026-07-18)
 
 ## Corpus Check
-- 99 files · ~393,465 words
+- 98 files · ~382,526 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 751 nodes · 1270 edges · 85 communities (58 shown, 27 thin omitted)
-- Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 7 edges (avg confidence: 0.52)
+- 660 nodes · 1119 edges · 73 communities (46 shown, 27 thin omitted)
+- Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 6 edges (avg confidence: 0.53)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `58a64030`
+- Built from commit: `c724c150`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -63,7 +63,6 @@
 - Idol14 Content-Policy Flag
 - Rejected: NFT Trading
 - test-auth-flow.mjs
-- Хендофф для сессии «Интеллект айдола» — 21.07.2026
 - align-songs.mjs
 - toast
 - align-words.mjs
@@ -87,40 +86,29 @@
 - supabase
 - renderLangOpts
 - showView
-- supabase.js
-- test-auth-flow.mjs
-- supabase
-- seed-test-clips-visual.mjs
-- maybeOnboard
-- package.json
-- openSong
-- index.js
-- Idolingo Discord Worker
-- limits.js
-- readUserId
 
 ## God Nodes (most connected - your core abstractions)
-1. `getLang()` - 21 edges
-2. `toast()` - 18 edges
-3. `readUserId()` - 18 edges
+1. `getLang()` - 19 edges
+2. `readUserId()` - 18 edges
+3. `toast()` - 17 edges
 4. `supabase()` - 17 edges
 5. `showView()` - 13 edges
 6. `finishLesson()` - 13 edges
-7. `generateReply()` - 12 edges
-8. `openAuth()` - 12 edges
-9. `StageOne — прогресс по этапам` - 12 edges
-10. `StageOne — проектный документ` - 12 edges
+7. `openAuth()` - 12 edges
+8. `StageOne — прогресс по этапам` - 12 edges
+9. `StageOne — проектный документ` - 12 edges
+10. `fetchWithRetry()` - 12 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `handleCreate()` --calls--> `readUserId()`  [EXTRACTED]
-  api/clip.js → lib/session.js
-- `handleUpdate()` --calls--> `readUserId()`  [EXTRACTED]
-  api/clip.js → lib/session.js
 - `handleFinalize()` --calls--> `readUserId()`  [EXTRACTED]
   api/pipeline.js → lib/session.js
 - `handleGenerate()` --calls--> `readUserId()`  [EXTRACTED]
   api/pipeline.js → lib/session.js
 - `handleLastframe()` --calls--> `readUserId()`  [EXTRACTED]
+  api/pipeline.js → lib/session.js
+- `handleLipsync()` --calls--> `readUserId()`  [EXTRACTED]
+  api/pipeline.js → lib/session.js
+- `handleMuxAudio()` --calls--> `readUserId()`  [EXTRACTED]
   api/pipeline.js → lib/session.js
 
 ## Import Cycles
@@ -129,15 +117,15 @@
 ## Hyperedges (group relationships)
 - **Files comprising the StageOne_app_v2.4 codebase** — full_dialogue_2026_07_08_stageone_app_v2_4, full_dialogue_2026_07_08_api_generate_js, full_dialogue_2026_07_08_api_result_js, full_dialogue_2026_07_08_api_status_js, full_dialogue_2026_07_08_public_index_html, full_dialogue_2026_07_08_idols_json [INFERRED 0.85]
 
-## Communities (85 total, 27 thin omitted)
+## Communities (73 total, 27 thin omitted)
 
 ### Community 0 - "Frontend App Logic (app.js)"
 Cohesion: 0.05
-Nodes (43): authReady, awardsHtml(), BIO_SAMPLE, bioState, CLIP, CLIP_COLOR, CLIP_ICON, DANCE (+35 more)
+Nodes (46): authReady, awardsHtml(), BIO_SAMPLE, bioState, CLIP, CLIP_COLOR, CLIP_ICON, closeOnb() (+38 more)
 
 ### Community 1 - "chat.js"
-Cohesion: 0.10
-Nodes (44): config, createLinkToken(), decideReason(), discordOauth(), handler(), ingest(), lastOwnerActivity(), linePush() (+36 more)
+Cohesion: 0.40
+Nodes (9): buildPersona(), callLLM(), closenessGuide(), handleHistory(), handler(), handleSend(), langName(), levelGuide() (+1 more)
 
 ### Community 2 - "Dance Move System (pipeline.js)"
 Cohesion: 0.10
@@ -160,8 +148,8 @@ Cohesion: 0.46
 Nodes (7): handleForgot(), handleLogin(), handleLogout(), handleMe(), handler(), handleReset(), handleSignup()
 
 ### Community 8 - "openSong"
-Cohesion: 0.16
-Nodes (20): applyStatic(), buildQuiz(), connectCode(), connectDiscord(), escapeHtml(), getLang(), karaSave(), lsnSaveVocab() (+12 more)
+Cohesion: 0.14
+Nodes (22): applyStatic(), buildQuiz(), chatBubble(), escapeHtml(), fmtMsg(), getLang(), karaSave(), lsnSaveVocab() (+14 more)
 
 ### Community 9 - "Multi-Segment Resume Test"
 Cohesion: 0.44
@@ -208,8 +196,8 @@ Cohesion: 0.18
 Nodes (17): addSong(), allSongs(), closeSongs(), karaStop(), loadCatalog(), lsnSaveDone(), lsnUid(), onSongSearchInput() (+9 more)
 
 ### Community 21 - "test-follow-streak.mjs"
-Cohesion: 0.13
-Nodes (11): cookie, db, ownerCookie, r1, r2, r3, r4, r5 (+3 more)
+Cohesion: 0.06
+Nodes (34): handleCreate(), handleList(), handler(), handleUpdate(), handleCreate(), handleMyIdol(), handlePublicView(), handler() (+26 more)
 
 ### Community 22 - "Local Server (local-server.mjs)"
 Cohesion: 0.29
@@ -252,12 +240,12 @@ Cohesion: 0.83
 Nodes (3): main(), makeRes(), sleep()
 
 ### Community 33 - "Vercel Config"
-Cohesion: 0.33
-Nodes (5): maxDuration, maxDuration, functions, api/bot.js, api/pipeline.js
+Cohesion: 0.50
+Nodes (3): maxDuration, functions, api/pipeline.js
 
 ### Community 44 - "Rejected UI Ideas"
-Cohesion: 0.36
-Nodes (9): annotate(), config, groupVerses(), handleBuild(), handler(), itunesSuggest(), lrclibFind(), parseSynced() (+1 more)
+Cohesion: 0.22
+Nodes (14): annotate(), config, groupVerses(), handleBuild(), handler(), itunesSuggest(), lrclibFind(), parseSynced() (+6 more)
 
 ### Community 45 - "write-ctc.mjs"
 Cohesion: 0.29
@@ -268,12 +256,8 @@ Cohesion: 0.43
 Nodes (7): client(), config, handleCheckout(), handler(), handleWebhook(), PRODUCTS, rawBody()
 
 ### Community 49 - "test-auth-flow.mjs"
-Cohesion: 0.16
-Nodes (17): claimIdol(), doFollow(), doTrain(), doVote(), fmtRest(), idHash(), loadChart(), mockPushLive() (+9 more)
-
-### Community 50 - "Хендофф для сессии «Интеллект айдола» — 21.07.2026"
-Cohesion: 0.15
-Nodes (12): 1. Продукт в одну строку, 2. Как устроен чат (важно для интеллекта), 3. Что построено СЕГОДНЯ (21.07) — 3 этапа, 4. Каналы (статус), 5. Трек «Интеллект айдола» — с чего начинать, 6. Как потрогать/протестить (шпаргалка), 7. Долги (не забыть), Видение Сармата (дословно по смыслу) (+4 more)
+Cohesion: 0.19
+Nodes (15): claimIdol(), doFollow(), doTrain(), fmtRest(), idHash(), loadChart(), mockPushLive(), openCabinetFor() (+7 more)
 
 ### Community 51 - "align-songs.mjs"
 Cohesion: 0.38
@@ -304,76 +288,32 @@ Cohesion: 0.50
 Nodes (7): handleChart(), handleFollow(), handler(), handleStudy(), handleTrain(), handleVote(), ymd()
 
 ### Community 72 - "renderLangOpts"
-Cohesion: 0.18
-Nodes (16): boot(), buildOpts(), handleLinkReturn(), lbl(), loadNav(), nativeGenres(), pickQuiz(), renderDanceOpts() (+8 more)
+Cohesion: 0.20
+Nodes (15): boot(), buildOpts(), lbl(), loadNav(), nativeGenres(), pickQuiz(), renderDanceOpts(), renderIdolGrid() (+7 more)
 
 ### Community 73 - "showView"
-Cohesion: 0.25
-Nodes (16): allLessons(), chatBubble(), finishLesson(), fmtMsg(), lessonPct(), lsnDone(), navOv(), openAuth() (+8 more)
-
-### Community 74 - "supabase.js"
-Cohesion: 0.22
-Nodes (4): db, testUsers, db, db
-
-### Community 75 - "test-auth-flow.mjs"
-Cohesion: 0.29
-Nodes (4): cookie, r1, r2, r3
-
-### Community 76 - "supabase"
-Cohesion: 0.73
-Nodes (5): handleCreate(), handleList(), handler(), handleUpdate(), supabase()
-
-### Community 77 - "seed-test-clips-visual.mjs"
-Cohesion: 0.33
-Nodes (3): db, r1, stamp
-
-### Community 78 - "maybeOnboard"
-Cohesion: 0.50
-Nodes (4): closeOnb(), maybeOnboard(), onbKey(), openOnb()
-
-### Community 79 - "package.json"
-Cohesion: 0.15
-Nodes (12): discord.js, dependencies, discord.js, description, engines, node, main, name (+4 more)
-
-### Community 80 - "openSong"
-Cohesion: 0.24
-Nodes (11): ensureYtPlayer(), karaBuild(), karaFocus(), karaOnError(), karaShowErr(), karaShowHint(), karaTick(), karaWatchdog() (+3 more)
-
-### Community 81 - "index.js"
-Cohesion: 0.30
-Nodes (11): callIngest(), chunkMessage(), client, deliverOutbox(), log(), logErr(), missing, proactiveTick() (+3 more)
-
-### Community 82 - "Idolingo Discord Worker"
-Cohesion: 0.29
-Nodes (6): 1. Create the Discord application + bot, 2. Environment variables, 3. Install & run locally, 4. Deploy to Fly.io, 5. Ingest contract (for reference), Idolingo Discord Worker
-
-### Community 83 - "limits.js"
-Cohesion: 0.47
-Nodes (5): CHAT_DAILY, chatUsage(), SONG_DAILY, songUsage(), startOfDayISO()
-
-### Community 84 - "readUserId"
-Cohesion: 0.40
-Nodes (7): handleCreate(), handleMyIdol(), handlePublicView(), handler(), createSessionCookie(), readUserId(), sign()
+Cohesion: 0.16
+Nodes (23): allLessons(), ensureYtPlayer(), finishLesson(), karaBuild(), karaFocus(), karaOnError(), karaShowErr(), karaShowHint() (+15 more)
 
 ## Knowledge Gaps
-- **254 isolated node(s):** `1. Продукт в одну строку`, `2. Как устроен чат (важно для интеллекта)`, `3. Что построено СЕГОДНЯ (21.07) — 3 этапа`, `4. Каналы (статус)`, `Видение Сармата (дословно по смыслу)` (+249 more)
+- **224 isolated node(s):** `Ядро продукта (обучение)`, `Удержание / драйв`, `Мессенджеры (омниканальность)`, `Инфраструктура / бренд`, `state` (+219 more)
   These have ≤1 connection - possible missing edges or undocumented components.
 - **27 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `supabase()` connect `supabase` to `test-follow-streak.mjs`, `supabase.js`, `test-auth-flow.mjs`, `seed-test-clips-visual.mjs`, `readUserId`, `test-follow-streak.mjs`, `test-clips.mjs`?**
+- **Why does `supabase()` connect `test-follow-streak.mjs` to `test-clips.mjs`, `test-follow-streak.mjs`?**
+  _High betweenness centrality (0.014) - this node is a cross-community bridge._
+- **Why does `readUserId()` connect `test-follow-streak.mjs` to `Dance Move System (pipeline.js)`?**
   _High betweenness centrality (0.011) - this node is a cross-community bridge._
-- **Why does `readUserId()` connect `readUserId` to `Dance Move System (pipeline.js)`, `supabase`?**
-  _High betweenness centrality (0.008) - this node is a cross-community bridge._
-- **What connects `1. Продукт в одну строку`, `2. Как устроен чат (важно для интеллекта)`, `3. Что построено СЕГОДНЯ (21.07) — 3 этапа` to the rest of the system?**
-  _256 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **What connects `Ядро продукта (обучение)`, `Удержание / драйв`, `Мессенджеры (омниканальность)` to the rest of the system?**
+  _226 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Frontend App Logic (app.js)` be split into smaller, more focused modules?**
-  _Cohesion score 0.05254901960784314 - nodes in this community are weakly interconnected._
-- **Should `chat.js` be split into smaller, more focused modules?**
-  _Cohesion score 0.09898242368177614 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.05152394775036284 - nodes in this community are weakly interconnected._
 - **Should `Dance Move System (pipeline.js)` be split into smaller, more focused modules?**
   _Cohesion score 0.0966183574879227 - nodes in this community are weakly interconnected._
 - **Should `NPM Dependencies` be split into smaller, more focused modules?**
   _Cohesion score 0.08 - nodes in this community are weakly interconnected._
+- **Should `test-follow-streak.mjs` be split into smaller, more focused modules?**
+  _Cohesion score 0.13333333333333333 - nodes in this community are weakly interconnected._

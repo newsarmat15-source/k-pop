@@ -60,9 +60,9 @@
     "semantic_hash": "abaa01eda3c409ecbab7a57eaf74e914"
   },
   "api/engage.js": {
-    "mtime": 1783648284.791279,
-    "ast_hash": "e1de1f97aa2f6633cc449b0032fe53ca",
-    "semantic_hash": "e1de1f97aa2f6633cc449b0032fe53ca"
+    "mtime": 1784372788.5727668,
+    "ast_hash": "1db9a310839e7ac27a0ce541c91dff59",
+    "semantic_hash": ""
   },
   "api/idol.js": {
     "mtime": 1783648144.2843132,
@@ -100,8 +100,8 @@
     "semantic_hash": ""
   },
   "public/app.js": {
-    "mtime": 1784281099.4106255,
-    "ast_hash": "be130a2b77ec74976dc5b778af6ace15",
+    "mtime": 1784372847.8481631,
+    "ast_hash": "734cb05fa0aa22534c479e61240080b4",
     "semantic_hash": ""
   },
   "public/idols.json": {
@@ -315,8 +315,8 @@
     "semantic_hash": "78b09be567d0a059a16e8edb18d4a371"
   },
   "public/index.html": {
-    "mtime": 1784281072.4486992,
-    "ast_hash": "127b07bf60cd10dbc40ca3719bdcd1b8",
+    "mtime": 1784339016.6204436,
+    "ast_hash": "fe8326a0d9d1b2733a81e2ab09cd6a71",
     "semantic_hash": ""
   },
   "review/rap_final_url.txt": {
@@ -505,8 +505,8 @@
     "semantic_hash": ""
   },
   "api/chat.js": {
-    "mtime": 1784070549.537787,
-    "ast_hash": "8d7b5a3c723f136eac72e7d822030a78",
+    "mtime": 1784338928.3150845,
+    "ast_hash": "d5ef920503f3561fb04b985146a63941",
     "semantic_hash": ""
   },
   "api/pay.js": {
@@ -605,8 +605,8 @@
     "semantic_hash": ""
   },
   "api/song.js": {
-    "mtime": 1784247827.681975,
-    "ast_hash": "11be674896c0c12e6a5e01484bb09554",
+    "mtime": 1784329008.4388604,
+    "ast_hash": "52d5d6a4f5cf157ecdd451491dccad43",
     "semantic_hash": ""
   },
   "supabase/migrations/0004_songs.sql": {
@@ -632,6 +632,301 @@
   "public/yttest.html": {
     "mtime": 1784280141.0024712,
     "ast_hash": "3106275450450c4a14932f20861e4e71",
+    "semantic_hash": ""
+  },
+  "scratch_eval.mjs": {
+    "mtime": 1784297931.2801168,
+    "ast_hash": "505c5ce98495f59ef9c2ea34a2c3acf4",
+    "semantic_hash": ""
+  },
+  "scratch_supernova_asr.json": {
+    "mtime": 1784297798.0331466,
+    "ast_hash": "ae5f007f2815d602b86e1766618ade42",
+    "semantic_hash": ""
+  },
+  "scratch_supernova_ctc.json": {
+    "mtime": 1784298358.6478,
+    "ast_hash": "45667f61036078503e3eb6ef7bb54c34",
+    "semantic_hash": ""
+  },
+  "scratch_supernova_ctc2.json": {
+    "mtime": 1784300886.4093013,
+    "ast_hash": "d707a19ea089c8bab7846c4d6f2470a5",
+    "semantic_hash": ""
+  },
+  "scratch_supernova_words.json": {
+    "mtime": 1784297998.8116431,
+    "ast_hash": "061695afed4c6c3f4d5b6167870d4cdf",
+    "semantic_hash": ""
+  },
+  "scripts/align-modal.mjs": {
+    "mtime": 1784306598.8428378,
+    "ast_hash": "24f59ce515fada237af50fdc020146a2",
+    "semantic_hash": ""
+  },
+  "scripts/match-modal.mjs": {
+    "mtime": 1784297862.4005284,
+    "ast_hash": "7bdd211d46690864b4c335ec6b408554",
+    "semantic_hash": ""
+  },
+  "scripts/modal_align.py": {
+    "mtime": 1784328487.4220016,
+    "ast_hash": "3a8528232180394d56841146bc40d4a2",
+    "semantic_hash": ""
+  },
+  "scripts/write-ctc.mjs": {
+    "mtime": 1784301056.564256,
+    "ast_hash": "b119e25bdfbf66d62fcd2b297ffa4004",
+    "semantic_hash": ""
+  },
+  "scratch_align_out.txt": {
+    "mtime": 1784307122.858482,
+    "ast_hash": "6589aab3b3e4782e27473b0603c6e7e7",
+    "semantic_hash": ""
+  },
+  "scratch_ditto_out.txt": {
+    "mtime": 1784301199.767212,
+    "ast_hash": "0eb45539aaad478a1a4ccdff31a32734",
+    "semantic_hash": ""
+  },
+  "scratch_supernova.m4a": {
+    "mtime": 1784296384.6796918,
+    "ast_hash": "11c77ae697cf6f48339f0c9b3f43739b",
+    "semantic_hash": ""
+  },
+  "scratch_supernova_2pass.json": {
+    "mtime": 1784307133.239614,
+    "ast_hash": "26e5c0ddb206538bb3dd21b0845639c1",
+    "semantic_hash": ""
+  },
+  "scratch_supernova_lines.json": {
+    "mtime": 1784306622.72221,
+    "ast_hash": "35961ebf3aabacbd84152ce17382c19a",
+    "semantic_hash": ""
+  },
+  "scratch_all_out.txt": {
+    "mtime": 1784307652.4183974,
+    "ast_hash": "19d9e534b312cbe4be640cb8a25424ad",
+    "semantic_hash": ""
+  },
+  "lib/limits.js": {
+    "mtime": 1784328928.1594996,
+    "ast_hash": "8afc569c3c9fd00f6b06c7022b8e4914",
+    "semantic_hash": ""
+  },
+  "scripts/validate.mjs": {
+    "mtime": 1784328343.4472091,
+    "ast_hash": "61b26b4f4e8077905edcfc43b5569824",
+    "semantic_hash": ""
+  },
+  "scratch_val_ditto.txt": {
+    "mtime": 1784329390.444278,
+    "ast_hash": "1c5c8078a915f71046c485a72ab51794",
+    "semantic_hash": ""
+  },
+  "scratch_val_lovedive.txt": {
+    "mtime": 1784328434.4396493,
+    "ast_hash": "a4e28464c7721707c9dad63d59b9fa09",
+    "semantic_hash": ""
+  },
+  "scripts/modal_dltest.py": {
+    "mtime": 1784330267.7962222,
+    "ast_hash": "d993655fd66098473fb6c18aeb4f8059",
+    "semantic_hash": ""
+  },
+  "scratch_dltest.txt": {
+    "mtime": 1784330323.879538,
+    "ast_hash": "9d4355cd54643fb2813a1241e4333c21",
+    "semantic_hash": ""
+  },
+  "supabase/migrations/0005_study_streak.sql": {
+    "mtime": 1784372748.492904,
+    "ast_hash": "6072b617cf39d9e7b879db73e7bf5341",
+    "semantic_hash": ""
+  },
+  "scratch_build_ab_page.mjs": {
+    "mtime": 1784381463.657682,
+    "ast_hash": "d48b433c3a76c3b1e7c1ae584860623c",
+    "semantic_hash": ""
+  },
+  "scratch_build_boost_page.mjs": {
+    "mtime": 1784382314.154435,
+    "ast_hash": "5114cafe0c961e1077215def13987d43",
+    "semantic_hash": ""
+  },
+  "scratch_build_probe_page.mjs": {
+    "mtime": 1784380960.8740292,
+    "ast_hash": "baba3d72dedd30db34b2af2b9b48c2dc",
+    "semantic_hash": ""
+  },
+  "scratch_collect_kr.mjs": {
+    "mtime": 1784383028.2341866,
+    "ast_hash": "59ca261bab15e158dceb9818901ba8be",
+    "semantic_hash": ""
+  },
+  "scratch_kr_strings.json": {
+    "mtime": 1784383028.3415995,
+    "ast_hash": "af00620bab72bb4f4d36079f54e72286",
+    "semantic_hash": ""
+  },
+  "scratch_mmboost.mjs": {
+    "mtime": 1784382244.7779367,
+    "ast_hash": "7002ad8298e28cf7aece689b7c7794e9",
+    "semantic_hash": ""
+  },
+  "scratch_tts_ab.mjs": {
+    "mtime": 1784381359.1786127,
+    "ast_hash": "c0c2efa80f25b47407a970424a3ae85e",
+    "semantic_hash": ""
+  },
+  "scratch_tts_probe.mjs": {
+    "mtime": 1784380887.4257815,
+    "ast_hash": "20573408689e7c90438396551e87e73c",
+    "semantic_hash": ""
+  },
+  "scratch_voicetest.mjs": {
+    "mtime": 1784381327.375832,
+    "ast_hash": "dd3b9b468730002294fe1beafa87e3dc",
+    "semantic_hash": ""
+  },
+  "SERVICE_LEDGER.md": {
+    "mtime": 1784382989.9958892,
+    "ast_hash": "0e4fd53e9b2fd378b428c46fc09f21b3",
+    "semantic_hash": ""
+  },
+  "scratch_tts_probe.html": {
+    "mtime": 1784382319.870241,
+    "ast_hash": "0627e18f945a5d3dd00a537f2823f16d",
+    "semantic_hash": ""
+  },
+  "public/tts-probe/el_anna__phrase_hi.mp3": {
+    "mtime": 1784381392.9581213,
+    "ast_hash": "8a6b95d078a41e1d49406d778fdf240d",
+    "semantic_hash": ""
+  },
+  "public/tts-probe/el_anna__vowel_a.mp3": {
+    "mtime": 1784381382.758962,
+    "ast_hash": "ed6c8966693274d698077cfc82dc1a98",
+    "semantic_hash": ""
+  },
+  "public/tts-probe/el_anna__word_hakgyo.mp3": {
+    "mtime": 1784381390.4842744,
+    "ast_hash": "345f05d0e52f5fee3ea38c5fac87b767",
+    "semantic_hash": ""
+  },
+  "public/tts-probe/el_anna__word_oi.mp3": {
+    "mtime": 1784381385.6244993,
+    "ast_hash": "77cfd2c077c468cc46351e34f4179cee",
+    "semantic_hash": ""
+  },
+  "public/tts-probe/el_anna__word_saranghae.mp3": {
+    "mtime": 1784381388.138427,
+    "ast_hash": "06a9b3e13e522ca2d9a29f72935c9f3a",
+    "semantic_hash": ""
+  },
+  "public/tts-probe/el_jiyoung__phrase_hi.mp3": {
+    "mtime": 1784381380.1052148,
+    "ast_hash": "e8a1d3ca419f7bf5f56aea87de64929d",
+    "semantic_hash": ""
+  },
+  "public/tts-probe/el_jiyoung__vowel_a.mp3": {
+    "mtime": 1784381369.5392945,
+    "ast_hash": "b348c2be9ce948b551d62a9ab4afc50c",
+    "semantic_hash": ""
+  },
+  "public/tts-probe/el_jiyoung__word_hakgyo.mp3": {
+    "mtime": 1784381377.6152954,
+    "ast_hash": "cd0c8653e8af99502e60a6f753e67adf",
+    "semantic_hash": ""
+  },
+  "public/tts-probe/el_jiyoung__word_oi.mp3": {
+    "mtime": 1784381371.7295551,
+    "ast_hash": "01dd2c98e7ca48d4f3e2a78618cdb2d4",
+    "semantic_hash": ""
+  },
+  "public/tts-probe/el_jiyoung__word_saranghae.mp3": {
+    "mtime": 1784381374.3261847,
+    "ast_hash": "71a0a738daecc53f879934abc0740ec2",
+    "semantic_hash": ""
+  },
+  "public/tts-probe/minimax__phrase_hi.mp3": {
+    "mtime": 1784381408.2966833,
+    "ast_hash": "36448bf75d6c2eeb006710ddf0048158",
+    "semantic_hash": ""
+  },
+  "public/tts-probe/minimax__vowel_a.mp3": {
+    "mtime": 1784381395.9785752,
+    "ast_hash": "16a194c2bca3ff4d5998d58bfa294827",
+    "semantic_hash": ""
+  },
+  "public/tts-probe/minimax__word_hakgyo.mp3": {
+    "mtime": 1784381404.9508173,
+    "ast_hash": "9f477d07f6cccbf6ae2265915f36820d",
+    "semantic_hash": ""
+  },
+  "public/tts-probe/minimax__word_oi.mp3": {
+    "mtime": 1784381399.018543,
+    "ast_hash": "817797c2fe108c31d93f4f57500d2dcf",
+    "semantic_hash": ""
+  },
+  "public/tts-probe/minimax__word_saranghae.mp3": {
+    "mtime": 1784381401.9804406,
+    "ast_hash": "719cc9647ae5cf1857f7c9c54dec610f",
+    "semantic_hash": ""
+  },
+  "public/tts-probe/mm2_boost_calmlady__hi.mp3": {
+    "mtime": 1784382265.004325,
+    "ast_hash": "14c31ca2b68fa4e4d1a42f527c297a1e",
+    "semantic_hash": ""
+  },
+  "public/tts-probe/mm2_boost_calmlady__oi.mp3": {
+    "mtime": 1784382267.5669343,
+    "ast_hash": "b430067869ee909b147098030b74dbe4",
+    "semantic_hash": ""
+  },
+  "public/tts-probe/mm2_boost_calmlady__saranghae.mp3": {
+    "mtime": 1784382261.9994898,
+    "ast_hash": "1930f9bb0acc02682eea8c6189ab9f8d",
+    "semantic_hash": ""
+  },
+  "public/tts-probe/mm2_boost_sweetgirl__hi.mp3": {
+    "mtime": 1784382253.176452,
+    "ast_hash": "0326589eb8cd9267c3b88a3c97e6894d",
+    "semantic_hash": ""
+  },
+  "public/tts-probe/mm2_boost_sweetgirl__oi.mp3": {
+    "mtime": 1784382255.744398,
+    "ast_hash": "c8df21389c2bd538f06f4034df20da8d",
+    "semantic_hash": ""
+  },
+  "public/tts-probe/mm2_boost_sweetgirl__saranghae.mp3": {
+    "mtime": 1784382250.179986,
+    "ast_hash": "a10151055e77e9167972e509c10f2e0b",
+    "semantic_hash": ""
+  },
+  "public/tts-probe/phrase_hi.mp3": {
+    "mtime": 1784380914.439781,
+    "ast_hash": "8aa6f653711e51a205c912655edb6932",
+    "semantic_hash": ""
+  },
+  "public/tts-probe/vowel_a.mp3": {
+    "mtime": 1784380904.8153317,
+    "ast_hash": "8ec0efd7dc516b971f66e5150a8f2334",
+    "semantic_hash": ""
+  },
+  "public/tts-probe/word_aicucumber.mp3": {
+    "mtime": 1784380907.5467937,
+    "ast_hash": "eb3810c7b36a71344eebdb82260d22c2",
+    "semantic_hash": ""
+  },
+  "public/tts-probe/word_hakgyo.mp3": {
+    "mtime": 1784380911.8829706,
+    "ast_hash": "fa4132ac62f42e6c76eba804a7b15cee",
+    "semantic_hash": ""
+  },
+  "public/tts-probe/word_saranghae.mp3": {
+    "mtime": 1784380909.8067093,
+    "ast_hash": "054c816497e417ddd98cba293e969dad",
     "semantic_hash": ""
   }
 }
