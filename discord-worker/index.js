@@ -167,6 +167,10 @@ const client = new Client({
 
 client.once(Events.ClientReady, (c) => {
   log(`Ready — logged in as ${c.user.tag} (id ${c.user.id})`);
+  // Проактив: айдол пишет первой. Бэкенд генерит и кладёт в outbox — воркер доставляет
+  // через своё Gateway-соединение (bot-token живёт только здесь). И ежечасно будит движок.
+  startOutboxLoop();
+  startProactiveLoop();
 });
 
 client.on(Events.Error, (err) => {
@@ -223,6 +227,73 @@ client.on(Events.MessageCreate, async (message) => {
     }
   }
 });
+
+// ---------------------------------------------------------------------------
+// Proactive: outbox delivery + hourly generation tick
+// ---------------------------------------------------------------------------
+
+// База берётся из INGEST_URL (…/api/bot?…): срезаем query, добавляем свои action-и.
+const API_BASE = INGEST_URL.split('?')[0];
+const OUTBOX_POLL_MS = 90_000; // как часто забираем недоставленные проактивы
+const PROACTIVE_TICK_MS = 60 * 60_000; // как часто будим движок (он сам решает, кому писать)
+
+/** Забрать недоставленные проактивы из outbox и отправить их адресатам DM'ом. */
+async function deliverOutbox() {
+  try {
+    const res = await fetch(`${API_BASE}?action=outbox&platform=discord`, {
+      headers: { 'x-ingest-secret': INGEST_SECRET },
+    });
+    if (!res.ok) { logErr(`outbox poll status ${res.status}`); return; }
+    const data = await res.json().catch(() => ({}));
+    const msgs = data.messages || [];
+    if (msgs.length === 0) return;
+
+    const delivered = [];
+    for (const m of msgs) {
+      try {
+        const user = await client.users.fetch(m.platform_user_id);
+        for (const chunk of chunkMessage(m.content)) await user.send(chunk);
+        delivered.push(m.id);
+        log(`Proactive → ${m.platform_user_id} (${m.content.length} chars)`);
+      } catch (err) {
+        logErr(`Proactive send failed for ${m.platform_user_id}:`, err?.message || err);
+        // не ack'аем — попробуем в следующий цикл (пользователь мог закрыть ЛС и т.п.)
+      }
+    }
+    if (delivered.length > 0) {
+      await fetch(`${API_BASE}?action=outbox-ack`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-ingest-secret': INGEST_SECRET },
+        body: JSON.stringify({ ids: delivered }),
+      }).catch((e) => logErr('outbox-ack failed:', e?.message || e));
+    }
+  } catch (err) {
+    logErr('deliverOutbox error:', err?.message || err);
+  }
+}
+
+/** Разбудить бэкенд-движок проактива (он сам решит по неактивности/стрику, кому написать). */
+async function proactiveTick() {
+  try {
+    const res = await fetch(`${API_BASE}?action=proactive-tick`, {
+      method: 'POST',
+      headers: { 'x-ingest-secret': INGEST_SECRET },
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok) log(`Proactive tick: ${data.count ?? 0} scanned, enqueued/sent`);
+    else logErr(`Proactive tick status ${res.status}:`, JSON.stringify(data));
+  } catch (err) {
+    logErr('proactiveTick error:', err?.message || err);
+  }
+}
+
+function startOutboxLoop() {
+  deliverOutbox(); // первый прогон сразу, дальше по таймеру
+  setInterval(deliverOutbox, OUTBOX_POLL_MS);
+}
+function startProactiveLoop() {
+  setInterval(proactiveTick, PROACTIVE_TICK_MS); // первый тик через час — старт без спама
+}
 
 // ---------------------------------------------------------------------------
 // Process-level safety nets

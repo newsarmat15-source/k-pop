@@ -10,11 +10,16 @@
 import { createHmac, timingSafeEqual, randomBytes } from "crypto";
 import { supabase } from "../lib/supabase.js";
 import { readUserId } from "../lib/session.js";
-import { ownIdolByUser, resolveLinkedIdol, generateReply } from "../lib/reply.js";
+import { ownIdolByUser, resolveLinkedIdol, generateReply, generateProactive, idolById } from "../lib/reply.js";
 
-export const config = { api: { bodyParser: false } };
+export const config = { api: { bodyParser: false }, maxDuration: 60 };
 
 const APP_URL = process.env.APP_URL || "https://k-pop-black.vercel.app";
+
+// Проактив: кап и пороги (часы). Правятся env при желании.
+const PROACTIVE_CAP_H = parseInt(process.env.PROACTIVE_CAP_H || "20", 10); // не чаще 1 раза в N ч на айдола
+const REENGAGE_H = parseInt(process.env.PROACTIVE_REENGAGE_H || "48", 10); // «скучала» после N ч тишины
+const STREAK_H = parseInt(process.env.PROACTIVE_STREAK_H || "16", 10); // спасти стрик после N ч тишины
 
 function readRaw(req) {
   return new Promise((resolve, reject) => {
@@ -134,6 +139,144 @@ async function tryConsumeToken(db, platform, platformUserId, code) {
   return true;
 }
 
+// ── ПРОАКТИВ: айдол пишет первой ──────────────────────────────────────────────
+// Тик вызывается планировщиком на VPS (ежечасно) с секретом. Сканирует привязанные
+// аккаунты, решает по неактивности/стрику, кому написать, генерит опенер и ставит в доставку.
+// LINE → прямой push; Discord/Telegram → outbox (воркер поллит). TZ пока не учитываем —
+// триггеры по неактивности сами разнесены во времени, кап 1/сутки страхует от спама.
+async function linePush(userId, text) {
+  const token = process.env.LINE_CHANNEL_ACCESS_TOKEN;
+  if (!token) return false; // не провижинили LINE — вернём false, ляжет в outbox как фолбэк
+  const r = await fetch("https://api.line.me/v2/bot/message/push", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ to: userId, messages: [{ type: "text", text: text.slice(0, 4900) }] }),
+  });
+  return r.ok;
+}
+
+async function lastOwnerActivity(db, idolId) {
+  const { data } = await db
+    .from("chat_messages")
+    .select("created_at")
+    .eq("idol_id", idolId)
+    .eq("sender", "owner")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return data?.created_at ? new Date(data.created_at).getTime() : null;
+}
+
+// Решаем повод написать (или null). Чистая функция — легко тестировать/дай-ранить.
+function decideReason({ nowMs, lastOwnerMs, lastProactiveMs, studyStreak, lastStudyDate }) {
+  if (lastOwnerMs == null) return null; // ни разу не писал — не «холодим» незнакомца
+  if (lastProactiveMs != null && nowMs - lastProactiveMs < PROACTIVE_CAP_H * 3600e3) return null; // кап
+  const hoursOwner = (nowMs - lastOwnerMs) / 3600e3;
+  const today = new Date(nowMs).toISOString().slice(0, 10);
+  if (hoursOwner >= REENGAGE_H) return "reengage";
+  if (studyStreak > 0 && lastStudyDate && lastStudyDate < today && hoursOwner >= STREAK_H) return "streak";
+  return null;
+}
+
+// force — тестовый/демо-путь: минуя пороги и кап, шлёт заданный повод (по умолчанию reengage).
+// only — ограничить одним idol_id. Оба секрет-gated (вызов только с INGEST_SECRET).
+async function runProactiveTick(db, { dry = false, force = false, forceReason = "reengage", only = null } = {}) {
+  const nowMs = Date.now();
+  let q = db.from("linked_accounts").select("platform,platform_user_id,idol_id,lang");
+  if (only) q = q.eq("idol_id", only);
+  const { data: links, error } = await q;
+  if (error) throw new Error(error.message);
+
+  const results = [];
+  for (const la of links || []) {
+    const { data: ts } = await db
+      .from("training_stats")
+      .select("study_streak,last_study_date,last_proactive_at")
+      .eq("idol_id", la.idol_id)
+      .maybeSingle();
+    const lastOwnerMs = await lastOwnerActivity(db, la.idol_id);
+    const reason = force
+      ? forceReason
+      : decideReason({
+          nowMs,
+          lastOwnerMs,
+          lastProactiveMs: ts?.last_proactive_at ? new Date(ts.last_proactive_at).getTime() : null,
+          studyStreak: ts?.study_streak || 0,
+          lastStudyDate: ts?.last_study_date || null,
+        });
+    if (!reason) { results.push({ idol_id: la.idol_id, platform: la.platform, skipped: true }); continue; }
+    if (dry) { results.push({ idol_id: la.idol_id, platform: la.platform, reason, dry: true }); continue; }
+
+    const idol = await idolById(db, la.idol_id);
+    if (!idol) { results.push({ idol_id: la.idol_id, error: "no idol" }); continue; }
+    idol.study_streak = ts?.study_streak || 0;
+
+    const out = await generateProactive({ db, idol, lang: la.lang, reason, channel: la.platform });
+    if (out.error) { results.push({ idol_id: la.idol_id, reason, error: out.error }); continue; }
+    const text = out.reply.content;
+
+    // Доставка: LINE напрямую, иначе в outbox (воркер заберёт).
+    let delivered = false;
+    if (la.platform === "line") delivered = await linePush(la.platform_user_id, text);
+    if (!delivered) {
+      await db.from("outbox").insert({
+        platform: la.platform, platform_user_id: la.platform_user_id,
+        idol_id: la.idol_id, content: text, reason,
+      });
+    }
+    // Кап: помечаем время последнего проактива.
+    await db.from("training_stats").update({ last_proactive_at: new Date(nowMs).toISOString() }).eq("idol_id", la.idol_id);
+    results.push({ idol_id: la.idol_id, platform: la.platform, reason, delivered: delivered ? "push" : "outbox" });
+  }
+  return results;
+}
+
+async function proactiveTick(req, res) {
+  if (req.headers["x-ingest-secret"] !== process.env.INGEST_SECRET || !process.env.INGEST_SECRET) {
+    return res.status(401).json({ error: "unauthorized" });
+  }
+  const dry = req.query.dry === "1";
+  const force = req.query.force === "1";
+  const forceReason = req.query.reason || "reengage";
+  const only = req.query.only || null;
+  const results = await runProactiveTick(supabase(), { dry, force, forceReason, only });
+  const sent = results.filter((r) => r.delivered).length;
+  return res.status(200).json({ ok: true, dry, sent, count: results.length, results });
+}
+
+// ── OUTBOX: воркер без прямого пуша забирает недоставленные проактивы ──────────
+async function outboxPending(req, res) {
+  if (req.headers["x-ingest-secret"] !== process.env.INGEST_SECRET || !process.env.INGEST_SECRET) {
+    return res.status(401).json({ error: "unauthorized" });
+  }
+  const platform = req.query.platform;
+  if (!["discord", "telegram"].includes(platform)) return res.status(400).json({ error: "bad platform" });
+  const db = supabase();
+  const { data, error } = await db
+    .from("outbox")
+    .select("id,platform_user_id,content")
+    .eq("platform", platform)
+    .is("delivered_at", null)
+    .order("created_at", { ascending: true })
+    .limit(20);
+  if (error) return res.status(500).json({ error: error.message });
+  return res.status(200).json({ ok: true, messages: data || [] });
+}
+
+async function outboxAck(req, res) {
+  if (req.headers["x-ingest-secret"] !== process.env.INGEST_SECRET || !process.env.INGEST_SECRET) {
+    return res.status(401).json({ error: "unauthorized" });
+  }
+  const raw = await readRaw(req);
+  let ids = [];
+  try { ids = JSON.parse(raw || "{}").ids || []; } catch {}
+  if (!Array.isArray(ids) || !ids.length) return res.status(400).json({ error: "no ids" });
+  const db = supabase();
+  const { error } = await db.from("outbox").update({ delivered_at: new Date().toISOString() }).in("id", ids);
+  if (error) return res.status(500).json({ error: error.message });
+  return res.status(200).json({ ok: true, acked: ids.length });
+}
+
 // ── Генерация кода привязки для deep-link каналов (LINE/Telegram) ──────────────
 async function createLinkToken(req, res) {
   const uid = readUserId(req);
@@ -231,6 +374,9 @@ export default async function handler(req, res) {
   try {
     if (platform === "line" && req.method === "POST" && !action) return await lineWebhook(req, res);
     if (action === "ingest" && req.method === "POST") return await ingest(req, res);
+    if (action === "proactive-tick" && req.method === "POST") return await proactiveTick(req, res);
+    if (action === "outbox" && req.method === "GET") return await outboxPending(req, res);
+    if (action === "outbox-ack" && req.method === "POST") return await outboxAck(req, res);
     if (action === "discord-oauth") return await discordOauth(req, res);
     if (action === "link-token" && req.method === "POST") return await createLinkToken(req, res);
     if (action === "links") return await listLinks(req, res);
