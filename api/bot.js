@@ -117,6 +117,12 @@ async function routeIncoming(db, platform, platformUserId, text) {
   return `안녕! Сначала свяжи аккаунт: открой приложение Idolingo → своего айдола → «Подключить мессенджер», получи код и пришли его мне сюда. ${APP_URL}`;
 }
 
+// При первой привязке делаем этот канал основным для проактива (пуши идут ровно в один).
+// Если primary уже выбран (не 'web') — не перебиваем: юзер уже «переехал» куда-то.
+async function setPrimaryChannel(db, idolId, platform) {
+  await db.from("training_stats").update({ primary_channel: platform }).eq("idol_id", idolId).eq("primary_channel", "web");
+}
+
 // Одноразовый код привязки: сверяем присланный текст с невыгоревшим link_tokens.
 async function tryConsumeToken(db, platform, platformUserId, code) {
   if (!/^[A-Z0-9]{6,10}$/.test(code)) return false;
@@ -136,6 +142,7 @@ async function tryConsumeToken(db, platform, platformUserId, code) {
   );
   if (error) { console.error("[link]", error.message); return false; }
   await db.from("link_tokens").update({ used_at: new Date().toISOString() }).eq("token", code);
+  await setPrimaryChannel(db, tok.idol_id, platform);
   return true;
 }
 
@@ -191,9 +198,13 @@ async function runProactiveTick(db, { dry = false, force = false, forceReason = 
   for (const la of links || []) {
     const { data: ts } = await db
       .from("training_stats")
-      .select("study_streak,last_study_date,last_proactive_at")
+      .select("study_streak,last_study_date,last_proactive_at,primary_channel")
       .eq("idol_id", la.idol_id)
       .maybeSingle();
+    // Ровно ОДИН канал на юзера: шлём только в primary. Если primary ещё 'web'
+    // (привязка до этой миграции) — берём платформу самой привязки как основную.
+    const primary = ts?.primary_channel && ts.primary_channel !== "web" ? ts.primary_channel : la.platform;
+    if (la.platform !== primary) { results.push({ idol_id: la.idol_id, platform: la.platform, skipped: "not-primary" }); continue; }
     const lastOwnerMs = await lastOwnerActivity(db, la.idol_id);
     const reason = force
       ? forceReason
@@ -335,6 +346,7 @@ async function discordOauth(req, res) {
       { onConflict: "platform,platform_user_id" }
     );
     await db.from("link_tokens").update({ used_at: new Date().toISOString() }).eq("token", state);
+    await setPrimaryChannel(db, tok.idol_id, "discord");
     return res.redirect(302, `${APP_URL}/?link=discord_ok`);
   }
 
