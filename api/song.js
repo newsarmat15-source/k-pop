@@ -86,14 +86,22 @@ async function annotate(lines) {
     `\n\nReturn ONLY JSON of this exact shape:\n` +
     `{"lines":[{"i":0,"rom":"<Revised romanization of the whole line>","tr":{"ru":"<short Russian translation>","en":"<short English translation>"},"w":[{"k":"<korean word>","r":"<rom>","ru":"<1-2 word Russian>","en":"<1-2 word English>"}]}]}\n` +
     `Rules: one object per input line, same index. Split each line into meaningful words (keep particles attached to their word). Revised Romanization. JSON only.`;
-  const r = await fetch("https://fal.run/fal-ai/any-llm", {
+  // 21.07: any-llm deprecated → OpenRouter chat-completions (OpenAI-совместимый, тот же FAL_KEY).
+  const r = await fetch("https://fal.run/openrouter/router/openai/v1/chat/completions", {
     method: "POST",
     headers: { Authorization: `Key ${key}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ model: MODEL, system_prompt: system, prompt }),
+    body: JSON.stringify({
+      model: MODEL,
+      messages: [
+        { role: "system", content: system },
+        { role: "user", content: prompt },
+      ],
+      temperature: 0,
+    }),
   });
   const d = await r.json().catch(() => ({}));
-  if (!r.ok || d.error) throw new Error(d.error || `fal ${r.status}`);
-  let out = (d.output || "").trim().replace(/^```json?/i, "").replace(/```$/, "").trim();
+  if (!r.ok || d.error) throw new Error(d.error?.message || d.error || `fal ${r.status}`);
+  let out = (d.choices?.[0]?.message?.content || "").trim().replace(/^```json?/i, "").replace(/```$/, "").trim();
   const m = out.match(/\{[\s\S]*\}/);
   const parsed = JSON.parse(m ? m[0] : out);
   return parsed.lines || [];
