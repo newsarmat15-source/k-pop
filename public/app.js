@@ -1239,6 +1239,7 @@ async function openConnect(){
     <div class="connect-rows">
       <button class="connect-row" onclick="connectDiscord()"><span class="cr-ic">🎮</span><b>Discord</b><small>${t('connect_discord_sub')}</small></button>
       <button class="connect-row" onclick="connectCode('line')"><span class="cr-ic">💬</span><b>LINE</b><small>${t('connect_line_sub')}</small></button>
+      <button class="connect-row" onclick="connectCode('telegram')"><span class="cr-ic">✈️</span><b>Telegram</b><small>${t('connect_telegram_sub')}</small></button>
     </div>
     <div id="connectResult"></div>`;
   document.getElementById('connectOv').classList.add('show');
@@ -1259,9 +1260,15 @@ async function connectCode(platform){
   const res=document.getElementById('connectResult');
   res.innerHTML=`<div class="connect-loading">…</div>`;
   try{
-    const r=await fetch('/api/bot?action=link-token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lang:getLang()})});
+    const r=await fetch('/api/bot?action=link-token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lang:getLang(),platform})});
     const d=await r.json();
     if(!r.ok||!d.code){res.innerHTML=`<div class="connect-err">${d.error||'Ошибка'}</div>`;return}
+    // Telegram отдаёт готовый deep-link — привязка в один тап, код вводить не нужно.
+    if(d.deeplink){
+      res.innerHTML=`<div class="connect-code-box"><a class="ccb-link" href="${d.deeplink}" target="_blank" rel="noopener">${t('connect_open')}</a></div>`;
+      window.open(d.deeplink,'_blank','noopener');
+      return;
+    }
     res.innerHTML=`<div class="connect-code-box">
       <div class="ccb-step">${t('connect_step1')}</div>
       <div class="ccb-code">${d.code}</div>
@@ -1810,7 +1817,8 @@ const T={
     connect_link:"💬 Chat with your idol in a messenger →",
     connect_h:"Chat in your messenger", connect_sub:"Same conversation, one more window. Reply to your idol from your favorite app — lessons and your notebook stay here.",
     connect_discord_sub:"one tap, no server needed", connect_line_sub:"Japan · Taiwan · Thailand",
-    connect_active:"Connected", connect_step1:"1. Add the Idolingo bot and send it this code:", connect_step2:"2. Done — keep chatting right there. It's the same thread.",
+    connect_telegram_sub:"one tap · opens Telegram",
+    connect_active:"Connected", connect_open:"Open Telegram →", connect_step1:"1. Add the Idolingo bot and send it this code:", connect_step2:"2. Done — keep chatting right there. It's the same thread.",
     link_ok:"Discord connected 🎉 Open a DM with the bot and say hi!", link_fail:"Couldn't connect Discord — try again", link_login:"Log in first", link_noidol:"Get an idol first",
     chat_title:n=>`Lesson with ${n}`, chat_ph:"Answer or ask in Korean…",
     chat_loading:"Loading chat…", chat_first:"Say hi first — your idol will reply 💛", chat_need_idol:"Get an idol first.", chat_err:"Idol didn't reply", chat_net:"Network unavailable",
@@ -1842,7 +1850,8 @@ const T={
     connect_link:"💬 Общайся с айдолом в мессенджере →",
     connect_h:"Общение в мессенджере", connect_sub:"Тот же разговор — просто ещё одно окно. Отвечай айдолу в удобном приложении, а уроки и тетрадь остаются здесь.",
     connect_discord_sub:"одна кнопка, сервер не нужен", connect_line_sub:"Япония · Тайвань · Таиланд",
-    connect_active:"Подключено", connect_step1:"1. Добавь бота Idolingo и пришли ему этот код:", connect_step2:"2. Готово — продолжай прямо там. Это тот же тред.",
+    connect_telegram_sub:"один тап · откроется Telegram",
+    connect_active:"Подключено", connect_open:"Открыть Telegram →", connect_step1:"1. Добавь бота Idolingo и пришли ему этот код:", connect_step2:"2. Готово — продолжай прямо там. Это тот же тред.",
     link_ok:"Discord подключён 🎉 Открой личку с ботом и напиши ему!", link_fail:"Не удалось подключить Discord — попробуй ещё раз", link_login:"Сначала войди", link_noidol:"Сначала заведи айдола",
     chat_title:n=>`Урок с ${n}`, chat_ph:"Ответь или спроси по-корейски…",
     chat_loading:"Загружаю переписку…", chat_first:"Напиши первым — твой айдол ответит 💛", chat_need_idol:"Сначала заведи айдола.", chat_err:"Айдол не ответил", chat_net:"Сеть недоступна",

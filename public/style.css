@@ -216,6 +216,9 @@ main{display:none}main.show{display:block}
 .connect-code-box{margin-top:16px;text-align:center}
 .ccb-step{font-size:13px;color:var(--muted,#a99cc0);line-height:1.4;margin:8px 0}
 .ccb-code{font-family:var(--f-tech,monospace);font-size:30px;font-weight:700;letter-spacing:.24em;color:var(--gold);padding:12px;border:1px dashed var(--gold);background:rgba(217,164,65,.06);margin:6px auto;display:inline-block}
+/* Telegram: привязка одним тапом — deep-link вместо ручного кода. */
+.ccb-link{display:inline-block;margin:8px auto;padding:12px 22px;border-radius:10px;background:var(--gold);color:#1a1420;font-weight:700;font-size:15px;text-decoration:none}
+.ccb-link:hover{filter:brightness(1.08)}
 .idol-bio-ro{font-size:13px;color:var(--muted,#a99cc0);margin-top:8px}
 .closeness{background:var(--glass,rgba(52,38,78,.42));border:1px solid var(--line);padding:16px;backdrop-filter:blur(8px)}
 .close-h{font-size:13px;font-weight:700;color:var(--accent,#e8a9c9)}

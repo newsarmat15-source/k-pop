@@ -75,6 +75,54 @@ async function lineWebhook(req, res) {
   return res.status(200).json({ ok: true });
 }
 
+// ── TELEGRAM ────────────────────────────────────────────────────────────────
+// Вебхук на Vercel = уже 24/7, хост не нужен (как LINE). Бэкенд шлёт напрямую
+// через sendMessage, поэтому Telegram НЕ нуждается в outbox/воркере.
+// Привязка — deep-link https://t.me/<bot>?start=<token> → приходит "/start <token>".
+async function telegramSend(chatId, text) {
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  if (!token) return false;
+  const r = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ chat_id: chatId, text: String(text).slice(0, 4000) }),
+  });
+  return r.ok;
+}
+
+async function telegramWebhook(req, res) {
+  // Telegram шлёт заданный при setWebhook секрет заголовком — защита от чужих запросов.
+  const secret = process.env.TELEGRAM_WEBHOOK_SECRET;
+  if (secret && req.headers["x-telegram-bot-api-secret-token"] !== secret) {
+    return res.status(401).json({ error: "bad secret" });
+  }
+  const raw = await readRaw(req);
+  let body;
+  try { body = JSON.parse(raw); } catch { return res.status(200).json({ ok: true }); }
+
+  const msg = body.message || body.edited_message;
+  const chatId = msg?.chat?.id;
+  let text = msg?.text || "";
+  if (!chatId || !text) return res.status(200).json({ ok: true });
+
+  // Deep-link: "/start ABC12345" → достаём код привязки; голый "/start" отдаём как есть
+  // (routeIncoming ответит инструкцией, как связать аккаунт).
+  if (text.startsWith("/start")) {
+    const payload = text.slice("/start".length).trim();
+    if (payload) text = payload;
+  }
+
+  const db = supabase();
+  try {
+    const reply = await routeIncoming(db, "telegram", chatId, text);
+    await telegramSend(chatId, reply);
+  } catch (e) {
+    console.error("[telegram]", String(e?.message || e));
+    try { await telegramSend(chatId, "Секунду, что-то пошло не так — попробуй ещё раз 🥲"); } catch {}
+  }
+  return res.status(200).json({ ok: true });
+}
+
 // ── INGEST (Discord-воркер и любой транспорт без вебхука) ─────────────────────
 async function ingest(req, res) {
   const secret = process.env.INGEST_SECRET;
@@ -226,9 +274,11 @@ async function runProactiveTick(db, { dry = false, force = false, forceReason = 
     if (out.error) { results.push({ idol_id: la.idol_id, reason, error: out.error }); continue; }
     const text = out.reply.content;
 
-    // Доставка: LINE напрямую, иначе в outbox (воркер заберёт).
+    // Доставка: LINE/Telegram — прямой пуш с бэкенда (у них вебхук, хост не нужен).
+    // Discord — в outbox: bot-token живёт только на VPS-воркере, он и доставит.
     let delivered = false;
     if (la.platform === "line") delivered = await linePush(la.platform_user_id, text);
+    else if (la.platform === "telegram") delivered = await telegramSend(la.platform_user_id, text);
     if (!delivered) {
       await db.from("outbox").insert({
         platform: la.platform, platform_user_id: la.platform_user_id,
@@ -294,16 +344,25 @@ async function createLinkToken(req, res) {
   if (!uid) return res.status(401).json({ error: "Нужно войти" });
   const raw = await readRaw(req);
   let lang = "en";
-  try { lang = (JSON.parse(raw || "{}").lang) || "en"; } catch {}
+  let platform = null;
+  try {
+    const b = JSON.parse(raw || "{}");
+    lang = b.lang || "en";
+    platform = b.platform || null;
+  } catch {}
 
   const db = supabase();
   const idol = await ownIdolByUser(db, uid);
   if (!idol) return res.status(400).json({ error: "У тебя ещё нет айдола" });
 
   const code = randomBytes(4).toString("hex").toUpperCase().slice(0, 8); // 8-символьный код
-  const { error } = await db.from("link_tokens").insert({ token: code, profile_id: uid, idol_id: idol.id, lang });
+  const { error } = await db.from("link_tokens").insert({ token: code, profile_id: uid, idol_id: idol.id, lang, platform });
   if (error) return res.status(500).json({ error: error.message });
-  return res.status(200).json({ ok: true, code });
+
+  // Telegram умеет deep-link: одна ссылка вместо ручного ввода кода.
+  const tgUser = process.env.TELEGRAM_BOT_USERNAME;
+  const deeplink = platform === "telegram" && tgUser ? `https://t.me/${tgUser}?start=${code}` : null;
+  return res.status(200).json({ ok: true, code, deeplink });
 }
 
 // ── Discord OAuth: старт (нет code) → редирект; колбэк (есть code) → привязка ──
@@ -385,6 +444,7 @@ export default async function handler(req, res) {
   const { action, platform } = req.query;
   try {
     if (platform === "line" && req.method === "POST" && !action) return await lineWebhook(req, res);
+    if (platform === "telegram" && req.method === "POST" && !action) return await telegramWebhook(req, res);
     if (action === "ingest" && req.method === "POST") return await ingest(req, res);
     if (action === "proactive-tick" && req.method === "POST") return await proactiveTick(req, res);
     if (action === "outbox" && req.method === "GET") return await outboxPending(req, res);
