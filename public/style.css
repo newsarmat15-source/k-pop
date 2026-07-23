@@ -30,17 +30,36 @@ img,iframe,video{max-width:100%}
 .wrap{max-width:1120px;margin:0 auto;padding:0 20px}
 header{position:sticky;top:0;z-index:40;backdrop-filter:blur(14px);background:rgba(21,15,30,.82);border-bottom:1px solid var(--line)}
 .hbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;min-height:60px;padding-block:10px}
-/* ЗНАК БРЕНДА, 23.07. Требование основателя: логотип-леттеринг, значок равен названию —
-   отдельной иконки нет и не будет. Прежний вариант заливал «ingo» бегущей холо-заливкой,
-   вырезанной по контуру букв. Три проблемы разом: правило gradient-text у детектора
-   (AI-tell), бесконечная анимация и знак, который в монохроме и в вывороте исчезает.
-   Заменено на выворотку: «Idol» — чернила, «ingo» — плашка --accent2 с тёмным текстом.
-   Знак остаётся леттерингом, читается на любом фоне, живёт в один цвет, масштабируется
-   до favicon, контраст текста в плашке 12.48:1. Возврат к прежнему варианту — в git. */
+/* ЗНАК БРЕНДА, вариант A, 24.07. Требование основателя: логотип-леттеринг, значок равен
+   названию. Две предыдущие попытки отклонены: холо-заливка по контуру букв (AI-tell плюс
+   вечная анимация) и кремовая плашка под «ingo» (читалась как текст, случайно выделенный
+   маркером, и без плашки не оставалось знака).
+
+   Здесь знак делает сама буква. В имени Idolingo шов «Idol» плюс «lingo» приходится на
+   общую «l». В корейском ㄹ (риыль) — это и есть буква l/r, причём в конечной позиции
+   слога она читается именно как l, то есть «Idol» = «Ido» плюс ㄹ буквально верно.
+   Поэтому шовная «l» получает горизонтальный вылет-подошву, снятый с ㄹ: слово по-прежнему
+   читается «Idolingo», но одна буква в нём — кастомная и корейская по происхождению.
+   Это ровно механика Duolingo, где хвостик у «g» повторяет бровь маскота
+   (design.duolingo.com/identity/logos).
+
+   Иконка вкладки — целая ㄹ, отрисованная прямоугольниками в SVG (см. index.html), поэтому
+   не зависит ни от какого шрифта. Замерено: различима в 16 px в цвете, в монохроме и на
+   белом. Плашки нет, знак живёт в один цвет и в вывороте.
+
+   Почему описательный, а не абстрактная первая буква: у незнакомых брендов описательный
+   знак заметно повышает оценку бренда, и эффект затухает по мере узнаваемости
+   [Luffarelli, Mukesh, Mahmood, Journal of Marketing Research 56(5), октябрь 2019,
+   шесть исследований и разбор 597 знаков]. Idolingo сейчас не знает никто. */
 .logo{font-family:var(--f-display);font-weight:900;letter-spacing:.2em;font-size:15px;
   display:inline-flex;align-items:center;color:var(--ink)}
-.logo b{background:var(--accent2);color:#241436;padding:3px 7px 2px 8px;margin-left:3px;
-  letter-spacing:.18em;font-weight:900}
+.logo b{position:relative;display:inline-block;font-weight:900;padding-right:.24em;line-height:1}
+/* Подошва риыля: горизонтальный вылет вправо от стойки «l». Смещение .20em подобрано
+   замером, а не на глаз: прогон семи значений от 0 до .24em в 15 px и в 44 px
+   (review/design-23-07/logo/tune-offsets.png), на .20em вылет садится ровно на базовую
+   линию соседних букв, на .24em уже наползает на стойку. */
+.logo b::after{content:"";position:absolute;left:0;bottom:.20em;width:.40em;height:.135em;
+  background:currentColor}
 @keyframes holoshift{0%{background-position:0% 50%}100%{background-position:300% 50%}}
 .ai-badge{display:inline-flex;align-items:center;gap:4px;font-family:var(--f-tech);font-size:8.5px;letter-spacing:.14em;
   font-weight:500;padding:3px 8px 2px;color:#241436;flex:none;

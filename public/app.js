@@ -3917,7 +3917,8 @@ function markPartialLangs(){
     [...s.options].forEach(o=>{
       const tag=LANG_TAG[o.value];
       if(!tag||o.dataset.langTag==='1')return;
-      o.textContent=o.textContent+' '+tag;
+      // Перед полноширинной скобкой пробел не ставится — так пишут по-японски и по-китайски.
+      o.textContent=o.textContent+(tag[0]==='（'?'':' ')+tag;
       o.dataset.langTag='1';
     });
   });

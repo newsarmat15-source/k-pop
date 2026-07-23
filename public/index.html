@@ -4,6 +4,15 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Idolingo — учи корейский с AI-айдолом</title>
+<!-- Иконка вкладки, 24.07. До этого её не было вовсе — вкладка показывала пустой лист.
+     Это вторая половина знака: ㄹ, корейская буква l/r, та самая, на которой сходится шов
+     «Idol» плюс «lingo». Отрисована прямоугольниками, а не текстом, поэтому не зависит от
+     наличия корейского шрифта у зрителя. Замерено: различима в 16 px в цвете, в монохроме
+     и на белом фоне (review/design-23-07/logo/A-favicon.png). 476 байт, отдельного запроса
+     не делает. Цвет #ffe9a8 на #150f1e — 15.62:1, при рекомендованных для знаков 18:1
+     и трёх самых разборчивых сочетаниях, где первое — жёлтое на чёрном
+     [Ko, Applied Ergonomics vol. 65, ноябрь 2017]. -->
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iIzE1MGYxZSIvPjxnIGZpbGw9IiNmZmU5YTgiPjxyZWN0IHg9IjE0IiB5PSIxNiIgd2lkdGg9IjcyIiBoZWlnaHQ9IjE1Ii8+PHJlY3QgeD0iNzEiIHk9IjE2IiB3aWR0aD0iMTUiIGhlaWdodD0iMzQiLz48cmVjdCB4PSIxNCIgeT0iNDMiIHdpZHRoPSI3MiIgaGVpZ2h0PSIxNSIvPjxyZWN0IHg9IjE0IiB5PSI0MyIgd2lkdGg9IjE1IiBoZWlnaHQ9IjQxIi8+PHJlY3QgeD0iMTQiIHk9IjY5IiB3aWR0aD0iNzIiIGhlaWdodD0iMTUiLz48L2c+PC9zdmc+">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,800;1,500;1,600;1,800&family=Unbounded:wght@300;500;700;900&family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
@@ -22,7 +31,7 @@
 </head>
 <body>
 <header><div class="wrap hbar">
-  <div class="logo" id="logoHome" role="button" tabindex="0" onclick="goHome()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();goHome()}">Idol<b>ingo</b></div>
+  <div class="logo" id="logoHome" role="button" tabindex="0" onclick="goHome()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();goHome()}">Ido<b>l</b>ingo</div>
   <div class="navtabs">
     <button class="navtab" data-view="cabinet-own">Гримёрка</button>
     <button class="navtab" data-view="roster">Айдолы</button>
