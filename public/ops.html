@@ -62,6 +62,28 @@ main{padding:14px 14px 0;max-width:760px;margin:0 auto}
 .chip.st-saved{background:#3A2A10;color:var(--warn)}
 .chip.st-queued{background:#12283F;color:var(--blue)}
 .chip.st-done{background:#102E24;color:var(--ok)}
+/* исполнение — крупнее остальных чипов, это первое, что надо видеть */
+.pg{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;
+  padding:4px 10px;border-radius:999px;background:#1B2436;color:var(--muted)}
+.pg.doing{background:#12283F;color:var(--blue)}
+.pg.done{background:#102E24;color:var(--ok)}
+.pg.partial{background:#3A2A10;color:var(--warn)}
+.pg.dropped{background:#241A1A;color:#B08C8C}
+.report{
+  margin-top:9px;padding:9px 11px;border-left:3px solid var(--gold);
+  background:#0E1322;border-radius:0 10px 10px 0;font-size:13.5px;white-space:pre-wrap
+}
+.report .lbl{display:block;font-size:11px;font-weight:700;color:var(--gold);
+  letter-spacing:.4px;text-transform:uppercase;margin-bottom:3px}
+.fieldlbl{display:block;font-size:11px;font-weight:700;color:var(--muted);
+  letter-spacing:.4px;text-transform:uppercase;margin-top:12px}
+details.help{background:var(--card);border:1px solid var(--bd);border-radius:var(--r);
+  padding:11px 13px;margin-bottom:12px;font-size:13.5px;color:var(--muted)}
+details.help summary{cursor:pointer;color:var(--fg);font-weight:600;font-size:14px;list-style:none}
+details.help summary::-webkit-details-marker{display:none}
+details.help summary:before{content:"？ ";color:var(--gold)}
+details.help p{margin:9px 0 0}
+details.help b{color:var(--fg)}
 .chip.own{background:#1A2033;color:#A5B4FC}
 textarea{
   width:100%; margin-top:10px; background:var(--card2); color:var(--fg);
@@ -192,22 +214,44 @@ async function load(manual){
 }
 
 function statusChip(s){
-  if (s==="saved")  return '<span class="chip st-saved">сохранено, не применено</span>';
-  if (s==="queued") return '<span class="chip st-queued">отдано в работу</span>';
-  if (s==="done")   return '<span class="chip st-done">готово</span>';
+  if (s==="saved")  return '<span class="chip st-saved">правка сохранена, не применена</span>';
+  if (s==="queued") return '<span class="chip st-queued">правка отдана в работу</span>';
   return "";
 }
 
+const PG = {
+  none:    "не начато",
+  doing:   "в работе",
+  done:    "выполнено полностью",
+  partial: "выполнено частично",
+  dropped: "снято",
+};
+function pgChip(p){ return `<span class="pg ${p}">${PG[p] || PG.none}</span>`; }
+
+const HELP = `<details class="help"><summary>Как этим пользоваться</summary>
+<p><b>Верхняя плашка карточки</b> — исполнение. «не начато» / «в работе» /
+«выполнено полностью» / «выполнено частично» / «снято». Ставлю я, не ты.</p>
+<p><b>Золотой блок «Отчёт»</b> — мой ответ словами: что сделано, что не сделано
+и почему. Если пункт закрыт частично — там написано, чего не хватило.</p>
+<p><b>Поле внизу</b> — твоё. Пиши решение, команду или замечание.
+Оно не для отчёта, оно для того, что ты хочешь мне сказать по этому пункту.</p>
+<p><b>«Сохранить»</b> — правка легла в базу и ждёт. Можно набивать хоть десять
+пунктов, ничего не потеряется.</p>
+<p><b>«Применить всё»</b> внизу экрана — отдаёт все сохранённые правки одной
+пачкой, чтобы взаимозависимые уехали вместе и я сам выбрал порядок.</p>
+<p><b>✓ справа в карточке</b> — закрыть пункт своей рукой, если решил или
+сделал сам.</p></details>`;
+
 function render(){
   const counts = {};
-  for (const t of TABS) counts[t.k] = items.filter(i => i.kind===t.k && i.status!=="done" && i.status!=="dropped").length;
+  for (const t of TABS) counts[t.k] = items.filter(i => i.kind===t.k && i.progress!=="done" && i.progress!=="dropped").length;
   $("nav").innerHTML = TABS.map(t =>
     `<button class="${t.k===tab?"on":""}" onclick="go('${t.k}')">${t.t}${counts[t.k]?`<b>${counts[t.k]}</b>`:""}</button>`
   ).join("");
 
   const list = items.filter(i => i.kind===tab).sort((a,b)=> (a.sort-b.sort) || a.created_at.localeCompare(b.created_at));
   const meta = TABS.find(t=>t.k===tab);
-  let html = `<p class="hint">${meta.hint}</p>`;
+  let html = `<p class="hint">${meta.hint}</p>` + HELP;
   if (tab === "fix") html += `<button class="addbtn" onclick="addItem()">+ Новый пункт</button>`;
   html += list.length ? list.map(cardHtml).join("") : `<div class="empty">Пусто.</div>`;
   $("main").innerHTML = html;
@@ -228,22 +272,26 @@ function cardHtml(i){
   const val = d !== undefined ? d : (i.draft || "");
   const changed = d !== undefined && d !== (i.draft || "");
   const ph = i.kind === "agent" ? "Задание или замечание агенту…"
-           : i.kind === "today" ? "Что не так с этой целью…"
+           : i.kind === "today" ? "Твоё решение по этой цели…"
            : "Что поменять, как должно быть…";
+  const pg = i.progress || "none";
   return `
-  <div class="card ${i.status}">
+  <div class="card ${i.status} ${pg==="done"?"done":""}">
     <div class="top">
       <div class="ttl">${esc(i.title)}</div>
-      <button class="act ghost" style="min-height:28px;font-size:18px;line-height:1" onclick="toggleDone('${i.id}')" title="Готово">${i.status==="done"?"↺":"✓"}</button>
+      <button class="act ghost" style="min-height:28px;font-size:18px;line-height:1" onclick="toggleDone('${i.id}')" title="Закрыть пункт">${pg==="done"?"↺":"✓"}</button>
     </div>
-    ${i.body ? `<p class="body">${esc(i.body)}</p>` : ""}
     <div class="meta">
+      ${pgChip(pg)}
       ${i.priority ? `<span class="chip ${String(i.priority).toLowerCase()}">${esc(i.priority)}</span>` : ""}
       ${i.due ? `<span class="chip">${esc(i.due)}</span>` : ""}
       ${i.owner ? `<span class="chip own">${esc(i.owner)}</span>` : ""}
       ${i.metric ? `<span class="chip">метрика: ${esc(i.metric)}</span>` : ""}
       ${statusChip(i.status)}
     </div>
+    ${i.body ? `<p class="body">${esc(i.body)}</p>` : ""}
+    ${i.report ? `<div class="report"><span class="lbl">Отчёт${i.report_at?" · "+new Date(i.report_at).toLocaleDateString("ru-RU",{day:"2-digit",month:"2-digit"}):""}</span>${esc(i.report)}</div>` : ""}
+    <span class="fieldlbl">Твоя правка</span>
     <textarea id="t_${i.id}" placeholder="${ph}" oninput="onEdit('${i.id}',this)">${esc(val)}</textarea>
     <div class="row">
       <button class="act save" id="b_${i.id}" onclick="saveOne('${i.id}')" ${changed?"":"disabled"}>Сохранить</button>
@@ -294,8 +342,10 @@ async function applyAll(){
 
 async function toggleDone(id){
   const it = items.find(x=>x.id===id);
-  const next = it.status === "done" ? (it.draft ? "saved" : "idle") : "done";
-  try { const j = await api("status", { id, status: next }); items[items.findIndex(x=>x.id===id)] = j.item; render(); }
+  const next = (it.progress === "done") ? "none" : "done";
+  const body = { id, progress: next };
+  if (next === "done") body.report = "Закрыто Сарматом вручную " + new Date().toLocaleDateString("ru-RU");
+  try { const j = await api("progress", body); items[items.findIndex(x=>x.id===id)] = j.item; render(); }
   catch(e){ toast(e.message); }
 }
 

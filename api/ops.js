@@ -13,7 +13,8 @@ function authed(req) {
   return typeof got === "string" && got === key;
 }
 
-const FIELDS = ["kind", "title", "body", "draft", "status", "priority", "owner", "due", "metric", "sort"];
+const PROGRESS = ["none", "doing", "done", "partial", "dropped"];
+const FIELDS = ["kind", "title", "body", "draft", "status", "priority", "owner", "due", "metric", "sort", "progress", "report"];
 
 export default async function handler(req, res) {
   if (!authed(req)) return res.status(401).json({ error: "Нет доступа" });
@@ -81,7 +82,9 @@ export default async function handler(req, res) {
       for (const f of FIELDS) if (b[f] !== undefined) patch[f] = b[f];
       if (patch.kind && !KINDS.includes(patch.kind)) return res.status(400).json({ error: "Неизвестный kind" });
       if (patch.status && !STATUSES.includes(patch.status)) return res.status(400).json({ error: "Неизвестный status" });
+      if (patch.progress && !PROGRESS.includes(patch.progress)) return res.status(400).json({ error: "Неизвестный progress" });
       patch.updated_at = new Date().toISOString();
+      if (patch.report !== undefined) patch.report_at = new Date().toISOString();
 
       if (b.id) {
         const { data, error } = await db.from("ops_items").update(patch).eq("id", b.id).select().single();
@@ -99,6 +102,19 @@ export default async function handler(req, res) {
       const now = new Date().toISOString();
       const patch = { status: b.status, updated_at: now };
       if (b.status === "done") patch.done_at = now;
+      const { data, error } = await db.from("ops_items").update(patch).eq("id", b.id).select().single();
+      if (error) throw error;
+      return res.status(200).json({ ok: true, item: data });
+    }
+
+    // Исполнение пункта. Обычно ставит Claude вместе с отчётом; кнопкой ✓ в пульте
+    // Сармат закрывает то, что решил или сделал сам.
+    if (action === "progress") {
+      if (!b.id || !PROGRESS.includes(b.progress)) return res.status(400).json({ error: "Нужны id и корректный progress" });
+      const now = new Date().toISOString();
+      const patch = { progress: b.progress, updated_at: now };
+      if (b.report !== undefined) { patch.report = String(b.report); patch.report_at = now; }
+      if (b.progress === "done" || b.progress === "partial") patch.done_at = now;
       const { data, error } = await db.from("ops_items").update(patch).eq("id", b.id).select().single();
       if (error) throw error;
       return res.status(200).json({ ok: true, item: data });
