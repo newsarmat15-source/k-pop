@@ -14,6 +14,7 @@
   <div class="logo">Idol<b>ingo</b></div>
   <div class="navtabs">
     <button class="navtab on" data-view="cabinet-own">Гримёрка</button>
+    <button class="navtab" data-view="workbook">Тетрадь</button>
     <button class="navtab" data-view="roster">Айдолы</button>
   </div>
   <div class="lang-wrap">
@@ -180,6 +181,9 @@
 <div class="toast" id="toast"></div>
 
 <script src="/tts-engine.js"></script>
+<!-- Транскрипция: тот же файл, что импортирует сервер (lib/ko-g2p.js — ре-экспорт).
+     Обязан грузиться ДО app.js: тетрадь берёт чтение слов только отсюда. -->
+<script src="/ko-g2p.js"></script>
 <script src="/curriculum.js"></script>
 <script src="/songs.js"></script>
 <script src="/app.js"></script>

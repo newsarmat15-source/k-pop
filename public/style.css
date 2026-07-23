@@ -46,6 +46,15 @@ header{position:sticky;top:0;z-index:40;backdrop-filter:blur(14px);background:rg
   padding:11px 18px;cursor:pointer;transition:.15s}
 .navtab:hover{color:var(--ink);border-color:var(--accent2)}
 .navtab.on{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#3a1a2c;border-color:transparent}
+/* Вкладок стало три (тетрадь встала второй) — на узком экране они уходят на свою
+   строку и ужимаются, иначе шапка вылезает за 320px и вся страница едет вбок. */
+@media(max-width:520px){
+  .navtabs{flex:1 1 100%;margin-left:0;gap:5px;justify-content:center}
+  .navtab{flex:1 1 auto;padding:10px 8px;font-size:13px;text-align:center}
+}
+@media(max-width:359px){
+  .navtab{padding:9px 5px;font-size:11.5px;letter-spacing:0}
+}
 .no-idol-btn{margin:18px auto 0;display:block}
 .step-ind{margin-left:auto;display:flex;gap:8px;font-size:12px;color:var(--dim)}
 .step-ind span{padding:5px 12px;border:1px solid var(--line)}
@@ -607,6 +616,87 @@ main{display:none}main.show{display:block}
 .say:hover{border-color:var(--accent2)}
 .wb-empty{text-align:center;color:var(--dim,#7d6f97);font-size:13px;padding:28px 12px;line-height:1.5}
 
+/* ===== ЛЕНТА ТЕТРАДИ: строка → сочетание → слово =====
+   Четыре статуса знания одним цветом во всех трёх местах, где слово вообще
+   показывается: в ленте, в списке слов и в тексте разобранной песни. Цвет
+   всегда ПОЛОСОЙ, никогда цветом самих букв — буквы в песне уже закрашивает
+   караоке-заливка, и два смысла на одном канале не читаются.
+     не видел  — ничего (фон текста)
+     видел     — голубой
+     отслеживаю— золотой (то, что сейчас в работе)
+     знаю      — зелёный                                                      */
+:root{--st1:#9fd8ff;--st2:#f3d9ac;--st3:#7fe8c9}
+.st0{--st:transparent}
+.st1{--st:var(--st1)}
+.st2{--st:var(--st2)}
+.st3{--st:var(--st3)}
+.wb-legend{display:flex;flex-wrap:wrap;gap:6px 10px;margin-bottom:12px}
+.wb-lg{font-size:10.5px;color:var(--mut);display:inline-flex;align-items:center;gap:5px}
+.wb-lg::before{content:"";width:12px;height:3px;background:var(--st);border:1px solid var(--line)}
+.wb-fsong{margin-bottom:18px}
+.wb-fsong-h{display:flex;flex-direction:column;gap:2px;width:100%;text-align:left;background:none;border:none;
+  border-bottom:1px solid var(--line);color:var(--ink);font:inherit;cursor:pointer;padding:0 0 7px;margin-bottom:10px}
+.wb-fsong-h b{font-size:14px;color:var(--accent2)}
+.wb-fsong-h small{font-size:11px;color:var(--mut)}
+/* Карточка строки. Полоса статуса слева — та же метафора, что у куплетов
+   караоке (.kline), человек уже знает, что левая грань = состояние. */
+.wb-line{border-left:3px solid var(--st,transparent);background:var(--panel);border-top:1px solid var(--line);
+  border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:9px 11px;margin-bottom:8px}
+.wb-line-top{display:flex;align-items:flex-start;gap:6px}
+.wb-line-kr{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;background:none;border:none;
+  color:var(--ink);font:inherit;text-align:left;cursor:pointer;padding:4px 0}
+.wb-line-kr b{font-size:16px;font-weight:700;line-height:1.35;word-break:break-word}
+.wb-line-kr i{font-size:11.5px;font-style:normal;color:var(--mut);letter-spacing:.02em;word-break:break-word}
+.wb-line-m{font-size:13px;line-height:1.45;color:var(--muted,#a99cc0);margin:4px 0 0}
+.wb-line-why{font-size:12.5px;line-height:1.55;color:var(--muted,#a99cc0);margin:8px 0 0;
+  background:rgba(243,217,172,.07);border:1px solid rgba(243,217,172,.2);padding:8px 10px}
+.wb-line-none{font-size:12px;color:var(--dim)}
+.wb-line-foot{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px}
+.wb-line-more{background:none;border:none;color:var(--mut);font:inherit;font-size:11.5px;cursor:pointer;
+  min-height:36px;padding:4px 6px;margin-left:auto}
+.wb-line-more:hover{color:var(--accent2)}
+.wb-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
+.wb-chipw{display:inline-flex;flex-direction:column;border:1px solid var(--line);
+  border-bottom:3px solid var(--st,var(--line));background:var(--panel2);max-width:100%}
+.wb-chipw.combo{border-color:rgba(243,217,172,.45)}
+.wb-chipb{background:none;border:none;color:var(--ink);font:inherit;font-size:14px;cursor:pointer;
+  min-height:36px;padding:5px 9px;text-align:left;word-break:break-word}
+.wb-chipw.combo .wb-chipb{color:var(--accent2)}
+.wb-chipd{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:0 9px 8px;max-width:100%}
+.wb-chipd i{font-size:11px;font-style:normal;color:var(--mut);word-break:break-word}
+.wb-chipd em{font-size:12px;font-style:normal;color:var(--muted,#a99cc0);word-break:break-word}
+/* Переключатель статуса. Одна кнопка на четыре состояния: тап — следующее.
+   Ровно так это работает у Migaku и LingQ, отдельного меню там тоже нет. */
+.wb-stbtn{background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--st,var(--line));
+  color:var(--mut);font:inherit;font-size:11px;cursor:pointer;min-height:34px;padding:5px 9px;white-space:nowrap}
+.wb-stbtn:hover{color:var(--ink);border-color:var(--accent2);border-left-color:var(--st,var(--accent2))}
+.wb-stbtn.wide{min-height:38px;font-size:12px}
+.wb-stbtn.tiny{font-size:10px;min-height:30px;padding:3px 7px}
+.wb-say.sm{min-width:34px;min-height:34px;font-size:14px}
+.wb-go-peek{display:block;font-size:15px;font-weight:700;letter-spacing:.01em;word-break:break-word}
+.wb-layer{display:inline-block;border:1px solid var(--line);padding:1px 6px;margin-right:7px;font-size:10px;
+  letter-spacing:.04em;color:var(--mut)}
+.wb-layer.l-l{color:var(--accent2);border-color:rgba(243,217,172,.45)}
+.wb-layer.l-c{color:var(--st1);border-color:rgba(159,216,255,.4)}
+.wb-rev-q.line{font-size:22px;line-height:1.35}
+.wb-rev-ctx{font-size:12.5px;color:var(--mut);text-align:center;line-height:1.45}
+.wb-rev-ctx b{display:block;color:var(--ink);font-size:14px;font-weight:600;margin-top:2px;word-break:break-word}
+.wb-rev-why{font-size:12.5px;line-height:1.55;color:var(--muted,#a99cc0);margin:0;
+  background:rgba(243,217,172,.07);border:1px solid rgba(243,217,172,.2);padding:8px 10px;width:100%}
+.wb-rev-btns .wb-easy{color:var(--good);border-color:rgba(127,232,201,.4)}
+.wb-rev-btns .wb-easy:hover{border-color:var(--good)}
+/* Статус в списке слов — та же полоса слева, что и у строки. */
+.wb-row{border-left:3px solid var(--st,var(--line))}
+@media(max-width:400px){
+  .wb-rev-btns{flex-wrap:wrap}
+  .wb-rev-btns button{min-width:calc(50% - 5px);font-size:14px}
+  .wb-line-kr b{font-size:15px}
+}
+@media(max-width:359px){
+  .wb-tab{font-size:11px;padding:11px 3px;gap:4px}
+  .wb-tab span{display:none}
+}
+
 /* ===== РАЗБОР ПЕСНИ ===== */
 .song-intro{font-size:13.5px;line-height:1.5;color:var(--muted,#a99cc0);margin-bottom:12px}
 .song-search{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--ink);font:inherit;font-size:16px;padding:11px 13px;margin-bottom:14px}
@@ -660,7 +750,11 @@ main{display:none}main.show{display:block}
 /* «готовящаяся» строка в проигрыше: показана заранее, подсвечен край — но слова НЕ закрашены */
 .kline.upcoming{border-left-color:var(--champ,#f3d9ac)}
 .kline.upcoming .tok-r{color:var(--ink)}
-.tok{display:flex;flex-direction:column;align-items:flex-start;gap:1px;transition:transform .18s cubic-bezier(.2,.7,.3,1);line-height:1.15}
+/* Статус знания прямо в тексте песни (Migaku/LingQ): тонкая полоса под словом.
+   Цвет самих букв не трогаем — по ним идёт караоке-заливка. Полоса есть всегда,
+   у «не видел» она прозрачная: высота строки не пляшет при смене статуса. */
+.tok{display:flex;flex-direction:column;align-items:flex-start;gap:1px;transition:transform .18s cubic-bezier(.2,.7,.3,1);line-height:1.15;
+  border-bottom:2px solid var(--st,transparent);padding-bottom:1px}
 .tok.on{transform:scale(1.06)}
 .tok-k{font-size:12.5px;font-weight:600;color:var(--dim,#7d6f97)}
 .tok-r{font-size:16px;font-weight:700;color:var(--muted,#a99cc0)}
@@ -721,8 +815,11 @@ main{display:none}main.show{display:block}
 .rcp-all:disabled{border-color:rgba(124,200,140,.55);color:#7cc88c;cursor:default;background:none}
 .rcp-tr{font-size:13.5px;line-height:1.5;color:var(--muted,#a99cc0);margin:0 0 10px}
 .rcp-words{display:flex;flex-direction:column}
-.rcp-w{display:flex;align-items:center;gap:10px;min-height:48px;padding:4px 0;border-top:1px solid var(--line)}
+/* Полоса статуса слева — та же, что в тексте песни и в тетради. */
+.rcp-w{display:flex;align-items:center;gap:8px;min-height:48px;padding:4px 0 4px 8px;border-top:1px solid var(--line);
+  border-left:3px solid var(--st,transparent)}
 .rcp-w:first-child{border-top:none}
+.rcp-w .wb-say{margin-left:0}
 .rcp-add{width:44px;height:44px;flex:0 0 44px;background:none;border:1px solid var(--accent2);color:var(--accent2);font:inherit;font-size:18px;line-height:1;padding:0;cursor:pointer;transition:background-color .14s}
 .rcp-add:hover{background:rgba(217,128,171,.14)}
 .rcp-add:disabled{border-color:rgba(124,200,140,.55);color:#7cc88c;cursor:default;background:none}

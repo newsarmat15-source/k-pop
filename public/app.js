@@ -159,7 +159,12 @@ function restoreOverlay(nav){
     else if(nav.ov==='chat')openChat();
   }catch(e){}
 }
-document.querySelectorAll('.navtab').forEach(t=>t.onclick=()=>showView(t.dataset.view));
+// Тетрадь стоит второй вкладкой, но это оверлей, а не отдельный экран: у неё нет
+// своего <main>, и showView для неё не годится.
+document.querySelectorAll('.navtab').forEach(t=>t.onclick=()=>{
+  if(t.dataset.view==='workbook'){openWorkbook();return}
+  showView(t.dataset.view);
+});
 
 function toast(msg){
   const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
@@ -326,7 +331,10 @@ function renderCabinet(chartEntry,readOnly){
   const body=document.getElementById('cabBody');
   const isOther=!!chartEntry;
   const idol=isOther?chartEntry.idol:myIdol;
-  document.querySelectorAll('.navtab').forEach(t=>t.classList.toggle('on',t.dataset.view==='cabinet-own'&&!isOther));
+  // Кабинет может перерисоваться, пока сверху открыта тетрадь (например, после
+  // повторения) — в этом случае активную вкладку не трогаем.
+  const wbOpen=(()=>{try{return document.getElementById('wbOv').classList.contains('show')}catch(e){return false}})();
+  if(!wbOpen)document.querySelectorAll('.navtab').forEach(t=>t.classList.toggle('on',t.dataset.view==='cabinet-own'&&!isOther));
 
   if(!idol){
     // Первый экран продукта. Не описание и не ролик, а сам разбор в работе: строка поётся,
@@ -1438,146 +1446,309 @@ function askIdolFree(){
   closeLessons();openChat('',{ov:'lessons'});
 }
 
-/* ===================== РАБОЧАЯ ТЕТРАДЬ ===================== */
-// Читает тот же реестр слов, что копят уроки (so_vocab_<uid>).
-// slang:true → вкладка «Сленг» (из песен / вручную), иначе → «Слова».
+/* ===================== РАБОЧАЯ ТЕТРАДЬ =====================
+   Тетрадь — не список слов, а ЛЕНТА из трёх слоёв:
+
+       строка песни  →  сочетание, чей смысл не равен сумме  →  отдельное слово
+
+   Строка первична: слово живёт внутри неё и без неё не показывается. Эталон —
+   Migaku и LingQ: слово там не карточка в вакууме, а подсвеченный кусок живого
+   текста, и его состояние знания видно прямо в тексте цветом.
+
+   Четыре состояния (ровно они видны в разборе песни):
+       0 не видел · 1 видел · 2 отслеживаю · 3 знаю
+
+   Что тетрадь НЕ делает: не рендерит караоке (контракт songs, §5).
+   Что изменилось в зоне песни: songStudyTouch стал класть в запись ещё и сами
+   СТРОКИ (поле lines) — без корейского текста строки лента невозможна.       */
 function closeWorkbook(){
   try{if(typeof window.speakKoStop==='function')window.speakKoStop()}catch(e){}
   document.getElementById('wbOv').classList.remove('show');navClear();
+  wbNavOff();
 }
 document.getElementById('wbOv').onclick=e=>{if(e.target.id==='wbOv')closeWorkbook()};
 
 function openWorkbook(tab){
   if(!currentUser){openAuth('signup');return}
   navOv('workbook');
-  window._wbTab=tab||window._wbTab||'words';
-  _wbSrs=null;                    // uid мог смениться (вход/выход) — перечитать память слов
-  window._wbReview=null;          // открытие тетради всегда начинается со списка, не с карточки
+  window._wbTab=tab||window._wbTab||'feed';
+  _wbU=null;_wbUUid=null;_wbSeen=null;_wbSeenUid=null;   // перечитать память под текущий uid
+  window._wbReview=null;       // открытие тетради всегда начинается с ленты, не с карточки
   document.getElementById('wbOv').classList.add('show');
   document.getElementById('wbTitle').textContent='📓 '+t('wb_h');
+  wbNavOn();
+  wbMigrate();                 // разовый перенос старой памяти слов (so_wbsrs_*)
+  wbSpread();                  // раз в сутки: разгрузить накопившееся, не наказывая
   renderWorkbook();
 }
+// Тетрадь стоит второй вкладкой в шапке, но живёт оверлеем — подсветку вкладки
+// держим руками, иначе после закрытия «Тетрадь» остаётся активной навсегда.
+function wbNavOn(){document.querySelectorAll('.navtab').forEach(x=>x.classList.toggle('on',x.dataset.view==='workbook'))}
+function wbNavOff(){document.querySelectorAll('.navtab').forEach(x=>x.classList.toggle('on',x.dataset.view===(window._view||'cabinet-own')))}
 
-/* --- Память по каждому слову. Свой ключ so_wbsrs_<uid>: агент песни в него не пишет,
-   он трогает только so_vocab_* и so_songstudy_*. Поле на слово: {l:уровень, d:когда снова, f:провалы}.
-   Разведка: Anki/FSRS хранит на карточку difficulty/stability/retrievability и планирует показ
-   [faqs.ankiweb.net, «What spaced repetition algorithm does Anki use»]; Duolingo на своей модели
-   half-life regression получил +12% к возврату к активности и +9.5% к ежедневным повторениям
-   [blog.duolingo.com, 14.12.2016]. Полноценный ML тут не нужен — нужен сам факт,
-   что у слова есть состояние и срок. Интервалы в днях по уровням: --- */
-const WB_INT=[0,1,2,4,8,16,32];
-const WB_DAILY=7;    // потолок порции. Растущий «долг повторений» — известная причина бросить SRS,
-                     // поэтому число на кнопке никогда не растёт выше семи.
-const WB_LEECH=3;    // после трёх провалов слово помечается тяжёлым. Anki на 8 провалах прячет карточку
-                     // [docs.ankiweb.net/leeches.html] — мы наоборот показываем её наверху списка.
-let _wbSrs=null;
-function wbSrs(){
-  if(_wbSrs)return _wbSrs;
-  try{_wbSrs=JSON.parse(localStorage.getItem('so_wbsrs_'+lsnUid())||'{}')||{}}catch(e){_wbSrs={}}
-  if(typeof _wbSrs!=='object'||!_wbSrs)_wbSrs={};
-  return _wbSrs;
+/* ---------------------------------------------------------------------------
+   ПАМЯТЬ. Два хранилища, оба на свой uid:
+
+   so_wbseen_<uid>  = { '보고 싶다': 1 }        — «видел»: попадалось в разборе.
+                      Дёшево: только факт, без состояния. Нужен для 4-го цвета
+                      в тексте песни, где слов сотни, а учить их все не надо.
+   so_wbu_<uid>     = { 'l:…'|'c:…'|'w:…': unit } — то, что реально учится.
+
+   unit = { k:'l'|'c'|'w', p:{payload}, S,D,n,lp,t,due, kn }
+     S  — стабильность в днях (интервал, на котором вспоминаемость падает до 90%)
+     D  — сложность 1..10
+     n  — сколько раз отвечал, lp — сколько раз забывал
+     t  — когда отвечал в последний раз, due — когда вернуть
+     kn — человек сам сказал «знаю», больше не спрашиваем
+
+   Старый ключ so_wbsrs_<uid> ({l,d,f}) НЕ удаляется: он переносится один раз
+   и остаётся лежать как страховка отката.                                    */
+// Кэш держим вместе с uid, для которого он прочитан: вход/выход может случиться
+// в любой момент (например, песню открыли гостем, а потом залогинились), и запись
+// чужого кэша в свежий ключ смешала бы прогресс двух аккаунтов.
+let _wbU=null,_wbUUid=null,_wbSeen=null,_wbSeenUid=null;
+function wbUnits(){
+  const uid=lsnUid();
+  if(_wbU&&_wbUUid===uid)return _wbU;
+  try{_wbU=JSON.parse(localStorage.getItem('so_wbu_'+uid)||'{}')||{}}catch(e){_wbU={}}
+  if(typeof _wbU!=='object'||!_wbU)_wbU={};
+  _wbUUid=uid;
+  return _wbU;
 }
-function wbSaveSrs(){try{localStorage.setItem('so_wbsrs_'+lsnUid(),JSON.stringify(wbSrs()))}catch(e){}}
-function wbSt(kr){const s=wbSrs()[kr];return (s&&typeof s==='object')?{l:s.l|0,d:s.d||0,f:s.f|0}:{l:0,d:0,f:0}}
+function wbSaveUnits(){const u=wbUnits();try{localStorage.setItem('so_wbu_'+lsnUid(),JSON.stringify(u))}catch(e){}}
+function wbSeen(){
+  const uid=lsnUid();
+  if(_wbSeen&&_wbSeenUid===uid)return _wbSeen;
+  try{_wbSeen=JSON.parse(localStorage.getItem('so_wbseen_'+uid)||'{}')||{}}catch(e){_wbSeen={}}
+  if(typeof _wbSeen!=='object'||!_wbSeen)_wbSeen={};
+  _wbSeenUid=uid;
+  return _wbSeen;
+}
+function wbSaveSeen(){const s=wbSeen();try{localStorage.setItem('so_wbseen_'+lsnUid(),JSON.stringify(s))}catch(e){}}
+function wbKey(layer,kr){return (layer||'w')+':'+kr}
 
-/* Транслитерация хангыля (Revised Romanization) — чтобы транскрипция была У КАЖДОГО слова,
-   а не только у тех, что пришли из урока. Ассимиляция на стыках не учитывается: показываем
-   послоговое чтение, для чтения вслух этого достаточно. */
-const WB_ON=['g','kk','n','d','tt','r','m','b','pp','s','ss','','j','jj','ch','k','t','p','h'];
-const WB_VO=['a','ae','ya','yae','eo','e','yeo','ye','o','wa','wae','oe','yo','u','wo','we','wi','yu','eu','ui','i'];
-const WB_CO=['','k','k','k','n','n','n','t','l','k','m','p','l','l','p','l','m','p','p','t','t','ng','t','t','k','t','p','t'];
-function wbRomanize(s){
-  let out='';
-  for(const ch of String(s||'')){
-    const c=ch.charCodeAt(0)-0xAC00;
-    if(c>=0&&c<11172){out+=WB_ON[Math.floor(c/588)]+WB_VO[Math.floor((c%588)/28)]+WB_CO[c%28]}
-    else out+=ch;
+/* --- ИНТЕРВАЛЫ: FSRS вместо SM-2 -------------------------------------------
+   Было: фиксированная лесенка 1-2-4-8-16-32 дня (SM-2 в самом простом виде).
+   Она не знает ни сложности единицы, ни того, насколько человек опоздал с
+   повторением, поэтому лёгкое и тяжёлое едут по одному расписанию.
+
+   Стало: FSRS-4.5, модель DSR (Difficulty / Stability / Retrievability),
+   коэффициенты — дефолтные веса FSRS-4.5. Кривая забывания
+   R(t,S) = (1 + 19/81 · t/S)^(−0.5) — она же стоит на буквах алфавита в srsR(),
+   двух разных кривых в приложении нет.
+
+   Целевое удержание 0.87 — середина заданной полосы 85-90%. Интервал считается
+   из него, а не берётся из таблицы: I(S) = S/F · (R^(1/DECAY) − 1).          */
+const FSRS_W=[0.4872,1.4003,3.7145,13.8206,5.1618,1.2298,0.8975,0.031,1.6474,
+              0.1367,1.0461,2.1072,0.0793,0.3246,1.587,0.2272,2.8755];
+const FSRS_DECAY=-0.5, FSRS_FACTOR=19/81;
+const WB_RETENTION=0.87;
+const WB_NEW_MAX=12;      // новых единиц в день. Полоса 10-15: 12 — середина
+const WB_DUE_MAX=30;      // столько повторов максимум попадает в один день
+const WB_SESSION_MS=5*60*1000;   // сессия ограничена ВРЕМЕНЕМ, а не числом карточек
+const WB_KNOWN_S=60;      // стабильность в днях, после которой это уже «знаю»
+const WB_HARD_LAPSES=3;   // столько провалов — и единица считается тяжёлой
+const WB_PROACTIVE_MAX=7; // потолок числа, которое видит агент проактива (контракт)
+
+function wbClampD(d){return Math.min(10,Math.max(1,d))}
+function fsrsR(S,days){return Math.pow(1+FSRS_FACTOR*Math.max(0,days)/Math.max(0.01,S),FSRS_DECAY)}
+function fsrsInterval(S){return S/FSRS_FACTOR*(Math.pow(WB_RETENTION,1/FSRS_DECAY)-1)}
+function fsrsD0(g){return wbClampD(FSRS_W[4]-Math.exp(FSRS_W[5]*(g-1))+1)}
+function fsrsS0(g){return Math.max(0.1,FSRS_W[Math.max(0,Math.min(3,g-1))])}
+function fsrsNextD(D,g){
+  const d=D-FSRS_W[6]*(g-3);
+  return wbClampD(FSRS_W[7]*fsrsD0(4)+(1-FSRS_W[7])*d);
+}
+function fsrsRecall(S,D,R,g){
+  const hard=g===2?FSRS_W[15]:1, easy=g===4?FSRS_W[16]:1;
+  return S*(1+Math.exp(FSRS_W[8])*(11-D)*Math.pow(S,-FSRS_W[9])*(Math.exp(FSRS_W[10]*(1-R))-1)*hard*easy);
+}
+function fsrsForget(S,D,R){
+  const s=FSRS_W[11]*Math.pow(D,-FSRS_W[12])*(Math.pow(S+1,FSRS_W[13])-1)*Math.exp(FSRS_W[14]*(1-R));
+  return Math.max(0.1,Math.min(s,S));      // забыл — стабильность не растёт никогда
+}
+// Сутки считаем по локальной полуночи: одна и та же карточка не может прийти
+// дважды за день ни при каких ответах.
+function wbDayStart(ts){const d=new Date(ts||Date.now());d.setHours(0,0,0,0);return d.getTime()}
+function wbDaysSince(t){return t?Math.max(0,(Date.now()-t)/86400000):0}
+function wbUnitR(u){return (!u||!u.n)?0:fsrsR(u.S||1,wbDaysSince(u.t))}
+
+// Ответ. g: 1 — не помню, 3 — помню, 4 — легко.
+function wbApply(u,g){
+  const now=Date.now();
+  if(!u.n){u.S=fsrsS0(g);u.D=fsrsD0(g)}
+  else{
+    const R=wbUnitR(u);
+    u.D=fsrsNextD(u.D||5,g);
+    u.S=(g===1)?fsrsForget(u.S||1,u.D,R):fsrsRecall(u.S||1,u.D,R,g);
   }
-  return out;
+  if(g===1)u.lp=(u.lp||0)+1;
+  u.n=(u.n||0)+1;u.t=now;
+  const days=Math.max(1,Math.min(365,Math.round(fsrsInterval(u.S))));
+  u.due=wbDayStart(now)+days*86400000;
+  return days;
 }
-// rr — кириллическая транскрипция от агента песни (контракт IDOLINGO_CONTRACT_songs.md, §3).
-function wbTr(v){const L=getLang();return (L==='ru'&&v.rr)?v.rr:(v.rom||wbRomanize(v.kr))}
-function wbMean(v){const L=getLang();return v[L]||v.ru||v.en||''}
-function wbDir(){return localStorage.getItem('so_wbdir')==='nat'?'nat':'kr'}
+
+/* --- ЧТО ПРИХОДИТ СЕГОДНЯ --------------------------------------------------
+   Главная причина, по которой люди бросают Anki, — накопленный долг: уехал на
+   неделю, вернулся, а тебя ждут 400 карточек. Здесь пропущенное НЕ копится:
+   раз в сутки лишнее просто ПЕРЕНОСИТСЯ вперёд. Стабильность и сложность при
+   этом не трогаются — это не наказание и не «списание долга», а сдвиг даты.
+   Числа сверх дневной порции человек нигде не видит.                         */
+function wbTracked(){
+  const U=wbUnits();
+  return Object.keys(U).map(k=>({key:k,u:U[k]})).filter(x=>x.u&&!x.u.kn);
+}
+function wbDueList(){
+  const end=wbDayStart()+86400000;
+  return wbTracked().filter(x=>x.u.n&&(x.u.due||0)<end)
+    .sort((a,b)=>wbUnitR(a.u)-wbUnitR(b.u));
+}
+function wbFreshList(){
+  // Новые — те, на что ещё ни разу не отвечал. Строка идёт первой: слово учится
+  // внутри неё, а не отдельно.
+  const ord={l:0,c:1,w:2};
+  return wbTracked().filter(x=>!x.u.n)
+    .sort((a,b)=>((ord[a.u.k]|0)-(ord[b.u.k]|0))||((b.u.at||0)-(a.u.at||0)));
+}
+function wbSpread(){
+  const kday='so_wbspread_'+lsnUid();
+  let last=0;try{last=Number(localStorage.getItem(kday))||0}catch(e){}
+  if(last&&wbDayStart(last)===wbDayStart())return;     // сегодня уже разгружали
+  try{localStorage.setItem(kday,String(Date.now()))}catch(e){}
+  const due=wbDueList();
+  if(due.length<=WB_DUE_MAX)return;
+  const base=wbDayStart();
+  let moved=0;
+  due.slice(WB_DUE_MAX).forEach((x,i)=>{
+    const day=1+Math.floor(i/WB_DUE_MAX);              // завтра, послезавтра, …
+    x.u.due=base+day*86400000;moved++;
+  });
+  if(moved)wbSaveUnits();
+}
+
+/* --- СТАТУС ЕДИНИЦЫ ---------------------------------------------------------
+   0 не видел · 1 видел · 2 отслеживаю · 3 знаю. Ровно эти четыре видны цветом
+   в разобранном тексте песни. Меняются и рукой (тап по слову), и сами:
+   единица, дожившая до стабильности WB_KNOWN_S дней, становится «знаю».      */
+function wbStatus(kr,layer){
+  if(!kr)return 0;
+  const u=wbUnits()[wbKey(layer||'w',kr)];
+  if(u)return (u.kn||(u.S||0)>=WB_KNOWN_S)?3:2;
+  return wbSeen()[kr]?1:0;
+}
+function wbMarkSeen(list){
+  const S=wbSeen();let add=0;
+  (list||[]).forEach(kr=>{if(kr&&!S[kr]){S[kr]=1;add++}});
+  if(add)wbSaveSeen();
+  return add;
+}
+// Перевод единицы в статус. payload нужен только при заведении новой.
+function wbSetStatus(layer,kr,st,payload){
+  if(!kr)return;
+  const U=wbUnits(),key=wbKey(layer,kr),S=wbSeen();
+  if(st<=0){delete U[key];delete S[kr];wbSaveUnits();wbSaveSeen();return}
+  if(st===1){delete U[key];S[kr]=1;wbSaveUnits();wbSaveSeen();return}
+  let u=U[key];
+  if(!u){u={k:layer,p:payload||{kr:kr},S:0,D:5,n:0,lp:0,t:0,due:wbDayStart(),at:Date.now()};U[key]=u}
+  else if(payload&&!u.p)u.p=payload;
+  if(st===3)u.kn=1;
+  else{delete u.kn;if((u.S||0)>=WB_KNOWN_S)u.S=WB_KNOWN_S-1}  // вернуть в оборот после «знаю»
+  S[kr]=1;
+  wbSaveUnits();wbSaveSeen();
+}
+function wbCycle(layer,kr,payloadJson){
+  const cur=wbStatus(kr,layer);
+  let payload=null;try{payload=payloadJson?JSON.parse(payloadJson):null}catch(e){payload=null}
+  wbSetStatus(layer,kr,(cur+1)%4,payload);
+  if(window._wbReview)renderWbReview();else renderWorkbook();
+  try{
+    const ov=document.getElementById('songOv');
+    if(ov&&ov.classList.contains('show'))wbPaintSong();
+  }catch(e){}
+}
+
+/* --- ПЕРЕНОС СТАРОЙ ПАМЯТИ --------------------------------------------------
+   Вернувшийся пользователь не должен потерять ни одного слова и ни одного
+   срока. Старая запись {l,d,f}: l — уровень лесенки, d — когда вернуть,
+   f — провалы. Переводим в S/D/due, дату возврата сохраняем КАК БЫЛА.        */
+const WB_OLD_INT=[0,1,2,4,8,16,32];
+function wbMigrate(){
+  const flag='so_wbmig_'+lsnUid();
+  try{if(localStorage.getItem(flag))return}catch(e){return}
+  const U=wbUnits();
+  let old={};try{old=JSON.parse(localStorage.getItem('so_wbsrs_'+lsnUid())||'{}')||{}}catch(e){old={}}
+  lsnVocab().forEach(v=>{
+    if(!v||!v.kr)return;
+    // Слой определяем ТЕМ ЖЕ правилом, что и wbSyncVocab, иначе «보고 싶다»
+    // заведётся дважды — как слово и как сочетание — и придёт на повтор дважды.
+    const layer=wbIsCombo(v.kr)?'c':'w';
+    const key=wbKey(layer,v.kr);
+    if(U[key])return;
+    const s=old[v.kr]||null;
+    const lvl=s?(s.l|0):0, fails=s?(s.f|0):0;
+    const step=WB_OLD_INT[Math.min(lvl,WB_OLD_INT.length-1)]||1;
+    const touched=!!(s&&(lvl||fails||s.d));
+    U[key]={k:layer,p:wbWordPayload(v),
+      S:touched?Math.max(0.5,step):0,
+      D:wbClampD(5+fails*0.7),
+      n:touched?Math.max(1,lvl+fails):0,
+      lp:fails,
+      // Дату последнего ответа назад в прошлое: вперёд она уехать не может,
+      // иначе вспоминаемость посчитается как «отвечал только что».
+      t:(touched&&s.d)?Math.min(Date.now(),s.d-step*86400000):0,
+      due:(touched&&s.d)?s.d:wbDayStart(),
+      at:Date.now()};
+  });
+  wbSaveUnits();
+  try{localStorage.setItem(flag,'1')}catch(e){}
+}
+// Слова, добавленные уроком/песней/руками уже ПОСЛЕ переноса, тоже должны
+// оказаться в обороте. Дешёвая сверка при каждой отрисовке тетради.
+function wbSyncVocab(){
+  const U=wbUnits();let add=0;
+  lsnVocab().forEach(v=>{
+    if(!v||!v.kr)return;
+    const key=wbKey(wbIsCombo(v.kr)?'c':'w',v.kr);
+    if(U[key]){if(!U[key].p)U[key].p=wbWordPayload(v);return}
+    U[key]={k:wbIsCombo(v.kr)?'c':'w',p:wbWordPayload(v),S:0,D:5,n:0,lp:0,t:0,due:wbDayStart(),at:Date.now()};add++;
+  });
+  if(add)wbSaveUnits();
+  return add;
+}
+function wbWordPayload(v){
+  return {kr:v.kr,rom:v.rom||'',rr:v.rr||'',ru:v.ru||'',en:v.en||'',
+    songId:v.songId||'',songTitle:v.songTitle||'',from:v.from||'',slang:!!v.slang};
+}
+
+/* --- ТРАНСКРИПЦИЯ ----------------------------------------------------------
+   Единственный источник — движок ko-g2p (тот же файл, что читает сервер, см.
+   public/ko-g2p.js). Своей таблицы романизации в тетради больше нет: она давала
+   послоговое чтение без ассимиляции, и одно и то же слово выглядело в песне и в
+   тетради по-разному. Готовые r/rr из разбора песни приоритетнее — они сняты
+   тем же движком, но с учётом контекста строки.                              */
+function koTr(kr){
+  try{
+    const G=window.KoG2P;if(!G||!kr)return '';
+    const s=(getLang()==='ru')?G.transcribeCyrillic(kr):G.transcribeLatin(kr);
+    return String(s||'').replace(/\s+/g,' ').trim();
+  }catch(e){return ''}
+}
+function wbTr(v){
+  if(!v)return '';
+  const L=getLang();
+  if(L==='ru'&&v.rr)return v.rr;
+  if(L!=='ru'&&v.rom)return v.rom;
+  return koTr(v.kr||'');
+}
+function wbMean(v){const L=getLang();return (v&&(v[L]||v.ru||v.en))||''}
+function wbDir(){const d=localStorage.getItem('so_wbdir');return (d==='nat'||d==='kr')?d:'auto'}
 function wbSetDir(d){localStorage.setItem('so_wbdir',d);renderWorkbook()}
 function wbReveal(el){el.classList.add('on')}
 function wbAttr(s){return JSON.stringify(String(s)).replace(/"/g,'&quot;')}
 
-// Слова текущей вкладки (с учётом фильтра по песне)
-function wbScope(){
-  const isSlang=window._wbTab==='slang';
-  let list=lsnVocab().filter(v=>v&&v.kr&&!!v.slang===isSlang);
-  if(window._wbSongFilter)list=list.filter(v=>v.songId===window._wbSongFilter);
-  return list;
-}
-// Что показать сегодня: сначала тяжёлые, потом самые просроченные. Порция ограничена жёстко.
-function wbDue(list){
-  const now=Date.now();
-  return list.filter(v=>wbSt(v.kr).d<=now)
-    .sort((a,b)=>{const A=wbSt(a.kr),B=wbSt(b.kr);return (B.f-A.f)||(A.d-B.d)})
-    .slice(0,WB_DAILY);
-}
-function wbNextDays(list){
-  const now=Date.now();
-  const next=list.map(v=>wbSt(v.kr).d).filter(d=>d>now).sort((a,b)=>a-b)[0];
-  if(!next)return 1;
-  return Math.max(1,Math.ceil((next-now)/86400000));
-}
-
-function renderWorkbook(){
-  const tabs=document.getElementById('wbTabs'),body=document.getElementById('wbBody');
-  if(!tabs||!body)return;
-  if(window._wbReview){renderWbReview();return}
-  const voc=lsnVocab();
-  const tab=window._wbTab==='slang'?'slang':window._wbTab==='songs'?'songs':'words';
-  const songs=(typeof window.studiedSongs==='function')?(window.studiedSongs()||[]):[];
-  tabs.innerHTML=`
-    <button class="wb-tab ${tab==='words'?'on':''}" onclick="switchWb('words')">${t('wb_words')} <span>${voc.filter(v=>v&&!v.slang).length}</span></button>
-    <button class="wb-tab ${tab==='slang'?'on':''}" onclick="switchWb('slang')">${t('wb_slang')} <span>${voc.filter(v=>v&&!!v.slang).length}</span></button>
-    <button class="wb-tab ${tab==='songs'?'on':''}" onclick="switchWb('songs')">${t('wb_songs')} <span>${songs.length}</span></button>`;
-  if(tab==='songs'){renderWbSongs(songs);return}
-  const isSlang=tab==='slang';
-  const list=wbScope();
-  const due=wbDue(list);
-  const dir=wbDir();
-  const rows=list.length?list.slice().sort((a,b)=>wbSt(b.kr).f-wbSt(a.kr).f).map(v=>{
-    const st=wbSt(v.kr),tr=wbTr(v),mean=wbMean(v);
-    const dots='<span class="on">'+'●'.repeat(st.l)+'</span>'+'○'.repeat(WB_INT.length-1-st.l);
-    const say=`onpointerdown="wbSayDown(this,${wbAttr(v.kr)})" onpointerup="wbSayUp(this,${wbAttr(v.kr)})" onpointerleave="wbSayCancel()" onpointercancel="wbSayCancel()"`;
-    const word=dir==='kr'
-      ? `<b>${escapeHtml(v.kr)}</b><i>${escapeHtml(tr)}</i><span class="wb-mean">${escapeHtml(mean)}</span>`
-      : `<b>${escapeHtml(mean||v.kr)}</b><span class="wb-hide" onclick="wbReveal(this)" title="${t('wb_tap')}"><em>${escapeHtml(v.kr)}</em><i>${escapeHtml(tr)}</i></span>`;
-    return `<div class="wb-row${st.f>=WB_LEECH?' hard':''}">
-      <button class="wb-say" aria-label="${t('wb_say')}" ${say}>🔊</button>
-      <div class="wb-word">${word}</div>
-      <div class="wb-meta">
-        <span class="wb-prog" title="${t('wb_prog')}">${dots}</span>
-        <span class="wb-src" title="${v.songTitle?escapeHtml(v.songTitle):''}">${v.from==='lesson'?'📘':v.from==='song'?'🎵':'✍️'}</span>
-      </div>
-      <button class="wb-del" aria-label="${t('wb_del')}" onclick="wbDelete(${wbAttr(v.kr)})">✕</button>
-    </div>`;
-  }).join(''):`<div class="wb-empty">${window._wbSongFilter?t('wb_empty_filter'):isSlang?t('wb_empty_slang'):t('wb_empty_words')}</div>`;
-  const today=!list.length?''
-    :due.length?`<button class="wb-go" onclick="wbStartReview()"><b>${t('wb_go')(due.length)}</b><small>${t('wb_go_sub')}</small></button>`
-    :`<div class="wb-alldone"><b>${t('wb_alldone')}</b><small>${t('wb_next_in')(wbNextDays(list))}</small></div>`;
-  const filter=window._wbSongFilter?`<button class="wb-chip" onclick="wbClearFilter()">${escapeHtml(t('wb_filter_on')(wbSongTitle(window._wbSongFilter)))} ✕</button>`:'';
-  body.innerHTML=`
-    ${today}
-    ${filter}
-    <div class="wb-dir" role="group" aria-label="${t('wb_dir_h')}">
-      <button class="${dir==='kr'?'on':''}" onclick="wbSetDir('kr')">${t('wb_dir_a')}</button>
-      <button class="${dir==='nat'?'on':''}" onclick="wbSetDir('nat')">${t('wb_dir_b')}</button>
-    </div>
-    <div class="wb-add">
-      <input id="wbKr" placeholder="한국어" maxlength="40">
-      <input id="wbMean" placeholder="${t('wb_mean_ph')}" maxlength="60">
-      <button class="btn accent wb-addbtn" onclick="wbAddWord()">+</button>
-    </div>
-    <div class="wb-hint">${isSlang?t('wb_hint_slang'):t('wb_hint_words')}</div>
-    <div class="wb-list">${rows}</div>`;
-}
-
-/* ---- Озвучка слова: короткий тап — обычно, долгий — медленно. Всё через speakKo. ---- */
+/* ---- Озвучка. Только через единую точку входа speakKo (контракт TTS).
+       Короткий тап — обычно, долгий — медленно. Работает и на слове, и на строке. ---- */
 let _wbHoldT=null,_wbHeld=false;
 function wbSay(btn,txt,slow){
   if(btn)btn.classList.add('busy');
@@ -1591,81 +1762,373 @@ function wbSay(btn,txt,slow){
 function wbSayDown(btn,txt){_wbHeld=false;clearTimeout(_wbHoldT);_wbHoldT=setTimeout(()=>{_wbHeld=true;wbSay(btn,txt,true)},520)}
 function wbSayUp(btn,txt){clearTimeout(_wbHoldT);if(_wbHeld){_wbHeld=false;return}wbSay(btn,txt,false)}
 function wbSayCancel(){clearTimeout(_wbHoldT)}
+function wbSayBtn(txt,cls){
+  return `<button class="wb-say${cls?' '+cls:''}" aria-label="${t('wb_say')}"
+    onpointerdown="event.stopPropagation();wbSayDown(this,${wbAttr(txt)})"
+    onpointerup="event.stopPropagation();wbSayUp(this,${wbAttr(txt)})"
+    onpointerleave="wbSayCancel()" onpointercancel="wbSayCancel()">🔊</button>`;
+}
 
-/* ---- Повторение: одна порция, конец виден с первого экрана ---- */
+/* ===================== ЛЕНТА: строка → сочетание → слово =====================
+   Источник — разобранные песни (window.studiedSongs(), контракт songs §1).
+   Если запись старая и строк в ней нет, а песня ещё есть в каталоге — строим
+   строки на лету из каталога. Если нет ни того ни другого, песня в ленту не
+   попадает: «строка» без корейского текста бессмысленна.                      */
+function wbSongLines(s){
+  if(!s)return [];
+  const out=[];
+  (s.verses||[]).forEach(v=>{
+    (v.lines||[]).forEach((ln,li)=>{
+      if(ln&&ln.kr)out.push({vi:v.i|0,li:li,kr:ln.kr,s:ln.s||null,c:ln.c||null,w:ln.w||[]});
+    });
+  });
+  if(out.length)return out;
+  try{
+    const live=(typeof allSongs==='function'?allSongs():[]).find(x=>x&&x.id===s.id);
+    if(!live)return [];
+    (live.verses||[]).forEach((v,vi)=>(v.lines||[]).forEach((ln,li)=>{
+      const w=(ln.w||[]).map(x=>({kr:String((x.k||'')).trim(),rom:x.r||x.rom||'',rr:x.rr||'',ru:x.ru||'',en:x.en||''})).filter(x=>x.kr);
+      const kr=w.map(x=>x.kr).join(' ');
+      if(kr)out.push({vi:vi,li:li,kr:kr,s:ln.s||null,c:ln.c||null,w:w});
+    }));
+  }catch(e){}
+  return out;
+}
+// Сочетание = токен из нескольких слов: смысл «보고 싶다» не равен сумме
+// «смотреть» и «хотеть». Такие токены разбор уже размечает пробелом внутри.
+function wbIsCombo(kr){return /\s/.test(String(kr||'').trim())}
+function wbPick(o){const L=getLang();return (o&&(o[L]||o.en||o.ru))||''}
+function wbPickLang(o,l){return (o&&o[l])||''}
+
+function wbFeedSongs(){
+  const songs=(typeof window.studiedSongs==='function')?(window.studiedSongs()||[]):[];
+  return songs.map(s=>({song:s,lines:wbSongLines(s)})).filter(x=>x.lines.length);
+}
+/* Транскрипция строки собирается ИЗ ЕЁ СЛОВ, а не считается заново по всей
+   строке: у слова в разборе уже лежит r/rr (их снял тот же движок ko-g2p, но с
+   учётом контекста и певческих вольностей). Считать строку целиком заново —
+   значит показать на одном экране два разных чтения одного слова. Движок
+   включается только там, где готового чтения нет вовсе. */
+function wbLineTr(ln,lang){
+  const L=lang||getLang();
+  const parts=(ln.w||[]).filter(w=>w&&w.kr).map(w=>{
+    const ready=(L==='ru')?w.rr:w.rom;
+    return ready||koTr(w.kr);
+  }).filter(Boolean);
+  return parts.length?parts.join(' '):koTr(ln.kr);
+}
+function wbLinePayload(song,ln){
+  return {kr:ln.kr,ru:wbPickLang(ln.s,'ru'),en:wbPickLang(ln.s,'en'),
+    rom:wbLineTr(ln,'en'),rr:wbLineTr(ln,'ru'),
+    songId:song.id,songTitle:song.title||'',verse:ln.vi};
+}
+function wbComboPayload(song,ln,w){
+  return {kr:w.kr,rom:w.rom||'',rr:w.rr||'',ru:w.ru||'',en:w.en||'',
+    ctx:ln.kr,why:{ru:wbPickLang(ln.c,'ru'),en:wbPickLang(ln.c,'en')},
+    songId:song.id,songTitle:song.title||'',verse:ln.vi};
+}
+function wbWordInLinePayload(song,ln,w){
+  return {kr:w.kr,rom:w.rom||'',rr:w.rr||'',ru:w.ru||'',en:w.en||'',ctx:ln.kr,
+    songId:song.id,songTitle:song.title||'',verse:ln.vi};
+}
+
+function wbToggleLine(id){window._wbOpenLine=(window._wbOpenLine===id?null:id);renderWorkbook()}
+function wbToggleWord(id){window._wbOpenWord=(window._wbOpenWord===id?null:id);renderWorkbook()}
+
+function renderWbFeed(){
+  const body=document.getElementById('wbBody');
+  const feed=wbFeedSongs();
+  if(!feed.length){
+    body.innerHTML=`${wbTodayCard()}<div class="wb-empty">${t('wb_empty_feed')}
+      <button class="btn accent wb-empty-btn" onclick="closeWorkbook();openSongs()">${t('wb_empty_songs_btn')}</button></div>`;
+    return;
+  }
+  const html=feed.slice(0,6).map(({song,lines})=>{
+    const rows=lines.map(ln=>{
+      const id=song.id+'|'+ln.vi+'|'+ln.li;
+      const open=window._wbOpenLine===id;
+      const st=wbStatus(ln.kr,'l');
+      const mean=wbPick(ln.s);
+      const why=wbPick(ln.c);
+      const chips=(ln.w||[]).filter(w=>w&&w.kr).map(w=>{
+        const layer=wbIsCombo(w.kr)?'c':'w';
+        const wst=wbStatus(w.kr,layer);
+        const wid=id+'|'+w.kr;
+        const wopen=window._wbOpenWord===wid;
+        const payload=layer==='c'?wbComboPayload(song,ln,w):wbWordInLinePayload(song,ln,w);
+        return `<span class="wb-chipw st${wst}${layer==='c'?' combo':''}${wopen?' open':''}">
+          <button class="wb-chipb" type="button" onclick="wbToggleWord(${wbAttr(wid)})">${escapeHtml(w.kr)}</button>
+          ${wopen?`<span class="wb-chipd">
+            <i>${escapeHtml(wbTr(w))}</i>
+            <em>${escapeHtml(wbMean(w))}</em>
+            ${wbSayBtn(w.kr,'sm')}
+            <button class="wb-stbtn" type="button" onclick="wbCycle('${layer}',${wbAttr(w.kr)},${wbAttr(JSON.stringify(payload))})">${t('wb_st')[wst]} ›</button>
+          </span>`:''}
+        </span>`;
+      }).join('');
+      return `<article class="wb-line st${st}">
+        <div class="wb-line-top">
+          ${wbSayBtn(ln.kr)}
+          <button class="wb-line-kr" type="button" onclick="wbToggleLine(${wbAttr(id)})">
+            <b>${escapeHtml(ln.kr)}</b>
+            <i>${escapeHtml(wbLineTr(ln))}</i>
+          </button>
+        </div>
+        ${mean?`<p class="wb-line-m">${escapeHtml(mean)}</p>`:''}
+        ${open?`${why?`<p class="wb-line-why"><span class="kp-tag">${t('wb_combo_why')}</span>${escapeHtml(why)}</p>`:''}
+          <div class="wb-chips">${chips||`<span class="wb-line-none">${t('song_recap_none')}</span>`}</div>`:''}
+        <div class="wb-line-foot">
+          <button class="wb-stbtn wide" type="button"
+            onclick="wbCycle('l',${wbAttr(ln.kr)},${wbAttr(JSON.stringify(wbLinePayload(song,ln)))})">${t('wb_st')[st]} ›</button>
+          <button class="wb-line-more" type="button" onclick="wbToggleLine(${wbAttr(id)})">${open?'▾ '+t('wb_line_less'):'▸ '+t('wb_line_more')}</button>
+        </div>
+      </article>`;
+    }).join('');
+    return `<section class="wb-fsong">
+      <button class="wb-fsong-h" type="button" onclick="wbOpenSong(${wbAttr(song.id)})">
+        <b>${escapeHtml(song.title||'')}</b><small>${escapeHtml(song.artist||'')}</small>
+      </button>
+      ${rows}
+    </section>`;
+  }).join('');
+  body.innerHTML=`${wbTodayCard()}<div class="wb-hint">${t('wb_hint_feed')}</div>${wbLegend()}${html}`;
+}
+function wbLegend(){
+  return `<div class="wb-legend">${[0,1,2,3].map(i=>`<span class="wb-lg st${i}">${t('wb_st')[i]}</span>`).join('')}</div>`;
+}
+
+/* --- Приглашение вернуться. Ни «интервала», ни «очереди», ни «алгоритма»:
+       человек видит, что айдол прислала ему строчку из песни. --------------- */
+function wbTodayCard(){
+  const due=wbDueList(), fresh=wbFreshList();
+  const nm=lsnIdolName();
+  // Учить ещё нечего — молчим. «Порция закрыта ✓» новичку, который ничего не
+  // проходил, врёт и обесценивает эту плашку на будущее.
+  if(!wbTracked().length)return '';
+  if(!due.length&&!fresh.length)
+    return `<div class="wb-alldone"><b>${t('wb_alldone')}</b><small>${t('wb_next_in')(wbNextDays())}</small></div>`;
+  const first=(due[0]||fresh[0]||{}).u;
+  const peek=(first&&first.p&&first.p.kr)||'';
+  return `<button class="wb-go" onclick="wbStartReview()">
+    <b>${nm?t('wb_dm_h')(escapeHtml(nm)):t('wb_dm_h_any')}</b>
+    ${peek?`<span class="wb-go-peek">${escapeHtml(peek)}</span>`:''}
+    <small>${t('wb_dm_sub')}</small>
+  </button>`;
+}
+function wbNextDays(){
+  const now=Date.now();
+  const next=wbTracked().map(x=>x.u.due||0).filter(d=>d>now).sort((a,b)=>a-b)[0];
+  if(!next)return 1;
+  return Math.max(1,Math.ceil((next-now)/86400000));
+}
+
+/* ===================== СПИСОК СЛОВ (вкладки «Слова» и «Сленг») ===================== */
+function wbScope(){
+  const isSlang=window._wbTab==='slang';
+  let list=lsnVocab().filter(v=>v&&v.kr&&!!v.slang===isSlang);
+  if(window._wbSongFilter)list=list.filter(v=>v.songId===window._wbSongFilter);
+  return list;
+}
+function renderWbWords(){
+  const body=document.getElementById('wbBody');
+  const isSlang=window._wbTab==='slang';
+  const list=wbScope();
+  const dir=wbDir();
+  const U=wbUnits();
+  const rows=list.length?list.slice().sort((a,b)=>{
+    const A=U[wbKey(wbIsCombo(a.kr)?'c':'w',a.kr)]||{},B=U[wbKey(wbIsCombo(b.kr)?'c':'w',b.kr)]||{};
+    return (B.lp||0)-(A.lp||0);
+  }).map(v=>{
+    const layer=wbIsCombo(v.kr)?'c':'w';
+    const st=wbStatus(v.kr,layer);
+    const u=U[wbKey(layer,v.kr)]||{};
+    const tr=wbTr(v),mean=wbMean(v);
+    const word=dir==='nat'
+      ? `<b>${escapeHtml(mean||v.kr)}</b><span class="wb-hide" onclick="wbReveal(this)" title="${t('wb_tap')}"><em>${escapeHtml(v.kr)}</em><i>${escapeHtml(tr)}</i></span>`
+      : `<b>${escapeHtml(v.kr)}</b><i>${escapeHtml(tr)}</i><span class="wb-mean">${escapeHtml(mean)}</span>`;
+    return `<div class="wb-row st${st}${(u.lp||0)>=WB_HARD_LAPSES?' hard':''}">
+      ${wbSayBtn(v.kr)}
+      <div class="wb-word">${word}</div>
+      <div class="wb-meta">
+        <button class="wb-stbtn tiny" type="button" title="${t('wb_st_h')}"
+          onclick="wbCycle('${layer}',${wbAttr(v.kr)},${wbAttr(JSON.stringify(wbWordPayload(v)))})">${t('wb_st')[st]}</button>
+        <span class="wb-src" title="${v.songTitle?escapeHtml(v.songTitle):''}">${v.from==='lesson'?'📘':v.from==='song'?'🎵':'✍️'}</span>
+      </div>
+      <button class="wb-del" aria-label="${t('wb_del')}" onclick="wbDelete(${wbAttr(v.kr)})">✕</button>
+    </div>`;
+  }).join(''):`<div class="wb-empty">${window._wbSongFilter?t('wb_empty_filter'):isSlang?t('wb_empty_slang'):t('wb_empty_words')}</div>`;
+  const filter=window._wbSongFilter?`<button class="wb-chip" onclick="wbClearFilter()">${escapeHtml(t('wb_filter_on')(wbSongTitle(window._wbSongFilter)))} ✕</button>`:'';
+  body.innerHTML=`
+    ${wbTodayCard()}
+    ${filter}
+    <div class="wb-dir" role="group" aria-label="${t('wb_dir_h')}">
+      <button class="${dir==='auto'?'on':''}" onclick="wbSetDir('auto')">${t('wb_dir_auto')}</button>
+      <button class="${dir==='kr'?'on':''}" onclick="wbSetDir('kr')">${t('wb_dir_a')}</button>
+      <button class="${dir==='nat'?'on':''}" onclick="wbSetDir('nat')">${t('wb_dir_b')}</button>
+    </div>
+    <div class="wb-add">
+      <input id="wbKr" placeholder="한국어" maxlength="40">
+      <input id="wbMean" placeholder="${t('wb_mean_ph')}" maxlength="60">
+      <button class="btn accent wb-addbtn" onclick="wbAddWord()">+</button>
+    </div>
+    <div class="wb-hint">${isSlang?t('wb_hint_slang'):t('wb_hint_words')}</div>
+    ${wbLegend()}
+    <div class="wb-list">${rows}</div>`;
+}
+
+function renderWorkbook(){
+  const tabs=document.getElementById('wbTabs'),body=document.getElementById('wbBody');
+  if(!tabs||!body)return;
+  if(window._wbReview){renderWbReview();return}
+  wbSyncVocab();
+  const voc=lsnVocab();
+  const tab=['feed','words','slang','songs'].indexOf(window._wbTab)>=0?window._wbTab:'feed';
+  const songs=(typeof window.studiedSongs==='function')?(window.studiedSongs()||[]):[];
+  tabs.innerHTML=`
+    <button class="wb-tab ${tab==='feed'?'on':''}" onclick="switchWb('feed')">${t('wb_feed')}</button>
+    <button class="wb-tab ${tab==='words'?'on':''}" onclick="switchWb('words')">${t('wb_words')} <span>${voc.filter(v=>v&&!v.slang).length}</span></button>
+    <button class="wb-tab ${tab==='slang'?'on':''}" onclick="switchWb('slang')">${t('wb_slang')} <span>${voc.filter(v=>v&&!!v.slang).length}</span></button>
+    <button class="wb-tab ${tab==='songs'?'on':''}" onclick="switchWb('songs')">${t('wb_songs')} <span>${songs.length}</span></button>`;
+  if(tab==='songs'){renderWbSongs(songs);return}
+  if(tab==='feed'){renderWbFeed();return}
+  renderWbWords();
+}
+
+/* ===================== ПОВТОРЕНИЕ =====================
+   Сессия ограничена ВРЕМЕНЕМ (WB_SESSION_MS), а не числом карточек: человек
+   заранее знает, что это пара минут, и не видит убывающего счётчика «осталось
+   43». Внутри — сначала то, что начало забываться, потом новое, но не больше
+   WB_NEW_MAX новых за день. Провалившаяся единица возвращается в этой же
+   сессии ровно один раз и уезжает минимум на завтра — одну карточку по кругу
+   за день мы не гоняем.                                                      */
+function wbNewToday(){
+  const k='so_wbnew_'+lsnUid();
+  let o=null;try{o=JSON.parse(localStorage.getItem(k)||'null')}catch(e){o=null}
+  if(!o||typeof o!=='object')o={d:0,n:0};
+  if(wbDayStart(o.d||0)!==wbDayStart())o={d:Date.now(),n:0};
+  return o;
+}
+function wbBumpNew(n){
+  const k='so_wbnew_'+lsnUid(),o=wbNewToday();
+  o.d=Date.now();o.n=(o.n||0)+(n||1);
+  try{localStorage.setItem(k,JSON.stringify(o))}catch(e){}
+}
+function wbBuildSession(){
+  const due=wbDueList();
+  const left=Math.max(0,WB_NEW_MAX-wbNewToday().n);
+  const fresh=wbFreshList().slice(0,left);
+  const ord={l:0,c:1,w:2};
+  const mix=due.concat(fresh);
+  // Сначала то, что уже учится (иначе новое вытеснит забывающееся), внутри —
+  // строка вперёд слова.
+  mix.sort((a,b)=>{
+    const an=a.u.n?0:1,bn=b.u.n?0:1;
+    return (an-bn)||((ord[a.u.k]|0)-(ord[b.u.k]|0));
+  });
+  return {keys:mix.map(x=>x.key),newKeys:fresh.map(x=>x.key)};
+}
 function wbStartReview(){
-  const due=wbDue(wbScope());
-  if(!due.length)return;
-  window._wbReview={q:due.map(v=>v.kr),i:0,ok:0,total:due.length,shown:false,again:{},done:false};
+  const s=wbBuildSession();
+  if(!s.keys.length){toast(t('wb_dm_none'));return}
+  window._wbReview={q:s.keys,fresh:{},i:0,ok:0,seen:0,shown:false,again:{},done:false,
+    endsAt:Date.now()+WB_SESSION_MS,startedAt:Date.now(),timeout:false};
+  s.newKeys.forEach(k=>{window._wbReview.fresh[k]=1});
   renderWorkbook();
 }
 function wbExitReview(){window._wbReview=null;renderWorkbook()}
+// Полный набор данных карточки, независимо от слоя.
+function wbCard(key){
+  const u=wbUnits()[key];if(!u)return null;
+  const p=u.p||{};
+  const kr=p.kr||String(key).slice(2);
+  let mean=wbMean(p),tr=wbTr(p);
+  if(u.k!=='l'){
+    const v=lsnVocab().find(x=>x&&x.kr===kr);
+    if(v){mean=wbMean(v)||mean;tr=wbTr(v)||tr}
+  }
+  if(!tr)tr=koTr(kr);
+  return {u:u,key:key,layer:u.k||'w',kr:kr,mean:mean,tr:tr,
+    ctx:p.ctx||'',why:wbPick(p.why||null),song:p.songTitle||''};
+}
+function wbShowAnswer(){if(window._wbReview){window._wbReview.shown=true;renderWbReview()}}
 function renderWbReview(){
   const R=window._wbReview,tabs=document.getElementById('wbTabs'),body=document.getElementById('wbBody');
-  tabs.innerHTML=`<button class="wb-tab wb-rev-back" onclick="wbExitReview()">${t('wb_back')}</button>
-    <span class="wb-rev-count">${Math.min(R.i+1,R.total)} / ${R.total}</span>`;
+  if(!R||!tabs||!body)return;
+  tabs.innerHTML=`<button class="wb-tab wb-rev-back" onclick="wbExitReview()">${t('wb_back')}</button>`;
   if(R.done){
     body.innerHTML=`<div class="wb-fin">
-      <div class="wb-fin-n">${R.ok} / ${R.total}</div>
-      <div class="wb-fin-h">${t('wb_fin_h')}</div>
-      <div class="wb-fin-sub">${t('wb_fin_sub')(wbNextDays(wbScope()))}</div>
+      <div class="wb-fin-n">${R.ok} / ${Math.max(1,R.seen)}</div>
+      <div class="wb-fin-h">${R.timeout?t('wb_time_out'):t('wb_fin_h')}</div>
+      <div class="wb-fin-sub">${t('wb_fin_sub')(wbNextDays())}</div>
       <button class="btn accent wb-fin-btn" onclick="wbExitReview()">${t('wb_fin_btn')}</button>
     </div>`;
     return;
   }
-  const kr=R.q[R.i];
-  const v=lsnVocab().find(x=>x&&x.kr===kr);
-  if(!v){R.i++;if(R.i>=R.q.length){R.done=true}renderWbReview();return}
-  const st=wbSt(kr),tr=wbTr(v),mean=wbMean(v);
-  // Направление задаёт не тумблер, а уровень слова: сперва узнавание (кор → родной),
-  // с третьего уровня — воспроизведение (родной → кор). Это то же восхождение,
-  // что Quizlet ведёт внутри Learn от выбора варианта к письменному ответу
-  // [help.quizlet.com, «Studying with Learn»], и то, чего нет в плоском списке слов.
-  const prod=st.l>=2;
-  const q=prod?mean:v.kr, a=prod?v.kr:mean;
-  const pct=Math.round(Math.min(R.i/R.total,1)*100);
+  // Время вышло — заканчиваем на границе карточки, а не посреди ответа. Проверка
+  // и здесь тоже: сессию могли оставить открытой и вернуться к ней через час.
+  if(Date.now()>=R.endsAt&&R.seen>0){R.done=true;R.timeout=true;wbFinishReview();renderWbReview();return}
+  const key=R.q[R.i];
+  const c=key?wbCard(key):null;
+  if(!c){
+    R.i++;
+    if(R.i>=R.q.length){R.done=true;wbFinishReview()}
+    renderWbReview();return;
+  }
+  // Направление. «auto» — сначала узнавание (кор → родной), дальше воспроизведение
+  // (родной → кор): то же восхождение, что Quizlet ведёт внутри Learn.
+  // Тумблер в списке слов может закрепить направление жёстко.
+  const d=wbDir();
+  const prod=d==='nat'?true:d==='kr'?false:((c.u.n||0)>=3&&(c.u.S||0)>=4);
+  const q=prod?(c.mean||c.kr):c.kr, a=prod?c.kr:(c.mean||c.tr);
+  const layerName=t('wb_layer')[c.layer==='l'?0:c.layer==='c'?1:2];
+  const elapsed=Math.min(1,Math.max(0,(Date.now()-R.startedAt)/WB_SESSION_MS));
   body.innerHTML=`
     <div class="wb-rev">
-      <div class="wb-bar"><i style="transform:scaleX(${pct/100})"></i></div>
-      <div class="wb-rev-mode">${prod?t('wb_rev_prod'):t('wb_rev_recog')}${st.f>=WB_LEECH?` · <span class="wb-hardtag">${t('wb_hard')}</span>`:''}</div>
-      <div class="wb-rev-q">${escapeHtml(q)}</div>
-      ${!prod?`<div class="wb-rev-tr">${escapeHtml(tr)}</div>`:''}
-      <button class="wb-say big" aria-label="${t('wb_say')}"
-        onpointerdown="wbSayDown(this,${wbAttr(v.kr)})" onpointerup="wbSayUp(this,${wbAttr(v.kr)})"
-        onpointerleave="wbSayCancel()" onpointercancel="wbSayCancel()">🔊</button>
+      <div class="wb-bar" aria-hidden="true"><i style="transform:scaleX(${elapsed})"></i></div>
+      <div class="wb-rev-mode"><span class="wb-layer l-${c.layer}">${layerName}</span>${prod?t('wb_rev_prod'):t('wb_rev_recog')}${(c.u.lp||0)>=WB_HARD_LAPSES?` · <span class="wb-hardtag">${t('wb_hard')}</span>`:''}</div>
+      <div class="wb-rev-q ${c.layer==='l'?'line':''}">${escapeHtml(q)}</div>
+      ${!prod&&c.tr?`<div class="wb-rev-tr">${escapeHtml(c.tr)}</div>`:''}
+      ${wbSayBtn(c.kr,'big')}
       ${R.shown
-        ? `<div class="wb-rev-a">${escapeHtml(a)}${prod?`<span>${escapeHtml(tr)}</span>`:''}</div>
-           ${v.songTitle?`<div class="wb-rev-from">${t('wb_from_song')} · ${escapeHtml(v.songTitle)}</div>`:''}
+        ? `<div class="wb-rev-a">${escapeHtml(a)}${prod&&c.tr?`<span>${escapeHtml(c.tr)}</span>`:''}</div>
+           ${(c.ctx&&c.ctx!==c.kr)?`<div class="wb-rev-ctx">${t('wb_ctx')} <b>${escapeHtml(c.ctx)}</b></div>`:''}
+           ${c.why?`<p class="wb-rev-why"><span class="kp-tag">${t('wb_combo_why')}</span>${escapeHtml(c.why)}</p>`:''}
+           ${c.song?`<div class="wb-rev-from">${t('wb_from_song')} · ${escapeHtml(c.song)}</div>`:''}
            <div class="wb-rev-btns">
-             <button class="wb-no" onclick="wbGrade(0)">${t('wb_no')}</button>
-             <button class="wb-yes" onclick="wbGrade(1)">${t('wb_yes')}</button>
+             <button class="wb-no" onclick="wbGrade(1)">${t('wb_no')}</button>
+             <button class="wb-yes" onclick="wbGrade(3)">${t('wb_yes')}</button>
+             <button class="wb-easy" onclick="wbGrade(4)">${t('wb_easy')}</button>
            </div>`
         : `<div class="wb-rev-a ghost"></div>
            <div class="wb-rev-btns"><button class="wb-show" onclick="wbShowAnswer()">${t('wb_show')}</button></div>`}
     </div>`;
 }
-function wbShowAnswer(){if(window._wbReview){window._wbReview.shown=true;renderWbReview()}}
-function wbGrade(ok){
+function wbGrade(g){
   const R=window._wbReview;if(!R||R.done)return;
-  const kr=R.q[R.i],st=wbSt(kr),now=Date.now(),all=wbSrs();
-  if(ok){st.l=Math.min(st.l+1,WB_INT.length-1);st.d=now+WB_INT[st.l]*86400000;R.ok++}
-  else{
-    st.f++;st.l=Math.max(0,st.l-1);st.d=now+WB_INT[1]*86400000;
-    if(!R.again[kr]){R.again[kr]=1;R.q.push(kr)}   // ещё один заход в этой же сессии, но только один
+  const key=R.q[R.i],U=wbUnits(),u=U[key];
+  if(u){
+    if(R.fresh[key]&&!u.n){wbBumpNew(1);delete R.fresh[key]}
+    wbApply(u,g);
+    wbSaveUnits();
+    R.seen++;
+    if(g>1)R.ok++;
+    // Провалил — покажем ещё раз в этой же сессии, но ровно один раз за день.
+    if(g===1&&!R.again[key]){R.again[key]=1;R.q.push(key)}
   }
-  all[kr]=st;wbSaveSrs();
   R.i++;R.shown=false;
-  if(R.i>=R.q.length){
-    R.done=true;
-    try{localStorage.setItem('so_wblast_'+lsnUid(),String(Date.now()))}catch(e){}
-    try{window.dispatchEvent(new CustomEvent('so:wbreview',{detail:{done:R.ok,total:R.total}}))}catch(e){}
-    // Повторение — такой же учебный день, как урок: кормит стрик и прогресс карточки.
-    try{if(currentUser&&typeof pingStudy==='function')pingStudy().then(()=>{if(typeof renderCabinet==='function'&&myIdol)try{renderCabinet(null)}catch(e){}})}catch(e){}
-  }
+  if(R.i>=R.q.length){R.done=true;wbFinishReview()}
+  else if(Date.now()>=R.endsAt){R.done=true;R.timeout=true;wbFinishReview()}
   renderWbReview();
 }
+function wbFinishReview(){
+  try{localStorage.setItem('so_wblast_'+lsnUid(),String(Date.now()))}catch(e){}
+  const R=window._wbReview||{};
+  try{window.dispatchEvent(new CustomEvent('so:wbreview',{detail:{done:R.ok||0,total:R.seen||0}}))}catch(e){}
+  // Повторение — такой же учебный день, как урок: кормит серию и карточку кабинета.
+  try{if(currentUser&&typeof pingStudy==='function')pingStudy().then(()=>{if(typeof renderCabinet==='function'&&myIdol)try{renderCabinet(null)}catch(e){}})}catch(e){}
+}
 
-/* ---- Вкладка «Разобранные песни». Данные — только чтение, контракт IDOLINGO_CONTRACT_songs.md ---- */
+/* ---- Вкладка «Разобранные песни». Данные — только чтение, контракт songs ---- */
 function wbSongTitle(id){
   const s=((typeof window.studiedSongs==='function')?(window.studiedSongs()||[]):[]).find(x=>x&&x.id===id);
   return s?s.title:'';
@@ -1720,19 +2183,21 @@ function renderWbSongs(songs){
     </div>`;
   }).join('')+`</div>`;
 }
-/* ---- Наружу для агента проактива: сколько слов ждёт человека прямо сейчас.
-   Ничего не рендерит, ничего не пишет. Контракт — в IDOLINGO_CONTRACT_songs.md, раздел «Тетрадь → проактив». ---- */
+/* ---- Наружу для агента проактива: сколько единиц ждёт человека прямо сейчас.
+   Ничего не рендерит, ничего не пишет. Контракт — в IDOLINGO_CONTRACT_songs.md,
+   раздел «Тетрадь → проактив». Семантика сохранена: числа выше дневной порции
+   наружу не отдаём, чтобы проактив не написал «тебя ждут 43 слова». ---- */
 window.wbDueCount=function(){
-  try{
-    const now=Date.now();
-    return lsnVocab().filter(v=>v&&v.kr&&wbSt(v.kr).d<=now).length;
-  }catch(e){return 0}
+  // Потолок семь — ровно как обещано в контракте: числа выше человек не видит
+  // нигде, и проактив не должен писать «тебя ждут 43 слова».
+  try{return Math.min(WB_PROACTIVE_MAX,wbDueList().length)}catch(e){return 0}
 };
 window.wbDuePreview=function(n){
   try{
-    const now=Date.now();
-    return lsnVocab().filter(v=>v&&v.kr&&wbSt(v.kr).d<=now).slice(0,n||3)
-      .map(v=>({kr:v.kr,rom:wbTr(v),mean:wbMean(v),songTitle:v.songTitle||''}));
+    return wbDueList().slice(0,n||3).map(x=>{
+      const c=wbCard(x.key)||{};
+      return {kr:c.kr||'',rom:c.tr||'',mean:c.mean||'',songTitle:c.song||'',layer:c.layer||'w'};
+    });
   }catch(e){return[]}
 };
 window.wbLastReview=function(){try{return Number(localStorage.getItem('so_wblast_'+lsnUid()))||0}catch(e){return 0}};
@@ -1746,7 +2211,13 @@ if(!window._wbSongHook){
   });
 }
 
-function switchWb(tab){window._wbTab=tab;if(tab!=='words')window._wbSongFilter=null;renderWorkbook()}
+function switchWb(tab){
+  window._wbTab=tab;
+  if(tab!=='words')window._wbSongFilter=null;
+  window._wbOpenLine=null;window._wbOpenWord=null;
+  renderWorkbook();
+  const b=document.getElementById('wbBody');if(b)b.scrollTop=0;
+}
 
 function wbAddWord(){
   const kr=document.getElementById('wbKr').value.trim();
@@ -1754,15 +2225,18 @@ function wbAddWord(){
   if(!kr){toast(t('wb_need_kr'));return}
   const voc=lsnVocab();
   if(voc.some(v=>v&&v.kr===kr)){toast(t('wb_dup'));return}
-  voc.push({kr,rom:wbRomanize(kr),ru:mean,en:mean,from:'manual',slang:window._wbTab==='slang'});
+  // rom/rr не выдумываем: транскрипцию на показе даст движок (koTr) — один на всё приложение.
+  voc.push({kr:kr,rom:'',ru:mean,en:mean,from:'manual',slang:window._wbTab==='slang'});
   lsnSaveVocab(voc);
   window._wbSongFilter=null;
+  wbSyncVocab();
   renderWorkbook();
 }
 
 function wbDelete(kr){
   const voc=lsnVocab().filter(v=>v.kr!==kr);
   lsnSaveVocab(voc);
+  const U=wbUnits();delete U[wbKey('w',kr)];delete U[wbKey('c',kr)];wbSaveUnits();
   renderWorkbook();
 }
 
@@ -1780,7 +2254,17 @@ function allSongs(){
   return out;
 }
 function loadCatalog(){
-  fetch('/api/song?action=list').then(r=>r.json()).then(d=>{if(d&&d.songs){window._catalog=d.songs;renderSongList();}}).catch(()=>{});
+  fetch('/api/song?action=list').then(r=>r.json()).then(d=>{
+    if(!d||!d.songs)return;
+    window._catalog=d.songs;renderSongList();
+    // Холодный старт: тетрадь могли открыть раньше, чем приехал каталог. Строки
+    // старых записей (без поля lines) достраиваются как раз из каталога — без
+    // этой перерисовки лента осталась бы пустой до перезахода.
+    try{
+      const ov=document.getElementById('wbOv');
+      if(ov&&ov.classList.contains('show')&&!window._wbReview)renderWorkbook();
+    }catch(e){}
+  }).catch(()=>{});
 }
 function closeSongs(){
   // Если открыт конкретный клип — «закрыть» = вернуться к СПИСКУ песен (одна ступень назад),
@@ -1893,6 +2377,16 @@ function songWordsByVerse(song){
     // жила без каталога: человек открывает её и через неделю, когда песня уже закрыта.
     const sense=(v.lines||[]).map(ln=>({s:ln.s||null,c:ln.c||null})).filter(x=>x.s||x.c);
     if(sense.length)g.sense=sense;
+    // Правка 23.07 (лента тетради): кладём и САМИ СТРОКИ — корейский текст, его
+    // смысл, объяснение компоновки и слова строки по порядку. Тетради нужна
+    // строка целиком: слово живёт внутри неё, а из плоского списка слов строку
+    // назад уже не собрать. Поле добавлено, ничего старого не убрано.
+    const lines=(v.lines||[]).map(ln=>{
+      const w=(ln.w||[]).map(x=>({kr:((x&&x.k)||'').trim(),rom:x.r||x.rom||'',rr:x.rr||'',
+        ru:x.ru||'',en:x.en||''})).filter(x=>x.kr);
+      return {kr:w.map(x=>x.kr).join(' '),s:ln.s||null,c:ln.c||null,w};
+    }).filter(ln=>ln.kr);
+    if(lines.length)g.lines=lines;
     return g;
   });
 }
@@ -1908,6 +2402,9 @@ function songStudyTouch(song,done){
   const rec={id:song.id,title:song.title||'',artist:song.artist||'',ytId:song.ytId||'',
     at:Date.now(),done:!!done||!!prev.done,wordsTotal:total,wordsSaved:got,verses};
   try{localStorage.setItem(songStudyKey(),JSON.stringify([rec,...all.filter(x=>x.id!==song.id)].slice(0,60)))}catch(e){}
+  // Открыл разбор — значит эти слова человек уже ВИДЕЛ. Это второй из четырёх
+  // статусов; без него в тексте песни всё было бы либо «не видел», либо «учу».
+  try{if(typeof wbMarkSeen==='function')wbMarkSeen(verses.reduce((a,g)=>a.concat(g.words.map(w=>w.kr)),[]))}catch(e){}
   try{window.dispatchEvent(new CustomEvent('so:songstudy',{detail:{id:song.id}}))}catch(e){}
 }
 
@@ -2147,8 +2644,12 @@ function renderKaraVerse(){
     const toks=ln.words.map(w=>{
       const idx=K.tok.length;K.tok.push({t0:w.t0,t1:w.t1,fill:-1,cls:''});
       const kr=w.k||'',rm=romOf(w);
+      // Статус знания прямо в тексте (Migaku/LingQ): не видел · видел · отслеживаю · знаю.
+      // Метка идёт полосой под словом, а не цветом текста — иначе она подралась бы
+      // с караоке-заливкой, которая уже красит символы по ходу песни.
+      const st=wbTokStatus(kr);
       // data-txt — та же строка для слоя-заливки (::after), см. .tok-k::after в style.css
-      return `<span class="tok" data-i="${idx}"><span class="tok-k" data-txt="${attrEsc(kr)}">${escapeHtml(kr)}</span><span class="tok-r" data-txt="${attrEsc(rm)}">${escapeHtml(rm)}</span><span class="tok-m">${escapeHtml(w[L]||'')}</span></span>`;
+      return `<span class="tok st${st}" data-i="${idx}" data-kr="${attrEsc(kr)}"><span class="tok-k" data-txt="${attrEsc(kr)}">${escapeHtml(kr)}</span><span class="tok-r" data-txt="${attrEsc(rm)}">${escapeHtml(rm)}</span><span class="tok-m">${escapeHtml(w[L]||'')}</span></span>`;
     }).join('');
     return `<div class="kline">${toks}</div>`;
   }).join('');
@@ -2157,6 +2658,20 @@ function renderKaraVerse(){
   K.tokEls=box.querySelectorAll('.tok');
   K.lineEls=box.querySelectorAll('.kline');
   renderVersePanel();
+}
+// Статус токена: сочетание («보고 싶다») и слово живут в разных слоях тетради,
+// но в тексте песни выглядят одинаково — цвет берём по своему слою.
+function wbTokStatus(kr){
+  try{return wbStatus(kr,wbIsCombo(kr)?'c':'w')}catch(e){return 0}
+}
+// Перекрасить открытый разбор, не перерисовывая его: статус мог поменяться в
+// тетради, пока песня открыта. Тайминги и заливка при этом не сбрасываются.
+function wbPaintSong(){
+  const K=window._kara;if(!K||!K.tokEls)return;
+  K.tokEls.forEach(el=>{
+    const st=wbTokStatus(el.getAttribute('data-kr')||'');
+    el.classList.remove('st0','st1','st2','st3');el.classList.add('st'+st);
+  });
 }
 
 // Плавная заливка: активное слово красится слева-направо по мере произношения.
@@ -2322,10 +2837,13 @@ function renderSongRecap(){
       <div class="rcp-words">${g.words.map((w,wi)=>{
         const on=!!have[w.kr];
         const rom=(L==='ru'&&w.rr)?w.rr:(w.rom||'');
-        return `<div class="rcp-w${on?' on':''}">
+        // Тот же цвет статуса, что и в тексте песни — набор слов и текст говорят
+        // об одном и том же слове одинаково.
+        return `<div class="rcp-w st${wbTokStatus(w.kr)}${on?' on':''}">
           <button class="rcp-add" type="button" ${on?'disabled':''} onclick="songAddWord(${g.i},${wi})" aria-label="${escapeHtml(w.kr)} — ${t('song_save')(t('wb_words'))}">${on?'✓':'+'}</button>
           <span class="rcp-txt"><b class="rcp-k">${escapeHtml(w.kr)}</b>${rom?`<i class="rcp-r">${escapeHtml(rom)}</i>`:''}</span>
           <span class="rcp-m">${escapeHtml(w[L]||w.ru||w.en||'')}</span>
+          ${wbSayBtn(w.kr,'sm')}
         </div>`;}).join('')||`<div class="rcp-none">${t('song_recap_none')}</div>`}</div>
     </section>`;}).join('');
   b.innerHTML=`<div class="rcp">
@@ -2346,19 +2864,31 @@ function songAddWord(vi,wi){
   const g=songWordsByVerse(K.song)[vi];const w=g&&g.words[wi];if(!w)return;
   const voc=lsnVocab();
   if(!voc.some(x=>x.kr===w.kr)){voc.push(songVocabEntry(K.song,vi,w));lsnSaveVocab(voc);}
+  wbTake(w,K.song,vi);
   songStudyTouch(K.song);
-  if(K.recap)renderSongRecap();
+  if(K.recap)renderSongRecap();else wbPaintSong();
   toast(t('song_save_toast'));
+}
+// «+» в разборе = «беру в работу»: слово сразу переходит в статус «отслеживаю»
+// и попадает в повторение. Без этого статус подтягивался бы только при следующем
+// открытии тетради, и цвет в тексте врал бы до тех пор.
+function wbTake(w,song,vi){
+  try{
+    const layer=wbIsCombo(w.kr)?'c':'w';
+    if(wbStatus(w.kr,layer)>=2)return;
+    wbSetStatus(layer,w.kr,2,{kr:w.kr,rom:w.rom||'',rr:w.rr||'',ru:w.ru||'',en:w.en||'',
+      songId:song.id,songTitle:song.title||'',verse:vi,from:'song'});
+  }catch(e){}
 }
 function songAddVerse(vi){
   const K=window._kara;if(!K)return;
   const g=songWordsByVerse(K.song)[vi];if(!g)return;
   const voc=lsnVocab();const have={};voc.forEach(x=>{have[x.kr]=1});
   let n=0;
-  g.words.forEach(w=>{if(!have[w.kr]){voc.push(songVocabEntry(K.song,vi,w));have[w.kr]=1;n++;}});
+  g.words.forEach(w=>{if(!have[w.kr]){voc.push(songVocabEntry(K.song,vi,w));have[w.kr]=1;n++;}wbTake(w,K.song,vi);});
   if(n)lsnSaveVocab(voc);
   songStudyTouch(K.song);
-  if(K.recap)renderSongRecap();
+  if(K.recap)renderSongRecap();else wbPaintSong();
   toast(n?t('song_added_n')(n):t('wb_dup'));
 }
 
@@ -3166,7 +3696,15 @@ const T={
     lsn_dr_right:"Correct", lsn_dr_words:"Words to the Workbook", lsn_dr_back:"Back to lessons",
     lsn_streak_days:n=>`${n} ${n===1?'day':'days'} in a row`, lsn_froze:"❄ A freeze covered your missed day — the streak holds.",
     lsn_seven:"7 days in a row. This is the point where it stops being an effort.", lsn_levelup:n=>`Level ${n} — new level!`,
-    tile_wb:"Workbook", tile_wb_sub:"your words & slang",
+    tile_wb:"Workbook", tile_wb_sub:"your words & slang", nav_wb:"Workbook",
+    wb_feed:"Lines", wb_hint_feed:"Lines from the songs you broke down. Tap a line to open the words inside it.",
+    wb_empty_feed:"Nothing here yet. Break down one song — its lines land here, and they come back to you on their own.",
+    wb_line_more:"words inside", wb_line_less:"hide",
+    wb_st:["not seen","seen","learning","known"], wb_st_h:"How well you know it",
+    wb_layer:["line","phrase","word"], wb_combo_why:"why these words mean this together",
+    wb_ctx:"from the line", wb_dir_auto:"both ways", wb_easy:"Easy",
+    wb_dm_h:nm=>`${nm} sent you a line`, wb_dm_h_any:"A line from a song is waiting", wb_dm_sub:"a couple of minutes",
+    wb_dm_none:"Nothing for today — come back tomorrow", wb_time_out:"That's enough for today",
     wb_h:"Workbook", wb_words:"Words", wb_slang:"Slang", wb_del:"Remove", wb_mean_ph:"meaning", wb_need_kr:"Type the Korean word", wb_dup:"Already in your workbook",
     wb_empty_words:"No words yet — finish lessons and they’ll pile up here automatically.", wb_empty_slang:"No slang yet — it’ll collect from song breakdowns. You can add your own too.",
     wb_hint_words:"📘 auto from lessons · ✍️ added by you", wb_hint_slang:"🎵 from songs · ✍️ added by you",
@@ -3175,7 +3713,7 @@ const T={
     wb_go:n=>`Review ${n} ${n===1?'word':'words'}`, wb_go_sub:"about a minute — that’s the whole batch",
     wb_alldone:"Today’s batch is done ✓", wb_next_in:n=>n<=1?"The next words come back tomorrow":`The next words come back in ${n} days`,
     wb_dir_h:"Direction", wb_dir_a:"한국어 → EN", wb_dir_b:"EN → 한국어",
-    wb_hard:"tough one", wb_rev_recog:"do you know this word?", wb_rev_prod:"say it in Korean",
+    wb_hard:"tough one", wb_rev_recog:"what does it mean?", wb_rev_prod:"say it in Korean",
     wb_show:"Show", wb_no:"Didn’t know it", wb_yes:"Knew it", wb_back:"← workbook",
     wb_fin_h:"Batch complete", wb_fin_sub:n=>n<=1?"These words come back tomorrow — that’s how they stay.":`These words come back in ${n} days — that’s how they stay.`,
     wb_fin_btn:"Done", wb_from_song:"from the song",
@@ -3246,7 +3784,15 @@ const T={
     lsn_streak_days:n=>`${n} ${n%10===1&&n%100!==11?'день':(n%10>=2&&n%10<=4&&(n%100<10||n%100>=20))?'дня':'дней'} подряд`,
     lsn_froze:"❄ Заморозка закрыла пропущенный день — серия цела.",
     lsn_seven:"Семь дней подряд. Дальше это перестаёт быть усилием.", lsn_levelup:n=>`Уровень ${n} — новый уровень!`,
-    tile_wb:"Рабочая тетрадь", tile_wb_sub:"твои слова и сленг",
+    tile_wb:"Рабочая тетрадь", tile_wb_sub:"твои слова и сленг", nav_wb:"Тетрадь",
+    wb_feed:"Строки", wb_hint_feed:"Строки из разобранных песен. Тап по строке — откроются слова внутри неё.",
+    wb_empty_feed:"Пока пусто. Разбери одну песню — её строки лягут сюда и сами начнут возвращаться к тебе.",
+    wb_line_more:"слова внутри", wb_line_less:"свернуть",
+    wb_st:["не видел","видел","отслеживаю","знаю"], wb_st_h:"Насколько знаешь",
+    wb_layer:["строка","сочетание","слово"], wb_combo_why:"почему вместе это значит так",
+    wb_ctx:"из строки", wb_dir_auto:"в обе стороны", wb_easy:"Легко",
+    wb_dm_h:nm=>`${nm} прислала строчку`, wb_dm_h_any:"Тебя ждёт строчка из песни", wb_dm_sub:"пара минут",
+    wb_dm_none:"На сегодня ничего — загляни завтра", wb_time_out:"На сегодня хватит",
     wb_h:"Рабочая тетрадь", wb_words:"Слова", wb_slang:"Сленг", wb_del:"Удалить", wb_mean_ph:"перевод", wb_need_kr:"Впиши корейское слово", wb_dup:"Уже есть в тетради",
     wb_empty_words:"Пока пусто — проходи уроки, и слова сами накопятся здесь.", wb_empty_slang:"Пока пусто — сленг накопится из разборов песен. Можно добавить и своё.",
     wb_hint_words:"📘 авто с уроков · ✍️ добавил ты", wb_hint_slang:"🎵 из песен · ✍️ добавил ты",
@@ -3255,7 +3801,7 @@ const T={
     wb_go:n=>`Повторить ${n} ${n===1?'слово':(n<5?'слова':'слов')}`, wb_go_sub:"минута — это вся сегодняшняя порция",
     wb_alldone:"Сегодняшняя порция закрыта ✓", wb_next_in:n=>n<=1?"Следующие слова вернутся завтра":`Следующие слова вернутся через ${n} дн.`,
     wb_dir_h:"Направление", wb_dir_a:"한국어 → RU", wb_dir_b:"RU → 한국어",
-    wb_hard:"тяжёлое", wb_rev_recog:"знаешь это слово?", wb_rev_prod:"скажи по-корейски",
+    wb_hard:"тяжёлое", wb_rev_recog:"что это значит?", wb_rev_prod:"скажи по-корейски",
     wb_show:"Показать", wb_no:"Не помню", wb_yes:"Помню", wb_back:"← в тетрадь",
     wb_fin_h:"Порция закрыта", wb_fin_sub:n=>n<=1?"Эти слова вернутся завтра — так они и остаются в голове.":`Эти слова вернутся через ${n} дн. — так они и остаются в голове.`,
     wb_fin_btn:"Готово", wb_from_song:"из песни",
@@ -3301,6 +3847,7 @@ function applyStatic(){
   const s=document.getElementById('langSel');if(s)s.value=getLang();
   const lc=document.getElementById('langCap');if(lc)lc.textContent=t('lang_cap');
   const nav=document.querySelector('.navtab[data-view="cabinet-own"]');if(nav)nav.textContent=t('nav_home');
+  const navw=document.querySelector('.navtab[data-view="workbook"]');if(navw)navw.textContent=t('nav_wb');
   const navi=document.querySelector('.navtab[data-view="roster"]');if(navi)navi.textContent=t('nav_idols');
   const f=document.querySelector('footer.wrap');if(f)f.innerHTML=t('footer');
   const ct=document.getElementById('chatText');if(ct)ct.placeholder=t('chat_ph');
