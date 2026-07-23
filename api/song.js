@@ -6,6 +6,7 @@
 import { readUserId } from "../lib/session.js";
 import { supabase } from "../lib/supabase.js";
 import { songUsage } from "../lib/limits.js";
+import { transcribeLatin, transcribeCyrillic, pronounce } from "../lib/ko-g2p.js";
 
 export const config = { maxDuration: 60 };
 
@@ -231,13 +232,22 @@ async function handleBuild(req, res) {
   const built = lines.map((l, i) => {
     const a = byLine.get(i) || ann.lines[i] || {};
     const raw = Array.isArray(a.w) && a.w.length ? a.w : [{ k: l.kr, r: "", rr: "", ru: (a.tr && a.tr.ru) || "", en: (a.tr && a.tr.en) || "" }];
-    const w = raw.map((x) => ({
-      k: x.k || "",
-      r: syllabify(x.r),
-      rr: String(x.rr || ""),
-      ru: x.ru || "",
-      en: x.en || "",
-    })).filter((x) => x.k);
+    // Транскрипцию считаем сами: правила произношения детерминированы, а модель
+    // на них регулярно съезжает в книжную романизацию. Ответ модели держим только
+    // как запасной вариант — для латиницы внутри корейского текста и прочих
+    // случаев, где считать нечего. См. lib/ko-g2p.js.
+    const w = raw.map((x) => {
+      const k = x.k || "";
+      const hangul = /[가-힣]/.test(k);
+      return {
+        k,
+        r: hangul ? transcribeLatin(k) : syllabify(x.r),
+        rr: hangul ? transcribeCyrillic(k) : String(x.rr || ""),
+        p: hangul ? pronounce(k) : "",          // как слово звучит, хангылем
+        ru: x.ru || "",
+        en: x.en || "",
+      };
+    }).filter((x) => x.k);
     return { t: l.t, kr: l.kr, tr: a.tr || { ru: "", en: "" }, w: w.length ? w : [{ k: l.kr, r: "", rr: "", ru: "", en: "" }] };
   });
 
