@@ -1,10 +1,22 @@
 :root{
   --bg:#150f1e;--bg2:#1c1428;--panel:#241b34;--panel2:#2d2240;--line:#453660;
-  --ink:#f8f1fb;--mut:#c7b3da;--dim:#8a76a3;
+  /* --dim поднят с #8a76a3 до #a394bd 23.07: старое значение давало 3.68:1 на --panel2
+     и 4.06:1 на --panel при норме WCAG AA 4.5:1, а этим цветом набран весь пояснительный
+     слой (подписи плиток, транскрипции, примечания, 9-12px). Новое: 5.32 / 5.88 / 6.38 / 6.73. */
+  --ink:#f8f1fb;--mut:#c7b3da;--dim:#a394bd;
   --accent:#e8a9c9;--accent-fill:#d980ab;--accent2:#f3d9ac;--good:#7fe8c9;
   --gold:#d9a441;--silver:#c7cfe0;--bronze:#c98f68;
   --holo1:#ffb3d9;--holo2:#c9a9ff;--holo3:#9fd8ff;--holo4:#ffe9a8;
   --r:0px;
+  /* --f-ko подключён ТОЛЬКО в стек body (см. ниже), и намеренно не добавлен в --f-display,
+     --f-serif и --f-tech. Замер 23.07: если поставить его в эти три стека, лендинг без
+     единой корейской буквы тянет 9 сабсетов Noto Sans KR / 136 КБ — потому что Unbounded
+     и особенно Orbitron не покрывают кириллицу и часть пунктуации, и всё это уезжает
+     в корейский шрифт вместо системного. После отката: на лендинге 0 КБ корейского.
+     Хангылю это ничем не грозит: ни один класс, который печатает корейские буквы
+     (.hm-ch, .tok-k, .ksl-t, .kline, .lb-kr), font-family не переопределяет — все
+     наследуют от body. */
+  --f-ko:"Noto Sans KR";
   --f-display:"Unbounded",system-ui,sans-serif;--f-serif:"Playfair Display",Georgia,serif;--f-tech:"Orbitron",monospace;
 }
 /* Требование: никаких скруглений нигде в интерфейсе — только чёткие 90° углы.
@@ -13,15 +25,22 @@
 *{box-sizing:border-box;margin:0;padding:0}
 html{overflow-x:hidden;-webkit-text-size-adjust:100%;text-size-adjust:100%}
 body{background:radial-gradient(120% 80% at 50% -10%,#2c2044 0%,var(--bg) 55%);
-  color:var(--ink);font-family:"Segoe UI",system-ui,-apple-system,sans-serif;min-height:100vh;-webkit-font-smoothing:antialiased;max-width:100vw;overflow-x:hidden;position:relative}
+  color:var(--ink);font-family:"Segoe UI",system-ui,-apple-system,var(--f-ko),sans-serif;min-height:100vh;-webkit-font-smoothing:antialiased;max-width:100vw;overflow-x:hidden;position:relative}
 img,iframe,video{max-width:100%}
 .wrap{max-width:1120px;margin:0 auto;padding:0 20px}
 header{position:sticky;top:0;z-index:40;backdrop-filter:blur(14px);background:rgba(21,15,30,.82);border-bottom:1px solid var(--line)}
 .hbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;min-height:60px;padding-block:10px}
-.logo{font-family:var(--f-display);font-weight:900;letter-spacing:.2em;font-size:15px}
-.logo b{background:linear-gradient(90deg,var(--holo1),var(--holo2),var(--holo3),var(--holo4),var(--holo1));
-  background-size:300% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;
-  animation:holoshift 6s linear infinite}
+/* ЗНАК БРЕНДА, 23.07. Требование основателя: логотип-леттеринг, значок равен названию —
+   отдельной иконки нет и не будет. Прежний вариант заливал «ingo» бегущей холо-заливкой,
+   вырезанной по контуру букв. Три проблемы разом: правило gradient-text у детектора
+   (AI-tell), бесконечная анимация и знак, который в монохроме и в вывороте исчезает.
+   Заменено на выворотку: «Idol» — чернила, «ingo» — плашка --accent2 с тёмным текстом.
+   Знак остаётся леттерингом, читается на любом фоне, живёт в один цвет, масштабируется
+   до favicon, контраст текста в плашке 12.48:1. Возврат к прежнему варианту — в git. */
+.logo{font-family:var(--f-display);font-weight:900;letter-spacing:.2em;font-size:15px;
+  display:inline-flex;align-items:center;color:var(--ink)}
+.logo b{background:var(--accent2);color:#241436;padding:3px 7px 2px 8px;margin-left:3px;
+  letter-spacing:.18em;font-weight:900}
 @keyframes holoshift{0%{background-position:0% 50%}100%{background-position:300% 50%}}
 .ai-badge{display:inline-flex;align-items:center;gap:4px;font-family:var(--f-tech);font-size:8.5px;letter-spacing:.14em;
   font-weight:500;padding:3px 8px 2px;color:#241436;flex:none;
@@ -43,7 +62,7 @@ header{position:sticky;top:0;z-index:40;backdrop-filter:blur(14px);background:rg
 @keyframes holoshift2{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
 .navtabs{display:flex;gap:6px;margin-left:8px}
 .navtab{background:var(--panel);border:1px solid var(--line);color:var(--mut,#c7b3da);font:inherit;font-size:15px;font-weight:700;letter-spacing:.03em;
-  padding:11px 18px;cursor:pointer;transition:.15s}
+  padding:11px 18px;cursor:pointer;transition:color .15s,border-color .15s,background-color .15s}
 .navtab:hover{color:var(--ink);border-color:var(--accent2)}
 .navtab.on{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#3a1a2c;border-color:transparent}
 .no-idol-btn{margin:18px auto 0;display:block}
@@ -64,7 +83,13 @@ header{position:sticky;top:0;z-index:40;backdrop-filter:blur(14px);background:rg
 /* iOS не зумит поля с font-size>=16px */
 .song-search,.wb-add input,.chat-input input,#forgotEmail{font-size:16px}
 .spinner.sm{width:14px;height:14px;border-width:2px;display:inline-block;vertical-align:middle}
-.topik-note{display:flex;gap:9px;align-items:flex-start;font-size:12.5px;line-height:1.4;color:var(--gold);border:1px solid var(--gold);background:rgba(217,164,65,.06);padding:10px 12px;margin-bottom:14px;letter-spacing:.01em}
+/* TOPIK был самым громким элементом экрана уроков: золотой баннер на золотом
+   фоне над списком, где фанату K-pop продают официальный экзамен.
+   Позиционирование сохраняем — оно продающее, — но строкой внизу, не баннером. */
+.topik-line{display:flex;gap:8px;align-items:flex-start;font-size:11.5px;line-height:1.45;
+  color:var(--dim,#a394bd);border-top:1px solid var(--line);padding:12px 2px 4px;margin-top:18px;letter-spacing:.01em}
+.topik-line b{color:var(--mut,#c7b3da);font-weight:700}
+.topik-line span:first-child{opacity:.7;font-size:12px}
 .auth-switch{color:var(--dim);font-size:12.5px;margin-top:12px;text-align:center}
 .auth-switch a{color:var(--accent2);cursor:pointer;text-decoration:underline}
 main{display:none}main.show{display:block}
@@ -97,11 +122,11 @@ main{display:none}main.show{display:block}
 .opts{display:flex;gap:10px;flex-wrap:wrap}
 .gender-tabs{display:flex;gap:6px;margin-bottom:12px}
 .gtab{background:transparent;border:1px solid var(--line);color:var(--mut);padding:7px 18px;
-  font:inherit;font-size:13px;font-weight:700;cursor:pointer;transition:.15s}
+  font:inherit;font-size:13px;font-weight:700;cursor:pointer;transition:color .15s,border-color .15s,background-color .15s}
 .gtab:hover{border-color:var(--accent2);color:var(--ink)}
 .gtab.on{background:var(--accent-fill);color:#fff;border-color:var(--accent-fill)}
 .opt{display:flex;align-items:center;gap:11px;text-align:left;background:var(--panel);border:1px solid var(--line);color:var(--ink);padding:9px 16px 9px 9px;cursor:pointer;
-  font:inherit;font-size:14px;transition:.15s;min-width:150px}
+  font:inherit;font-size:14px;transition:color .15s,border-color .15s,background-color .15s;min-width:150px}
 .opt:hover{border-color:var(--accent2)}
 .opt.on{background:var(--accent-fill);color:#fff;font-weight:700;border-color:var(--accent-fill)}
 .opt .swatch{width:34px;height:34px;display:flex;align-items:center;justify-content:center;flex:none}
@@ -167,6 +192,53 @@ main{display:none}main.show{display:block}
 .streak-chip{display:inline-block;font-size:12px;font-weight:600;padding:5px 11px;background:var(--panel2);border:1px solid var(--gold);color:var(--gold-soft,#f3d9ac)}
 .streak-chip.alt{border-color:var(--line);color:var(--mut)}
 
+/* ===== ГРИМЁРКА КАК ЕЁ КОМНАТА =====
+   Портрет во всю ширину 4:5 вместо марки 96x100 в углу карточки: продукт называется
+   «дружба с айдолом», значит айдол и есть первый экран. Всё, что мерило непройденное
+   (уровни, полосы, замки), с экрана убрано. */
+/* 40px пустоты между шапкой и портретом — это 5% сгиба ни на что. Сужаем только у себя,
+   у гостя и в чужой карточке отступ остаётся прежним. */
+.cab:has(.home){padding-top:12px}
+.home{padding-top:0}
+.home .idol-hero{display:block;position:relative;padding:0;overflow:hidden;background:var(--panel)}
+/* Рама 1:1, а не 4:5. Исходники квадратные 640x640 и это плотные кроп-головы: любое 4:5
+   срезает пятую часть кадра, и на самых близких портретах (idol4, idol5, idol12) под нож
+   идёт подбородок — проверено съёмкой всех 21. При 1:1 кроп нулевой, лицо целиком у всех,
+   и сгиб не съеден. Вернуть 4:5 можно только перегенерив портреты сразу в 4:5. */
+.home .idol-hero .idol-ph{flex:none;width:100%;height:auto;aspect-ratio:1/1}
+.home .idol-hero .ph-inner{position:absolute;inset:0;width:auto;height:auto}
+/* Все 21 портрета — плотные кроп-головы 640x640: при 4:5 из кадра уходит нижняя пятая,
+   поэтому кадрируем от верхней кромки, тогда лицо целиком остаётся в раме. */
+.home .idol-hero img{width:100%;height:100%;object-fit:cover;object-position:50% 0%;display:block}
+/* Ни одной буквы поверх лица. Имя и её реплика живут ПОД кадром, на панели карточки:
+   любая шторка на такой плотной голове срезает подбородок — проверено на всех 21 портрете. */
+.hero-foot{padding:13px 14px 14px;display:flex;flex-direction:column;gap:9px;background:var(--panel);text-align:left}
+.hero-foot .idol-name{justify-content:flex-start}
+.hero-foot .idol-concept{margin:2px 0 0}
+.hero-chips{position:absolute;top:10px;left:10px;z-index:2;display:flex;flex-wrap:wrap;gap:6px;max-width:calc(100% - 74px)}
+.hero-chips .streak-chip{font-size:11.5px;padding:6px 10px;background:rgba(17,11,25,.72);backdrop-filter:blur(6px)}
+
+/* Её сообщение. Пузырь — тот же, что в чате (.chat-msg.idol .chat-b), чтобы это читалось
+   как настоящая переписка, а не как рекламный блок. Тап по нему = ответить. */
+.dm-teaser{display:block;width:100%;text-align:left;background:none;border:none;padding:0;margin:0;font:inherit;color:inherit;cursor:pointer}
+.dm-status{display:flex;align-items:center;gap:7px;font-size:11.5px;font-weight:600;color:var(--mut);margin-bottom:6px}
+.dm-teaser.unread .dm-status{color:var(--accent)}
+.dm-teaser.unread .dm-status::before{content:"";width:8px;height:8px;flex:none;background:var(--accent);box-shadow:0 0 0 3px rgba(232,169,201,.2)}
+.dm-teaser .chat-b{max-width:100%;line-height:1.4;transition:border-color .16s}
+/* Обрезка ровно по трём строкам живёт на внутреннем узле без падингов: если резать сам
+   пузырь, четвёртая строка подтекает в его нижний отступ (overflow режет по padding-box). */
+.dm-teaser .dm-clip{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;line-clamp:3;overflow:hidden;max-height:4.2em}
+.dm-teaser.unread .chat-b{border-color:var(--accent);box-shadow:0 12px 28px -16px #000}
+.dm-teaser:hover .chat-b{border-color:var(--accent)}
+.dm-cta{display:block;margin-top:8px;font-size:12.5px;font-weight:700;color:var(--accent2)}
+.dm-cta:empty{display:none}
+/* «Печатает…»: анимируются только opacity и transform — ни ширины, ни высоты. */
+.dm-typing{display:inline-flex;align-items:center;gap:5px;height:19px}
+.dm-typing i{width:6px;height:6px;background:var(--mut);opacity:.3;animation:dmdot 1.3s ease-in-out infinite}
+.dm-typing i:nth-child(2){animation-delay:.16s}
+.dm-typing i:nth-child(3){animation-delay:.32s}
+@keyframes dmdot{0%,62%,100%{opacity:.28;transform:translateY(0)}31%{opacity:1;transform:translateY(-3px)}}
+
 .lesson-cta{display:flex;align-items:center;gap:14px;width:100%;text-align:left;cursor:pointer;
   border:none;padding:18px 18px;color:#fff;font:inherit;
   background:linear-gradient(120deg,var(--accent-fill,#d980ab),#b85a92);box-shadow:0 14px 34px -14px var(--accent-fill,#d980ab);transition:.16s}
@@ -177,10 +249,19 @@ main{display:none}main.show{display:block}
 .lc-text small{font-size:12.5px;opacity:.9}
 .lc-arrow{font-size:20px;opacity:.9}
 
-.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+/* Иерархия: чат — во всю ширину и крупно (единственная механика в нише, за которую
+   доказанно платят), алфавит и тетрадь — узкой парой под ним. Трёх одинаковых серых
+   строк по 60px больше нет. */
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .tile{display:flex;flex-direction:column;align-items:flex-start;gap:3px;cursor:pointer;font:inherit;text-align:left;
   background:var(--panel);border:1px solid var(--line);color:var(--ink);padding:14px 12px;transition:.14s}
 .tile:hover{border-color:var(--champ,#f3d9ac);transform:translateY(-2px)}
+.tile.lead{grid-column:1/-1;display:grid;grid-template-columns:auto 1fr;column-gap:13px;align-items:center;
+  padding:17px 16px;background:linear-gradient(120deg,rgba(217,128,171,.17),rgba(52,38,78,.5));border-color:var(--accent-fill)}
+.tile.lead:hover{border-color:var(--accent)}
+.tile.lead .t-emoji{grid-row:1/3;font-size:27px;margin:0}
+.tile.lead b{font-size:16.5px;align-self:end}
+.tile.lead small{font-size:12.5px;align-self:start;color:var(--mut)}
 .t-emoji{font-size:22px;margin-bottom:4px}
 .tile b{font-size:13.5px;font-weight:700}
 .tile small{font-size:11px;color:var(--muted,#a99cc0)}
@@ -192,9 +273,12 @@ main{display:none}main.show{display:block}
 .coll-grid img{width:100%;aspect-ratio:3/4;object-fit:cover;border:1px solid var(--line);opacity:.9;cursor:pointer;transition:.16s}
 .coll-grid img:hover{opacity:1;transform:scale(1.05);border-color:var(--champ,#f3d9ac);box-shadow:0 8px 22px -10px #000}
 .card-locked{width:100%;aspect-ratio:3/4;border:1px dashed var(--line);display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,rgba(52,38,78,.55),rgba(30,22,46,.75));position:relative;overflow:hidden}
-.card-locked::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(45deg,transparent,transparent 6px,rgba(243,217,172,.05) 6px,rgba(243,217,172,.05) 12px)}
+.card-locked::before{content:"";position:absolute;inset:0;z-index:1;background:repeating-linear-gradient(45deg,transparent,transparent 6px,rgba(243,217,172,.05) 6px,rgba(243,217,172,.05) 12px)}
 .card-locked .cl-lock{font-size:18px;opacity:.5;filter:grayscale(1)}
-.coll-note{font-size:11.5px;color:var(--dim,#7d6f97);margin-top:10px}
+/* Закрытая карточка — размытый кадр, а не замок: интрига «что там», а не «тебе нельзя». */
+.card-locked img{position:absolute;inset:0;width:100%;height:100%;aspect-ratio:auto;border:none;opacity:.42;
+  object-fit:cover;filter:blur(9px) saturate(.55);transform:scale(1.25);cursor:default}
+.coll-note{font-size:11.5px;color:var(--dim,#a394bd);margin-top:10px}
 
 .bio-box{border:1px solid var(--line);background:var(--panel)}
 .bio-box summary{cursor:pointer;padding:12px 14px;font-size:13px;font-weight:600;color:var(--muted,#a99cc0);list-style:none}
@@ -239,17 +323,39 @@ main{display:none}main.show{display:block}
 .lang-sel:focus{outline:none;border-color:var(--accent2,#f3d9ac)}
 
 @media(max-width:480px){
+  /* Было наоборот: на телефоне айдол СЖИМАЛСЯ до 96x120. Теперь растёт — и в своей
+     гримёрке (там портрет во всю ширину, правило .home выше), и в чужой карточке. */
   .idol-hero{flex-direction:column;text-align:center;align-items:center}
+  .idol-hero .idol-ph{flex:0 0 auto;width:min(64vw,220px);height:auto;aspect-ratio:1/1}
   .idol-name{justify-content:center}
   .lvl-top{justify-content:center;gap:8px}
-  .tiles{grid-template-columns:1fr}
-  .tile{flex-direction:row;align-items:center;gap:10px}
-  .t-emoji{margin-bottom:0}
+  .tile{padding:13px 11px}
+  .tile.lead{padding:16px 14px}
 }
 .chat-box{background:var(--bg2);border:1px solid var(--line);max-width:440px;width:100%;height:min(78vh,640px);display:flex;flex-direction:column;overflow:hidden}
 .chat-head{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;border-bottom:1px solid var(--line);font-weight:700;color:var(--accent2)}
 .chat-x{background:none;border:none;color:var(--ink);font-size:16px;cursor:pointer;opacity:.7}
+/* Тап-цель 44 в шапке чата: отрицательные поля гасят прирост, крестик остаётся на месте.
+   Правило намеренно ограничено .chat-head — тот же .chat-x живёт в уроке, песне и тетради. */
+.chat-head .chat-x{min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;margin:-10px -14px -10px 0}
 .chat-x:hover{opacity:1}
+/* Шапка чата: имя айдола + её состояние. Никакого «урока» — это переписка. */
+.chat-ttl{display:flex;flex-direction:column;gap:1px;min-width:0;line-height:1.2}
+.chat-ttl-nm{font-size:15px;font-weight:700;color:var(--accent2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chat-ttl-kr{font-style:normal;font-weight:500;opacity:.65;margin-left:6px;font-size:13px}
+.chat-ttl-st{font-size:11.5px;font-weight:500;letter-spacing:.02em;color:var(--muted,#9a8fb0)}
+/* «Печатает» — живые точки вместо неподвижной «…» на все 3+ секунды ожидания. */
+.chat-typing{display:inline-flex;align-items:center;gap:5px;padding:12px 14px}
+.chat-typing i{width:6px;height:6px;border-radius:50%;background:var(--muted,#9a8fb0);animation:chatDot 1.3s infinite ease-in-out}
+.chat-typing i:nth-child(2){animation-delay:.16s}
+.chat-typing i:nth-child(3){animation-delay:.32s}
+@keyframes chatDot{0%,65%,100%{opacity:.32;transform:translateY(0)}30%{opacity:1;transform:translateY(-3px)}}
+@media (prefers-reduced-motion:reduce){.chat-typing i{animation:none;opacity:.6}}
+/* Пустой тред: айдол напишет первой, шага от человека не требуем. */
+.chat-wait{display:flex;flex-direction:column;align-items:center;gap:12px;padding:24px 16px}
+.chat-wait b{color:var(--ink);font-size:15px;font-weight:700;line-height:1.3}
+.chat-wait .chat-typing{background:var(--panel2);border:1px solid var(--line)}
+.chat-wait-sub{font-size:12.5px;line-height:1.5;max-width:270px;color:var(--muted,#9a8fb0)}
 .chat-log{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px}
 .chat-empty{color:var(--muted,#9a8fb0);font-size:13px;text-align:center;margin:auto;padding:20px}
 .chat-msg{display:flex}
@@ -269,7 +375,7 @@ main{display:none}main.show{display:block}
 .lesson-head span{flex:1;text-align:center}
 .lsn-back{background:none;border:none;color:var(--muted,#a99cc0);font-size:20px;cursor:pointer;line-height:1}
 .lesson-body{flex:1;overflow-y:auto;padding:18px}
-.lsn-progress{display:flex;align-items:center;gap:10px;margin-bottom:16px;font-size:12px;color:var(--dim,#7d6f97)}
+.lsn-progress{display:flex;align-items:center;gap:10px;margin-bottom:16px;font-size:12px;color:var(--dim,#a394bd)}
 .lsn-pbar{flex:1;height:6px;background:var(--panel2);border:1px solid var(--line);overflow:hidden}
 .lsn-pbar i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2))}
 .lsn-unit{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--champ,#f3d9ac);margin:14px 0 8px}
@@ -277,12 +383,19 @@ main{display:none}main.show{display:block}
 .lsn-item{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:var(--panel,rgba(52,38,78,.42));border:1px solid var(--line);color:var(--ink);padding:12px 14px;cursor:pointer;transition:.15s}
 .lsn-item:hover:not(:disabled){border-color:var(--accent2);transform:translateX(2px)}
 .lsn-item.done{border-color:rgba(120,200,140,.4)}
-.lsn-item.locked{opacity:.45;cursor:not-allowed}
-.lsn-badge{font-size:15px;width:22px;text-align:center;flex-shrink:0}
+/* Замков в списке уроков нет: открыт весь алфавит, порядок — рекомендация.
+   .next — «начни отсюда», единственная подсказка последовательности. */
+.lsn-item.next{border-color:var(--accent2);background:rgba(232,169,201,.09)}
+/* Метка стоит НАД названием, а не справа от него: справа она отжимала заголовок
+   урока в две строки на 360px. */
+.lsn-here{align-self:flex-start;font-size:10px;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--accent2);border:1px solid rgba(232,169,201,.5);padding:3px 7px;line-height:1.2;margin-bottom:2px}
+.lsn-badge{font-size:15px;width:22px;text-align:center;flex-shrink:0;color:var(--dim,#a394bd)}
+.lsn-item.next .lsn-badge{color:var(--accent2)}
 .lsn-item.done .lsn-badge{color:#7cc88c}
 .lsn-txt{display:flex;flex-direction:column;gap:2px}
 .lsn-txt b{font-size:14px}
-.lsn-txt small{font-size:11.5px;color:var(--dim,#7d6f97)}
+.lsn-txt small{font-size:11.5px;color:var(--dim,#a394bd)}
 .lsn-goal{font-size:12.5px;color:var(--champ,#f3d9ac);margin-bottom:14px}
 .lsn-teacher{display:flex;flex-direction:column;gap:12px;margin-bottom:18px}
 .lb-text{font-size:14.5px;line-height:1.55;color:var(--ink)}
@@ -294,16 +407,18 @@ main{display:none}main.show{display:block}
 .lb-hbody{display:flex;flex-direction:column;gap:5px;flex:1;min-width:0}
 .lb-hline{display:flex;align-items:baseline;flex-wrap:wrap;gap:8px}
 .lb-cyr{font-size:15px;font-weight:600;color:var(--champ,#f3d9ac);letter-spacing:.01em}
-.lb-cyr i{font-style:normal;color:var(--dim,#7d6f97);margin-right:6px}
+.lb-cyr i{font-style:normal;color:var(--dim,#a394bd);margin-right:6px}
 .lb-hex{display:flex;align-items:baseline;flex-wrap:wrap;gap:6px 9px;width:100%;text-align:left;
   background:none;border:none;border-top:1px solid var(--line);color:inherit;font:inherit;
   padding:7px 0 0;margin-top:1px;cursor:pointer}
 .lb-hex:hover .lb-hex-kr{color:var(--accent2)}
 .lb-hex-kr{font-size:16px;font-weight:700;color:var(--ink)}
 .lb-hex-rom{font-size:12.5px;color:var(--champ,#f3d9ac)}
-.lb-hex-mean{font-size:12.5px;color:var(--dim,#7d6f97);min-width:0;overflow-wrap:anywhere;order:3}
+.lb-hex-mean{font-size:12.5px;color:var(--dim,#a394bd);min-width:0;overflow-wrap:anywhere;order:3}
 .lb-hex-say{font-size:12px;margin-left:auto;opacity:.75;order:4}
-.lb-ex{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;border-left:1px solid var(--line);padding:8px 0 8px 12px}
+/* 23.07: боковая полоска слева (замаскированный side-tab, ничего не сообщала) заменена
+   на верхнюю линию-разделитель — ровно тем же приёмом, что у соседнего .lb-hex выше. */
+.lb-ex{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;border-top:1px solid var(--line);padding:9px 0 8px}
 .lb-kr{font-size:20px;font-weight:700;color:var(--ink)}
 .lb-rom{font-size:17px;font-weight:700;color:var(--accent2);letter-spacing:.01em}
 .say.sm{margin-left:6px;padding:1px 6px;font-size:12px;border:none;vertical-align:middle}
@@ -311,7 +426,7 @@ main{display:none}main.show{display:block}
 .lsn-toinfo:hover{color:var(--accent2)}
 .lb-mean{font-size:14px;color:var(--muted,#a99cc0)}
 .lb-tip{font-size:13.5px;line-height:1.5;background:rgba(243,217,172,.08);border:1px solid rgba(243,217,172,.25);padding:11px 13px;color:var(--muted,#a99cc0)}
-.lsn-vocab-note{font-size:12px;color:var(--dim,#7d6f97);margin-bottom:16px}
+.lsn-vocab-note{font-size:12px;color:var(--dim,#a394bd);margin-bottom:16px}
 .lsn-quiz-h{font-size:13px;font-weight:700;letter-spacing:.02em;color:var(--accent2);margin-bottom:12px}
 .lq{margin-bottom:16px}
 .lq-q{font-size:14px;margin-bottom:8px}
@@ -332,16 +447,23 @@ main{display:none}main.show{display:block}
 /* ===== МЕХАНИКА УРОКА: серия, распевка, карта хангыля, имя =====
    Тап-цели от 44px, плоские углы (правило проекта), тёмная тема — родная.
    Полосы прогресса меняют width БЕЗ transition: ширину не анимируем. */
+/* Счётчиков может быть 1, 2 или 3 — пустые не рисуются вовсе (см. lsnHeader).
+   Экран новичка не открывается отчётом о том, чего он ещё не сделал. */
 .lsn-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
+/* Один-два счётчика не растягиваем на всю ширину: полоса «가 1/40» во весь
+   экран весит как заголовок, хотя это подпись. */
+.lsn-stats.n1,.lsn-stats.n2{display:flex;flex-wrap:wrap}
+.lsn-stats.n1 .lsn-stat,.lsn-stats.n2 .lsn-stat{flex:0 1 auto;padding:8px 13px;text-align:left}
+.lsn-stats.n1 .lsn-stat b,.lsn-stats.n2 .lsn-stat b{font-size:14.5px}
 .lsn-stat{border:1px solid var(--line);background:var(--panel,rgba(52,38,78,.42));padding:10px 8px;text-align:center}
 .lsn-stat b{display:block;font-size:16px;color:var(--ink);line-height:1.2;white-space:nowrap}
-.lsn-stat small{display:block;font-size:10.5px;letter-spacing:.04em;color:var(--dim,#7d6f97);margin-top:3px}
+.lsn-stat small{display:block;font-size:10.5px;letter-spacing:.04em;color:var(--dim,#a394bd);margin-top:3px}
 .lsn-stat.on{border-color:var(--accent2)}
 .lsn-stat.on b{color:var(--accent2)}
 .lsn-lvl{margin-bottom:10px}
-.lsn-lvl-top{display:flex;justify-content:space-between;gap:10px;font-size:11.5px;color:var(--dim,#7d6f97);margin-bottom:5px}
+.lsn-lvl-top{display:flex;justify-content:space-between;gap:10px;font-size:11.5px;color:var(--dim,#a394bd);margin-bottom:5px}
 .lsn-lvl-top span:first-child{color:var(--champ,#f3d9ac);font-weight:700;letter-spacing:.04em}
-.lsn-freeze{font-size:11.5px;line-height:1.4;color:var(--dim,#7d6f97);border-left:2px solid var(--line);padding-left:9px;margin-bottom:12px}
+.lsn-freeze{font-size:11.5px;line-height:1.4;color:var(--dim,#a394bd);border-left:2px solid var(--line);padding-left:9px;margin-bottom:12px}
 
 /* Распевка — ежедневный минимум, стоит выше всего остального.
    Порог входа намеренно низкий: одна карточка в минуту держит серию. */
@@ -351,7 +473,6 @@ main{display:none}main.show{display:block}
 .lsn-daily{border-color:var(--accent2);background:rgba(243,217,172,.09)}
 .lsn-daily:hover,.lsn-name:hover,.lsn-map:hover{border-color:var(--accent2);background:rgba(217,128,171,.12)}
 .lsn-daily.ok{border-color:rgba(120,200,140,.55);background:rgba(120,200,140,.09)}
-.lsn-daily.soft{border-color:var(--line);background:var(--panel,rgba(52,38,78,.42))}
 .ld-ico,.lm-ico{font-size:26px;line-height:1;flex-shrink:0;width:40px;text-align:center;color:var(--accent2)}
 /* Имя может быть длинным (사르마트) — не зажимаем в колонку 40px, иначе рассыпается по вертикали. */
 .ln-kr{font-size:19px;font-weight:700;line-height:1.1;color:var(--accent2);flex-shrink:0;
@@ -361,9 +482,23 @@ main{display:none}main.show{display:block}
 .ld-txt small,.lm-txt small,.ln-txt small{font-size:11.5px;line-height:1.35;color:var(--mut,#c7b3da)}
 .ld-go{margin-left:auto;color:var(--accent2);font-size:17px;flex-shrink:0}
 .lsn-name.done .ln-kr{color:var(--good,#7fe8c9)}
-.lsn-ask-top{display:block;width:100%;min-height:44px;background:none;border:1px solid var(--line);
-  color:var(--mut,#c7b3da);font:inherit;font-size:12.5px;padding:12px;margin:2px 0 14px;text-align:center;cursor:pointer}
-.lsn-ask-top:hover{border-color:var(--accent2);color:var(--accent2)}
+/* ===== АЙДОЛ В УРОКЕ =====
+   Был серой ссылкой 12px в углу — самым слабым элементом экрана, на котором
+   и надо учиться. Стал панелью с лицом, именем и живой репликой, которая
+   стоит первой и на списке уроков, и внутри урока. */
+.lsn-av{width:44px;height:44px;flex-shrink:0;object-fit:cover;border:1px solid var(--line);background:var(--panel2);display:block}
+.lsn-av.ph{display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:var(--accent2)}
+.lsn-coach{display:flex;align-items:center;gap:11px;width:100%;text-align:left;font:inherit;
+  border:1px solid var(--line);background:var(--panel,rgba(52,38,78,.42));color:var(--ink);
+  padding:10px 12px;margin-bottom:12px}
+button.lsn-coach{cursor:pointer;min-height:64px}
+button.lsn-coach:hover{border-color:var(--accent2)}
+.lsc-b{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.lsc-b b{font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent2);font-weight:700}
+.lsc-b span{font-size:13.5px;line-height:1.4;color:var(--ink)}
+.lsc-ask{flex-shrink:0;align-self:center;min-width:44px;min-height:44px;background:none;border:1px solid var(--line);
+  color:var(--mut,#c7b3da);font:inherit;font-size:12.5px;padding:6px 11px;white-space:nowrap;cursor:pointer}
+.lsc-ask:hover{border-color:var(--accent2);color:var(--accent2)}
 /* Тап-цель озвучки внутри урока — не меньше 44px (в списке песен .say меняем не мы). */
 .lb-hangul .say,.lb-ex .say,.lb-batchim .say,.dr-big .say,.ln-big .say{min-width:44px;min-height:44px;font-size:16px}
 .lsn-secline{display:block;width:100%;min-height:44px;text-align:left;background:none;border:1px solid var(--line);
@@ -372,8 +507,8 @@ main{display:none}main.show{display:block}
 
 /* Карта хангыля: все 40 букв сразу, цвет плитки = уровень владения (SRS). */
 .hm-sum{font-size:12.5px;line-height:1.5;color:var(--champ,#f3d9ac);margin-bottom:10px}
-.hm-empty{font-size:13px;color:var(--dim,#7d6f97);border:1px solid var(--line);padding:14px;text-align:center}
-.hm-legend{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;font-size:11px;color:var(--dim,#7d6f97);margin-bottom:16px}
+.hm-empty{font-size:13px;color:var(--dim,#a394bd);border:1px solid var(--line);padding:14px;text-align:center}
+.hm-legend{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;font-size:11px;color:var(--dim,#a394bd);margin-bottom:16px}
 .hm-dot{display:inline-block;width:11px;height:11px;border:1px solid var(--line);margin-right:1px;vertical-align:-1px}
 .hm-dot.t1{background:rgba(217,128,171,.35);border-color:var(--accent)}
 .hm-dot.t2{background:rgba(127,232,201,.3);border-color:var(--good,#7fe8c9)}
@@ -384,14 +519,14 @@ main{display:none}main.show{display:block}
 .hm-h{display:flex;align-items:center;flex-wrap:wrap;gap:5px 9px;margin-bottom:10px}
 .hm-h b{font-size:13.5px;flex:1 1 auto;min-width:0;overflow-wrap:anywhere}
 .hm-icon{font-size:19px;color:var(--accent2);width:26px;text-align:center;flex-shrink:0}
-.hm-kind{font-size:10px;letter-spacing:.04em;text-transform:uppercase;color:var(--dim,#7d6f97);
+.hm-kind{font-size:10px;letter-spacing:.04em;text-transform:uppercase;color:var(--dim,#a394bd);
   border:1px solid var(--line);padding:1px 6px;flex-shrink:0;white-space:nowrap}
 .hm-kind.k-v{color:var(--accent2);border-color:rgba(232,169,201,.45)}
 .hm-kind.k-c{color:var(--good,#7fe8c9);border-color:rgba(127,232,201,.4)}
-.hm-count{font-size:12px;color:var(--dim,#7d6f97);font-variant-numeric:tabular-nums;flex-shrink:0;margin-left:auto}
+.hm-count{font-size:12px;color:var(--dim,#a394bd);font-variant-numeric:tabular-nums;flex-shrink:0;margin-left:auto}
 .hm-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(58px,1fr));gap:6px;margin-bottom:10px}
 .hm-tile{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;min-height:64px;
-  border:1px solid var(--line);background:var(--panel2);color:var(--dim,#7d6f97);font:inherit;cursor:pointer;
+  border:1px solid var(--line);background:var(--panel2);color:var(--dim,#a394bd);font:inherit;cursor:pointer;
   padding:6px 2px;transition:border-color .14s,background-color .14s,color .14s}
 .hm-tile:hover{border-color:var(--accent2)}
 .hm-ch{font-size:21px;font-weight:700;line-height:1}
@@ -417,18 +552,27 @@ main{display:none}main.show{display:block}
 .ln-b-kr{font-size:26px;font-weight:700;line-height:1.1;color:var(--ink)}
 .ln-b-parts{display:flex;flex-direction:column;gap:1px;margin-top:5px}
 .ln-b-parts span{font-size:13px;color:var(--accent2);line-height:1.2}
-.ln-b-parts i{font-size:9.5px;font-style:normal;color:var(--dim,#7d6f97);margin-left:3px}
-.ln-note{font-size:11.5px;line-height:1.45;color:var(--dim,#7d6f97);margin-bottom:14px}
-.ln-empty{font-size:13px;line-height:1.5;color:var(--dim,#7d6f97);padding:16px 0}
+.ln-b-parts i{font-size:9.5px;font-style:normal;color:var(--dim,#a394bd);margin-left:3px}
+.ln-note{font-size:11.5px;line-height:1.45;color:var(--dim,#a394bd);margin-bottom:14px}
+.ln-empty{font-size:13px;line-height:1.5;color:var(--dim,#a394bd);padding:16px 0}
 
 /* Распевка и проверочная: один вопрос на экран, мгновенная обратная связь. */
-.dr-top{display:flex;align-items:center;gap:10px;margin-bottom:18px;font-size:12px;color:var(--dim,#7d6f97);font-variant-numeric:tabular-nums}
+.dr-top{display:flex;align-items:center;gap:10px;margin-bottom:18px;font-size:12px;color:var(--dim,#a394bd);font-variant-numeric:tabular-nums}
 .dr-big{font-size:52px;font-weight:700;line-height:1.15;color:var(--accent2);text-align:center;word-break:break-word;margin-bottom:14px}
 .dr-q{font-size:15px;line-height:1.4;text-align:center;margin-bottom:16px;color:var(--ink)}
 .lq-opt.dr-opt{min-height:48px;font-size:15px;text-align:center;padding:12px}
 .lq-opt.dr-opt:disabled{cursor:default}
-.dr-react{min-height:44px;margin-top:12px}
-.lsn-idol-line{display:flex;flex-direction:column;gap:3px;border-left:2px solid var(--accent2);padding:6px 0 6px 11px}
+.dr-react{min-height:52px;margin-top:12px}
+/* Новая карточка сначала показывается, потом спрашивается. */
+.dr-new{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent2);text-align:center;margin-bottom:4px}
+.dr-teach{display:flex;flex-direction:column;align-items:center;gap:4px;margin-bottom:16px}
+.dr-teach b{font-size:20px;font-weight:700;color:var(--champ,#f3d9ac);letter-spacing:.01em}
+.dr-teach+.lsn-idol-line{margin-bottom:16px}
+.dr-teach span{font-size:13.5px;line-height:1.4;color:var(--mut,#c7b3da);text-align:center}
+/* Реакция айдола — с лицом. Реагирует он, а не интерфейс. */
+.lsn-idol-line{display:flex;align-items:flex-start;gap:10px;text-align:left}
+.lsn-idol-line .lsn-av{width:36px;height:36px}
+.lil-b{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
 .lil-who{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--accent2)}
 .lil-txt{font-size:13.5px;line-height:1.4;color:var(--ink)}
 .dr-done{text-align:center;padding-top:10px}
@@ -473,7 +617,7 @@ main{display:none}main.show{display:block}
 
 /* ===== РАБОЧАЯ ТЕТРАДЬ ===== */
 .wb-tabs{display:flex;border-bottom:1px solid var(--line)}
-.wb-tab{flex:1;background:none;border:none;border-bottom:2px solid transparent;color:var(--dim,#7d6f97);font:inherit;font-size:13.5px;font-weight:600;padding:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px}
+.wb-tab{flex:1;background:none;border:none;border-bottom:2px solid transparent;color:var(--dim,#a394bd);font:inherit;font-size:13.5px;font-weight:600;padding:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px}
 .wb-tab span{font-size:11px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:1px 7px}
 .wb-tab.on{color:var(--accent2);border-bottom-color:var(--accent2)}
 .wb-add{display:flex;gap:7px;margin-bottom:8px}
@@ -500,6 +644,42 @@ main{display:none}main.show{display:block}
 .wb-meta{display:flex;flex-direction:column;align-items:flex-end;gap:3px;padding-top:4px;flex:none}
 .wb-prog{font-size:9px;letter-spacing:1px;color:var(--line)}
 .wb-prog .on{color:var(--accent2)}
+/* Статус слова словом, а не точками: «узнаю» человеку понятно, «●●○○○○» — нет.
+   Кнопка, потому что статус можно понизить вручную, если слово выветрилось. */
+.wb-stat{background:none;border:1px solid var(--line);color:var(--mut);font:inherit;font-size:10px;
+  letter-spacing:.02em;padding:3px 7px;cursor:pointer;white-space:nowrap;transition:border-color .14s,color .14s}
+.wb-stat:hover{border-color:var(--accent2);color:var(--accent2)}
+.wb-stat.s1{color:var(--muted,#a99cc0);border-color:rgba(217,128,171,.35)}
+.wb-stat.s2{color:var(--champ,#f3d9ac);border-color:rgba(243,217,172,.4)}
+.wb-stat.s3{color:var(--good,#7cc88c);border-color:rgba(124,200,140,.45)}
+/* Строка-источник: слово без своей строки — карточка без контекста. */
+.wb-line{font-size:11.5px;color:var(--mut);opacity:.75;line-height:1.35;word-break:break-word}
+.wb-rev-line{display:flex;align-items:center;gap:8px;margin-top:10px;border:1px solid var(--line);padding:8px 10px;text-align:left}
+.wb-rev-lt{flex:1;min-width:0}
+.wb-rev-lt b{display:block;font-size:14px;color:var(--ink);font-weight:600;line-height:1.35;word-break:break-word}
+.wb-rev-lt i{display:block;font-size:12px;color:var(--mut);font-style:normal;margin-top:2px}
+.wb-say.sm{min-width:38px;min-height:38px;font-size:15px}
+/* Пустая тетрадь больше не тупик: три способа положить в неё первое слово. */
+.wb-empty-t{margin-bottom:14px}
+.wb-seeds{display:flex;flex-direction:column;gap:8px;max-width:22em;margin:0 auto}
+.wb-seed{min-height:48px;background:var(--panel2,rgba(52,38,78,.6));border:1px solid var(--line);color:var(--ink);
+  font:inherit;font-size:13.5px;padding:12px;cursor:pointer;transition:border-color .14s,color .14s}
+.wb-seed:hover{border-color:var(--accent2);color:var(--accent2)}
+/* «Собери строку»: третий формат на том же материале. Тренирует чанк целиком —
+   то, что реально поётся, — а не изолированное слово. */
+.wb-build{gap:12px}
+.wb-b-sense{font-size:15px;line-height:1.45;color:var(--ink);text-align:center;padding:0 4px}
+.wb-b-slots{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;align-items:center;min-height:56px;
+  border:1px dashed var(--line);padding:10px;transition:border-color .2s}
+.wb-b-slots.good{border-color:rgba(124,200,140,.6);border-style:solid}
+.wb-b-slots.bad{border-color:rgba(231,154,154,.6);border-style:solid}
+.wb-b-ph{font-size:12.5px;color:var(--mut);opacity:.8}
+.wb-b-pool{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;min-height:48px}
+.wb-chip-w{min-height:44px;background:var(--panel2,rgba(52,38,78,.6));border:1px solid var(--line);color:var(--ink);
+  font:inherit;font-size:16px;padding:8px 12px;cursor:pointer;transition:border-color .14s}
+.wb-chip-w:hover:not([disabled]){border-color:var(--accent2)}
+.wb-chip-w[disabled]{opacity:.75;cursor:default}
+.wb-b-right{font-size:15px;color:var(--good,#7cc88c);text-align:center;word-break:break-word}
 .wb-src{font-size:13px;opacity:.8}
 .wb-del{background:none;border:none;color:var(--mut);cursor:pointer;font-size:14px;line-height:1;flex:none;
   min-width:34px;min-height:34px;opacity:.55}
@@ -603,31 +783,36 @@ main{display:none}main.show{display:block}
   .wb-tab{padding:12px 6px;font-size:12.5px}
   .wb-go b{font-size:15px}
 }
-.say{margin-left:auto;align-self:center;background:none;border:1px solid var(--line);color:var(--accent2);font-size:14px;cursor:pointer;padding:3px 9px;line-height:1;flex-shrink:0}
+/* Тап-цель озвучки — 44x44 везде, где она встречается (было 39x22, и таких
+   кнопок на экране урока восемь подряд). Ряд не ломается: кнопка остаётся
+   inline-flex по центру строки и не растягивается. */
+.say{margin-left:auto;align-self:center;display:inline-flex;align-items:center;justify-content:center;
+  min-width:44px;min-height:44px;background:none;border:1px solid var(--line);color:var(--accent2);
+  font-size:15px;cursor:pointer;padding:3px 9px;line-height:1;flex-shrink:0}
 .say:hover{border-color:var(--accent2)}
-.wb-empty{text-align:center;color:var(--dim,#7d6f97);font-size:13px;padding:28px 12px;line-height:1.5}
+.wb-empty{text-align:center;color:var(--dim,#a394bd);font-size:13px;padding:28px 12px;line-height:1.5}
 
 /* ===== РАЗБОР ПЕСНИ ===== */
 .song-intro{font-size:13.5px;line-height:1.5;color:var(--muted,#a99cc0);margin-bottom:12px}
 .song-search{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--ink);font:inherit;font-size:16px;padding:11px 13px;margin-bottom:14px}
 .song-search:focus{outline:none;border-color:var(--accent2)}
-.song-search-hint{font-size:11px;color:var(--dim,#7d6f97);margin:-8px 0 14px;line-height:1.35}
+.song-search-hint{font-size:11px;color:var(--dim,#a394bd);margin:-8px 0 14px;line-height:1.35}
 .song-search-wrap{position:relative;z-index:6;margin-bottom:14px}
 .song-search-wrap .song-search{margin-bottom:0}
 .song-dropdown{position:absolute;left:0;right:0;top:100%;background:rgba(28,20,40,.98);border:1px solid var(--accent2);border-top:none;max-height:56vh;overflow-y:auto;z-index:30;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);padding:6px}
 .song-dropdown:empty{display:none}
 .song-dropdown .song-item{margin-bottom:4px}
-.song-none{text-align:center;color:var(--dim,#7d6f97);font-size:13px;padding:22px 12px;line-height:1.5}
+.song-none{text-align:center;color:var(--dim,#a394bd);font-size:13px;padding:22px 12px;line-height:1.5}
 .song-online-h{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--champ,#f3d9ac);margin:16px 0 8px}
 .song-none.warn{color:#e0b46a}
 .song-item.add .lsn-badge{color:var(--accent2)}
 .song-item.add:disabled{opacity:.5}
 .song-vfoot{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:8px}
-.song-botnote{font-size:11px;color:var(--dim,#7d6f97);line-height:1.35}
+.song-botnote{font-size:11px;color:var(--dim,#a394bd);line-height:1.35}
 .song-reload,.song-vfoot .song-yt{flex:1;text-align:center;justify-content:center;white-space:nowrap;background:var(--panel,rgba(52,38,78,.42));border:1px solid var(--line);color:var(--mut,#c7b3da);font:inherit;font-size:12.5px;font-weight:600;padding:9px 10px;cursor:pointer;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:5px}
 .song-reload:hover,.song-vfoot .song-yt:hover{border-color:var(--accent2);color:var(--accent2)}
 .song-fail{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:18px;font-size:13px;line-height:1.5;color:var(--mut,#c7b3da);background:var(--panel,#241b34)}
-.song-item{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:var(--panel,rgba(52,38,78,.42));border:1px solid var(--line);color:var(--ink);padding:12px 14px;cursor:pointer;transition:.15s;margin-bottom:8px}
+.song-item{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:var(--panel,rgba(52,38,78,.42));border:1px solid var(--line);color:var(--ink);padding:12px 14px;cursor:pointer;transition:border-color .15s,color .15s,transform .15s;margin-bottom:8px}
 .song-item:hover{border-color:var(--accent2);transform:translateX(2px)}
 .song-item.done{border-color:rgba(120,200,140,.4)}
 .song-item.done .lsn-badge{color:#7cc88c}
@@ -640,11 +825,11 @@ main{display:none}main.show{display:block}
 .yt-hint{text-align:center;font-size:13px;color:var(--accent,#e8a9c9);padding:8px 10px;font-weight:600}
 .song-yt{display:inline-block;font-size:12px;color:var(--accent2);text-decoration:none;margin:-8px 0 12px}
 .song-yt:hover{text-decoration:underline}
-.song-teacher-note{font-size:12px;color:var(--dim,#7d6f97);margin-bottom:14px}
+.song-teacher-note{font-size:12px;color:var(--dim,#a394bd);margin-bottom:14px}
 .song-lines{display:flex;flex-direction:column;gap:12px;margin-bottom:14px}
 .song-line{background:var(--panel,rgba(52,38,78,.42));border:1px solid var(--line);padding:12px 14px}
 .sl-kr{font-size:19px;font-weight:700;color:var(--ink);line-height:1.4}
-.sl-rom{font-size:12.5px;color:var(--dim,#7d6f97);font-style:italic;margin-top:2px}
+.sl-rom{font-size:12.5px;color:var(--dim,#a394bd);font-style:italic;margin-top:2px}
 .sl-tr{font-size:14.5px;color:var(--muted,#a99cc0);margin-top:6px}
 .sl-note{font-size:13px;line-height:1.5;color:var(--muted,#a99cc0);margin-top:8px;background:rgba(243,217,172,.07);border:1px solid rgba(243,217,172,.2);padding:9px 11px}
 .sl-save{margin-top:10px;background:none;border:1px solid var(--accent2);color:var(--accent2);font:inherit;font-size:12.5px;padding:6px 12px;cursor:pointer;transition:.12s}
@@ -654,7 +839,7 @@ main{display:none}main.show{display:block}
 .song-next{width:100%;justify-content:center;margin-left:0}
 
 /* ===== КАРАОКЕ-РАЗБОР ===== */
-.kara-hint{font-size:11.5px;color:var(--dim,#7d6f97);margin:10px 0 14px;line-height:1.4}
+.kara-hint{font-size:11.5px;color:var(--dim,#a394bd);margin:10px 0 14px;line-height:1.4}
 .kara-lines{display:flex;flex-direction:column;gap:14px;margin-bottom:14px}
 .kline{display:flex;flex-wrap:wrap;gap:6px 14px;justify-content:flex-start;padding-left:11px;border-left:2px solid var(--line);transition:border-color .3s,opacity .3s}
 /* «готовящаяся» строка в проигрыше: показана заранее, подсвечен край — но слова НЕ закрашены */
@@ -662,9 +847,9 @@ main{display:none}main.show{display:block}
 .kline.upcoming .tok-r{color:var(--ink)}
 .tok{display:flex;flex-direction:column;align-items:flex-start;gap:1px;transition:transform .18s cubic-bezier(.2,.7,.3,1);line-height:1.15}
 .tok.on{transform:scale(1.06)}
-.tok-k{font-size:12.5px;font-weight:600;color:var(--dim,#7d6f97)}
+.tok-k{font-size:12.5px;font-weight:600;color:var(--dim,#a394bd)}
 .tok-r{font-size:16px;font-weight:700;color:var(--muted,#a99cc0)}
-.tok-m{font-size:11px;color:var(--dim,#7d6f97);opacity:.85}
+.tok-m{font-size:11px;color:var(--dim,#a394bd);opacity:.85}
 /* Заливка слова по мере пропевания. Поверх приглушённого текста лежит его же копия
    (::after + data-txt) цветом акцента, обрезанная по --fill через clip-path.
    Ни width, ни height не анимируются — лейаут не дёргается, кадр остаётся плавным. */
@@ -685,7 +870,7 @@ main{display:none}main.show{display:block}
 .ksl.on{border-left-color:var(--accent2)}
 .ksl.done{border-left-color:rgba(217,128,171,.35)}
 .ksl-row{display:flex;align-items:flex-start;gap:8px}
-.ksl-t{flex:1;font-size:14.5px;line-height:1.5;color:var(--dim,#7d6f97)}
+.ksl-t{flex:1;font-size:14.5px;line-height:1.5;color:var(--dim,#a394bd)}
 .ksw{position:relative;display:inline-block;white-space:pre}
 .ksw::after{content:attr(data-txt);position:absolute;left:0;top:0;white-space:pre;color:var(--ink);
   -webkit-clip-path:inset(0 calc(100% - var(--fill,0%)) 0 0);clip-path:inset(0 calc(100% - var(--fill,0%)) 0 0);pointer-events:none}
@@ -773,21 +958,33 @@ main{display:none}main.show{display:block}
 .onb-help{align-self:flex-end;display:inline-flex;align-items:center;gap:6px;margin-bottom:-6px;
   padding:6px 11px;background:transparent;border:1px solid var(--gold);color:var(--gold);
   font-family:var(--f-display);font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;
-  cursor:pointer;line-height:1;transition:.15s}
+  cursor:pointer;line-height:1;transition:color .15s,border-color .15s,background-color .15s}
 .onb-help::before{content:"?";display:inline-flex;align-items:center;justify-content:center;
   width:16px;height:16px;border:1px solid var(--gold);font-family:var(--f-serif);font-style:italic;font-size:11px;font-weight:700}
 .onb-help:hover{background:var(--gold);color:#241436;border-color:var(--gold)}
 .onb-help:hover::before{border-color:#241436}
+/* В гримёрке справка была громче имени айдола: золотая рамка, капс, Unbounded, 199x32 над
+   всем экраном. Стала тихой кнопкой «?» в углу портрета — 44x44, без золота.
+   --gold в этом продукте значит «награда», а не «справка». */
+.home .onb-help{position:absolute;top:8px;right:8px;z-index:2;width:44px;height:44px;padding:0;margin:0;
+  align-self:auto;justify-content:center;gap:0;background:rgba(17,11,25,.6);backdrop-filter:blur(6px);
+  border-color:rgba(248,241,251,.3);color:var(--mut);font-size:0}
+.home .onb-help::before{width:auto;height:auto;border:none;font-size:17px;color:inherit}
+.home .onb-help:hover{background:rgba(17,11,25,.9);border-color:var(--ink);color:var(--ink)}
 .home{position:relative}
 
 /* гид-подсветка */
 .tour-layer{position:fixed;inset:0;z-index:80;display:none}
 .tour-layer.on{display:block}
-.tour-hole{position:absolute;border-radius:10px;box-shadow:0 0 0 9999px rgba(8,5,12,.76);transition:top .28s,left .28s,width .28s,height .28s;pointer-events:none}
+/* 23.07: раньше здесь ехали четыре геометрических свойства сразу (позиция и размеры)
+   на элементе с box-shadow радиусом 9999px — перерисовка затемнения всего экрана каждый кадр.
+   Геометрию ставит positionTour() в app.js, переписать её на transform отсюда нельзя,
+   поэтому анимируется только opacity: подсветка гасится и зажигается на новом месте. */
+.tour-hole{position:absolute;border-radius:10px;box-shadow:0 0 0 9999px rgba(8,5,12,.76);transition:opacity .2s ease;pointer-events:none}
 .tour-tip{position:absolute;max-width:min(84vw,300px);background:var(--bg2);border:1px solid var(--accent2);padding:14px 16px;box-shadow:0 16px 44px -14px #000}
 .tt-text{font-size:14px;line-height:1.45;color:var(--ink);margin-bottom:12px}
 .tt-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
-.tt-row span{font-size:12px;color:var(--dim,#7d6f97)}
+.tt-row span{font-size:12px;color:var(--dim,#a394bd)}
 .tt-next{margin-left:0;padding:8px 18px;font-size:14px}
 .result{background:var(--bg2);border:1px solid var(--line);max-width:460px;width:100%;overflow:hidden}
 .result .rv{aspect-ratio:9/16;background:#000;position:relative;max-height:70vh}
@@ -830,8 +1027,10 @@ footer b{color:var(--accent)}
 
 /* ===== ЧАРТ (Зал славы) ===== */
 .chart-hero{text-align:center;padding:44px 0 8px}
+/* 23.07: заливка по контуру букв убрана (AI-tell, правило gradient-text детектора).
+   Сплошной --accent2 даёт 13.70:1 на --bg против плавающих 4-9:1 у трёх точек градиента. */
 .chart-hero .eyebrow{display:inline-block;font-family:var(--f-tech);font-size:16px;font-weight:700;letter-spacing:.32em;
-  background:linear-gradient(90deg,var(--holo4),var(--gold),var(--holo1));-webkit-background-clip:text;background-clip:text;color:transparent}
+  color:var(--accent2)}
 .chart-hero h1{font-family:var(--f-serif);font-weight:800;font-size:clamp(30px,5vw,46px);margin-top:16px}
 .chart-hero p{color:var(--mut);font-size:14px;margin-top:10px}
 .podium-wrap{max-width:900px;margin:40px auto 0}
@@ -870,7 +1069,7 @@ footer b{color:var(--accent)}
 .tier-div{display:flex;align-items:center;gap:14px;margin:34px 0 14px;color:var(--gold);font-size:12px;font-weight:700;letter-spacing:.2em;text-transform:uppercase}
 .tier-div::before,.tier-div::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,transparent,var(--line),transparent)}
 .tier-sub{color:var(--dim);font-size:11px;text-transform:none;letter-spacing:0;font-weight:400;margin:-10px 0 14px}
-.row{display:flex;align-items:center;gap:16px;background:rgba(36,27,52,.5);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.07);padding:12px 16px;margin-bottom:8px;cursor:pointer;transition:.15s}
+.row{display:flex;align-items:center;gap:16px;background:rgba(36,27,52,.5);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.07);padding:12px 16px;margin-bottom:8px;cursor:pointer;transition:border-color .15s,background-color .15s}
 .row:hover{border-color:var(--accent2)}
 .row .rnum{font-family:var(--f-serif);font-weight:800;font-size:20px;color:var(--mut);width:30px;text-align:center;flex:none}
 .row .rph{width:48px;height:48px;object-fit:cover;flex:none}
@@ -945,7 +1144,10 @@ div.bio-text{color:var(--mut)}
 .stat-h{display:flex;justify-content:space-between;font-size:12px;color:var(--mut);margin-bottom:6px;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
 .stat-h b{color:var(--ink)}
 .bar{height:9px;background:var(--panel2);border:1px solid var(--line);overflow:hidden}
-.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .4s}
+/* 23.07: анимация ширины полосы снята. Ширину ставит supportTierHtml() один раз, в момент
+   вставки узла в DOM, с нуля она никогда не едет — переход не успевал сработать ни разу,
+   но заставлял браузер пересчитывать layout полосы. */
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2))}
 .cab-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}
 .train-note{color:var(--dim);font-size:11px;margin-top:8px;max-width:420px;line-height:1.5}
 .cab-empty{padding:20px 0 0}
@@ -993,3 +1195,133 @@ div.bio-text{color:var(--mut)}
 .lenta-lock-box{background:rgba(21,15,30,.92);border:1px solid var(--line);padding:30px 34px;text-align:center;max-width:360px;backdrop-filter:blur(4px)}
 .lenta-lock-box .ll-h{font-family:var(--f-serif);font-size:20px;margin-bottom:10px}
 .lenta-lock-box p{color:var(--mut);font-size:13.5px;line-height:1.6;margin-bottom:18px}
+
+/* ===== ЛЕНДИНГ ГОСТЯ: демо-куплет до регистрации =====
+   Гость видит товар раньше, чем у него что-то просят: три слоя строки
+   (хангыль / как звучит / что значит) и заливка по мере пропевания.
+   Компоненты переиспользованы из разбора песни (.kline/.tok/.ksl) — новых
+   караоке-примитивов не заводим, иначе демо разойдётся с продуктом. */
+.lp{padding:20px 20px 40px;max-width:640px}
+.lp-eyebrow{font-family:var(--f-tech);font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);margin-bottom:9px}
+.lp-h{font-family:var(--f-serif);font-size:clamp(25px,6.2vw,38px);line-height:1.14;font-weight:800;letter-spacing:-.01em}
+.lp-sub{color:var(--mut);font-size:14.5px;line-height:1.5;margin-top:9px}
+.lp-card{margin-top:15px;background:var(--panel);border:1px solid var(--line);padding:14px}
+.lp-src{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--accent2);margin-bottom:10px}
+.lp-vid{position:relative;width:100%;padding-bottom:56.25%;background:#000;border:1px solid var(--line);margin-bottom:12px}
+.lp-vid>div,.lp-vid iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.lp-stage{min-height:128px;display:flex;flex-direction:column;justify-content:center;gap:10px}
+.lp-line{border-left-color:var(--accent2)}
+.lp-s .ksl-t{font-size:14px}
+/* Контраст: --dim на панели даёт 4.06:1 — ниже нормы AA для мелкого текста.
+   В демо этим цветом набран сам хангыль и значение слова, то есть несущий
+   текст, а не подпись. В карточке лендинга приглушённый слой поднят до 6.4:1. */
+.lp-card .tok-k,.lp-card .tok-m,.lp-card .ksl-t{color:var(--muted,#a99cc0)}
+.lp-card .tok-m{opacity:1}
+.lp-prog{height:3px;background:var(--line);margin-top:12px;overflow:hidden}
+.lp-prog i{display:block;height:100%;background:var(--accent2);transform-origin:left;transform:scaleX(0)}
+.lp-ctrl{margin-top:12px}
+.lp-play{width:100%;justify-content:center;min-height:52px;font-size:15px;margin-left:0}
+.lp-note{color:var(--mut);font-size:12px;margin-top:8px;text-align:center;line-height:1.4}
+.lp-wait{color:var(--mut);font-size:13px;text-align:center;padding:12px 0 2px}
+/* Итог куплета: сперва ценность («ты прочитал N слов»), и только потом просьба */
+.lp-done{text-align:center}
+.lp-done-n{font-family:var(--f-display);font-size:38px;font-weight:800;color:var(--accent2);line-height:1}
+.lp-done-h{font-size:15px;color:var(--ink);margin-top:7px;line-height:1.4}
+.lp-words{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:13px 0 2px}
+.lp-w{display:flex;flex-direction:column;align-items:center;gap:1px;background:var(--panel2);border:1px solid var(--line);padding:6px 9px;line-height:1.2}
+.lp-w b{font-size:14px;font-weight:700;color:var(--ink)}
+.lp-w i{font-size:11px;font-style:normal;color:var(--mut)}
+.lp-save{width:100%;justify-content:center;min-height:52px;margin:14px 0 0;font-size:15px}
+.lp-more{display:flex;gap:8px;margin-top:10px}
+.lp-ghost{flex:1;min-height:44px;background:none;border:1px solid var(--line);color:var(--mut);font:inherit;font-size:13px;padding:10px;cursor:pointer;transition:border-color .14s,color .14s}
+.lp-ghost:hover{border-color:var(--accent2);color:var(--accent2)}
+.lp-lang{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:16px;color:var(--mut);font-size:12.5px}
+.lp-lang select{min-height:44px;background:transparent;border:1px solid var(--line);color:var(--ink);font:inherit;font-size:13px;padding:6px 8px;cursor:pointer}
+.lp-lang select:hover{border-color:var(--accent2)}
+.lp-foot{color:var(--mut);font-size:12.5px;line-height:1.5;margin-top:16px;text-align:center}
+@media(max-width:400px){
+  .lp{padding:16px 14px 32px}
+  .lp-card{padding:11px}
+  .lp-stage{min-height:116px}
+  .lp-done-n{font-size:34px}
+}
+
+/* ===== ШАПКА: минус лишнее, тап-цели 44px =====
+   Было: 5 управляющих элементов, ни один не ведёт к продукту, самый заметный —
+   селектор языка в золотой рамке. Гостю вкладки вести некуда (гримёрки у него
+   ещё нет), поэтому у гостя их нет вовсе — заодно исчезает врущее «активно». */
+.hbar{gap:4px 8px;min-height:52px;padding-block:4px}
+body.guest .navtabs{display:none}
+/* Селектор языка у гостя уходит из шапки на страницу: в шапке он был самым
+   заметным элементом первого экрана (золотая рамка) и ломал её на две строки. */
+body.guest .lang-wrap{display:none}
+.navtab{min-height:44px;display:inline-flex;align-items:center}
+.hbar .btn.sm{min-height:44px;display:inline-flex;align-items:center}
+/* Два margin-left:auto в одной flex-строке (у .lang-wrap и .auth-area) съедали
+   всё свободное место и ломали шапку на две строки даже там, где всё влезало.
+   Автоотступ оставлен ровно один — правая группа едет вправо целиком. */
+.logo{flex:none;display:inline-flex;align-items:center;min-height:44px}
+.auth-area{margin-left:0}
+/* Подпись селектора остаётся для скринридера, но перестаёт быть самым громким
+   элементом первого экрана. Сам селектор — нейтральная рамка, не золотая. */
+.lang-wrap{gap:0;margin-left:auto}
+.lang-cap{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;border:0}
+.lang-sel{min-height:44px;border-color:var(--line);color:var(--mut);background:transparent;padding:6px 8px}
+.lang-sel:hover{border-color:var(--accent2);color:var(--ink)}
+/* Шапка гостя должна вставать в одну строку на 360: логотип + язык + вход/регистрация.
+   Кнопки ужимаем по горизонтали, но не по высоте — 44px остаются. */
+@media(max-width:480px){
+  .hbar .btn.sm{padding:9px 11px;font-size:12.5px}
+  .lang-sel{font-size:12px;padding:6px 6px;max-width:112px}
+}
+@media(max-width:420px){
+  .lang-sel{font-size:11.5px;padding:5px 5px;max-width:104px}
+  .navtab{padding:7px 11px;font-size:12.5px}
+  .hbar .btn.sm{padding:9px 9px;font-size:12px}
+}
+
+/* ============================================================================
+   ГЛОБАЛЬНЫЙ СЛОЙ ДОСТУПНОСТИ — добавлено 23.07.2026.
+   Блок держится в конце файла намеренно: он должен перебивать любые точечные
+   outline:none в компонентах выше. Компонентные классы отсюда не переопределяются,
+   кроме .tgl — там фокусируемый input имеет нулевой размер и кольцо рисовать не на чем.
+   ============================================================================ */
+
+/* --- 1. Видимый фокус с клавиатуры ---------------------------------------
+   До 23.07 в файле не было ни одного :focus-visible, зато было восемь
+   объявлений outline:none — навигация с клавиатуры шла вслепую.
+   Кольцо двойное: тёмный контур вплотную к элементу отделяет его от заливки
+   (иначе на светлых кнопках .btn.accent и .navtab.on золотое кольцо пропадает),
+   поверх — светлое кольцо 3px. Контраст кольца к тёмному фону 15.6:1,
+   тёмного разделителя к кольцу — тоже 15.6:1. Порог для нетекстовых
+   элементов 3:1, запас четырёхкратный.
+   !important нужен: outline:none в компонентах имеет специфичность 0,2,1,
+   а :focus-visible — 0,1,0, без него правило не срабатывает. */
+:root{--focus-ring:#ffe9a8;--focus-halo:#150f1e}
+:focus-visible{
+  outline:3px solid var(--focus-ring)!important;
+  outline-offset:2px!important;
+  box-shadow:0 0 0 2px var(--focus-halo)!important;
+}
+/* Мышь и тач не должны видеть кольцо — только клавиатура. */
+:focus:not(:focus-visible){outline:none}
+/* Скрытый чекбокс тумблера: сам input имеет нулевой размер, кольцо рисуем на подложке. */
+.tgl input:focus-visible{outline:none!important;box-shadow:none!important}
+.tgl input:focus-visible + i{
+  outline:3px solid var(--focus-ring);outline-offset:2px;box-shadow:0 0 0 2px var(--focus-halo)}
+
+/* --- 2. Уважение к prefers-reduced-motion --------------------------------
+   До 23.07 в файле не было ни одного глобального правила: три бесконечные
+   холо-анимации крутились вечно (логотип 6s, AI-бейдж 5s, .holo-frame 7s).
+   Логотип с 23.07 статичен, но бейдж и рамка остаются — они гасятся здесь.
+   Сначала точечно останавливаем бесконечные заливки на первом кадре,
+   затем схлопываем все остальные анимации и переходы. */
+@media (prefers-reduced-motion:reduce){
+  .ai-badge,.holo-frame::before{animation:none!important;background-position:0% 50%!important}
+  *,*::before,*::after{
+    animation-duration:1ms!important;
+    animation-iteration-count:1!important;
+    transition-duration:1ms!important;
+  }
+  html{scroll-behavior:auto!important}
+}
