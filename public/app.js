@@ -4,6 +4,12 @@ const state={song:"ballad",clip:"girlcrush",dance:"lesserafim",genderTab:"girl",
 // независимо от того, где физически крутится сама генерация (локально/preview/прод).
 const IMAGE_BASE="https://k-pop-black.vercel.app";
 
+// Оплата спрятана до перехода на боевой Stripe-аккаунт. Сейчас в проде — тестовый
+// (sandbox) ключ: реальная карта платёж не проведёт (charges_enabled=false). Показывать
+// платёжку 10 приглашённым нельзя — потеряем человека на ошибке оплаты. Метрика 31.07 —
+// возвраты, не выручка. Включить = true после боевого онбординга Stripe + STRIPE_WEBHOOK_SECRET.
+const PAY_ENABLED=false;
+
 // 5 унифицированных жанров: каждый = одна танцевальная энергия (см. GENRE_ALIAS в pipeline.js).
 const SONG=[["ballad","Баллада","эмоции, минимум движений"],["girlcrush","Girl-crush","жёстко, хип-хоп/трэп"],
 ["retro","Ретро-фанк","грув, city-pop, R&B"],["future","Future","EDM, хайперпоп"],["easy","Y2K поп","лайтово, качает"]];
@@ -401,7 +407,7 @@ function renderCabinet(chartEntry,readOnly){
       </div>
 
       <button class="connect-link" onclick="openConnect()">${t('connect_link')}</button>
-      <button class="sub-link" onclick="startCheckout('sub')">${t('sub_link')}</button>
+      ${PAY_ENABLED?`<button class="sub-link" onclick="startCheckout('sub')">${t('sub_link')}</button>`:''}
     </div>
   `;
   if(!isOther)maybeOnboard();
@@ -523,7 +529,14 @@ async function startCheckout(product){
 }
 
 // Чат с собственным айдолом.
-function closeChat(){document.getElementById('chatOv').classList.remove('show');navClear()}
+// Закрытие возвращает туда, откуда чат открыли: из урока («спросить у айдола») —
+// назад в тот же урок, а не на стартовую страницу кабинета (баг прогона 23.07).
+function closeChat(){
+  document.getElementById('chatOv').classList.remove('show');
+  const back=window._chatReturn;window._chatReturn=null;
+  if(back&&back.ov==='lesson'&&back.id){openLesson(back.id);return}
+  navClear();
+}
 document.getElementById('chatOv').onclick=e=>{if(e.target.id==='chatOv')closeChat()};
 function fmtMsg(s){return escapeHtml(s).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/(?<![:/])\*(?!\s)(.+?)(?<!\s)\*/g,'<i>$1</i>')}
 function chatBubble(m){
@@ -531,8 +544,9 @@ function chatBubble(m){
   return `<div class="chat-msg ${mine?'me':'idol'}"><div class="chat-b">${fmtMsg(m.content)}</div></div>`;
 }
 function escapeHtml(s){return String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))}
-async function openChat(prefill){
+async function openChat(prefill,returnTo){
   if(!currentUser){openAuth('signup');return}
+  window._chatReturn=returnTo||null;
   navOv('chat');
   const ov=document.getElementById('chatOv');ov.classList.add('show');
   const log=document.getElementById('chatLog');
@@ -684,7 +698,7 @@ function openLesson(id){
     <div class="lsn-teacher">${blocks}</div>
     <div class="lsn-vocab-note">${t('lsn_vocab_note')(lesson.vocab.length)}</div>
     <button class="btn accent lsn-finish" onclick="openLessonQuiz('${lesson.id}')">${t('lsn_next_quiz')}</button>
-    <button class="lsn-ask" onclick="askTeacher()">${t('lsn_ask')}</button>`;
+    <button class="lsn-ask" onclick="askTeacher()">${myIdol?t('lsn_ask_named')(myIdol.name):t('lsn_ask')}</button>`;
   document.getElementById('lessonBody').scrollTop=0;
 }
 
@@ -782,7 +796,7 @@ function finishLesson(){
 function askTeacher(){
   const lesson=window._lsnCur;
   closeLessons();
-  openChat(lesson?t('lsn_ask_seed')(lesson.title[getLang()]):'');
+  openChat(lesson?t('lsn_ask_seed')(lesson.title[getLang()]):'', lesson?{ov:'lesson',id:lesson.id}:null);
 }
 
 /* ===================== РАБОЧАЯ ТЕТРАДЬ ===================== */
@@ -1211,9 +1225,20 @@ const TOUR_STEPS=[
   {sel:'.closeness', ru:'Чем больше учишься — тем ближе айдол.', en:'The more you learn, the closer your idol gets.'},
   {sel:'.coll', ru:'Карточки открываются за твой прогресс.', en:'Cards unlock as you progress.'}
 ];
-function onbKey(){return 'so_onboarded_'+lsnUid()}
-function maybeOnboard(){if(!currentUser||!myIdol)return;if(localStorage.getItem(onbKey()))return;setTimeout(openOnb,450)}
-function closeOnb(){document.getElementById('onbOv').classList.remove('show');localStorage.setItem(onbKey(),'1')}
+function onbKey(){return 'so_onb_count_'+lsnUid()}
+// Плашка «как здесь всё устроено» показывается автоматически МАКСИМУМ 2 раза за всё время
+// (счётчик в localStorage), и не чаще одного раза за сессию — дальше только по кнопке-чипу
+// сверху (openOnb). До 23.07 она вылетала почти при каждом рендере кабинета.
+function maybeOnboard(){
+  if(!currentUser||!myIdol)return;
+  if(window._onbShownThisSession)return;
+  const n=parseInt(localStorage.getItem(onbKey())||'0',10);
+  if(n>=2)return;
+  window._onbShownThisSession=true;
+  localStorage.setItem(onbKey(),String(n+1));
+  setTimeout(openOnb,450);
+}
+function closeOnb(){document.getElementById('onbOv').classList.remove('show')}
 document.getElementById('onbOv').onclick=e=>{if(e.target.id==='onbOv')closeOnb()};
 function openOnb(){
   const L=getLang();
@@ -1232,14 +1257,29 @@ function openOnb(){
 // одноразовый код: юзер получает код в приложении и присылает его боту.
 function closeConnect(){document.getElementById('connectOv').classList.remove('show')}
 document.getElementById('connectOv').onclick=e=>{if(e.target.id==='connectOv')closeConnect()};
+// Какой мессенджер вести первым — по языку интерфейса (там реально сидит аудитория).
+// Совпадает с langChannel() в lib/reply.js: RU/UK → Telegram, JA/TH/ZH → LINE, иначе Discord.
+const CONNECT_CH={
+  telegram:{ic:'✈️',name:'Telegram',sub:()=>t('connect_telegram_sub'),go:"connectCode('telegram')"},
+  line:    {ic:'💬',name:'LINE',    sub:()=>t('connect_line_sub'),    go:"connectCode('line')"},
+  discord: {ic:'🎮',name:'Discord', sub:()=>t('connect_discord_sub'), go:'connectDiscord()'},
+};
+function primaryChannel(){const l=getLang();if(['ru','uk'].includes(l))return'telegram';if(['ja','th','zh'].includes(l))return'line';return'discord';}
 async function openConnect(){
   const box=document.getElementById('connectBody');
+  const prim=primaryChannel();
+  const p=CONNECT_CH[prim];
+  const others=Object.keys(CONNECT_CH).filter(k=>k!==prim);
+  // Одна крупная кнопка под язык юзара = переезд в 2 касания. Остальные каналы — мелко ниже.
   box.innerHTML=`<div class="onb-title">${t('connect_h')}</div>
     <p class="connect-sub">${t('connect_sub')}</p>
     <div class="connect-rows">
-      <button class="connect-row" onclick="connectDiscord()"><span class="cr-ic">🎮</span><b>Discord</b><small>${t('connect_discord_sub')}</small></button>
-      <button class="connect-row" onclick="connectCode('line')"><span class="cr-ic">💬</span><b>LINE</b><small>${t('connect_line_sub')}</small></button>
-      <button class="connect-row" onclick="connectCode('telegram')"><span class="cr-ic">✈️</span><b>Telegram</b><small>${t('connect_telegram_sub')}</small></button>
+      <button class="connect-row" style="border-color:var(--accent,#c9a24a);box-shadow:0 0 0 1px var(--accent,#c9a24a) inset" onclick="${p.go}">
+        <span class="cr-ic">${p.ic}</span><b>${p.name}</b><small>${p.sub()}</small></button>
+    </div>
+    <div class="connect-other">${t('connect_other')}</div>
+    <div class="connect-rows">
+      ${others.map(k=>{const c=CONNECT_CH[k];return `<button class="connect-row sm" onclick="${c.go}"><span class="cr-ic">${c.ic}</span><b>${c.name}</b><small>${c.sub()}</small></button>`}).join('')}
     </div>
     <div id="connectResult"></div>`;
   document.getElementById('connectOv').classList.add('show');
@@ -1776,6 +1816,9 @@ async function submitAuth(mode){
   await loadMyIdol();
   closeAuthOv();
   renderAuthArea();
+  // После входа всегда открываем личный кабинет, а не тот экран, где юзер был до логина
+  // (баг прогона 23.07: после входа показывалась витрина «Айдолы» вместо кабинета).
+  await showView('cabinet-own');
   toast(mode==='signup'?'Аккаунт создан — добро пожаловать!':'С возвращением, @'+(d.profile.username||''));
 }
 async function doLogout(){
@@ -1798,7 +1841,7 @@ const T={
     tab_girls:"Girls", tab_boys:"Boys",
     concept_suffix:"· your idol tutor", your_korean:"Your Korean", level:"level", days_together:"days together", streak_days:"day streak", streak_start:"Start your streak — study today",
     lesson_start:"Start a lesson", lesson_sub:n=>`${n} teaches you Korean, step by step`,
-    lessons_h:"Lessons", lsn_vocab_note:n=>`${n} new words will be saved to your Workbook`, lsn_quiz_h:"Check yourself", lsn_check:"Check answers", lsn_next_quiz:"Next: quick check →", lsn_toinfo:"back to the material", lsn_retry:"Try again", lsn_ask:"Ask the teacher a question", lsn_answer_all:"Answer every question first.", lsn_wrong:n=>`${n} wrong — look again and retry.`, lsn_passed:"All correct! Lesson complete 🎉", lsn_next:"Next lesson →", lsn_toast:"Lesson done · words saved · card progress +", lsn_ask_seed:tt=>`I have a question about the lesson "${tt}": `,
+    lessons_h:"Lessons", lsn_vocab_note:n=>`${n} new words will be saved to your Workbook`, lsn_quiz_h:"Check yourself", lsn_check:"Check answers", lsn_next_quiz:"Next: quick check →", lsn_toinfo:"back to the material", lsn_retry:"Try again", lsn_ask:"Ask the teacher a question", lsn_ask_named:nm=>`Ask ${nm}`, lsn_answer_all:"Answer every question first.", lsn_wrong:n=>`${n} wrong — look again and retry.`, lsn_passed:"All correct! Lesson complete 🎉", lsn_next:"Next lesson →", lsn_toast:"Lesson done · words saved · card progress +", lsn_ask_seed:tt=>`I have a question about the lesson "${tt}": `,
     tile_wb:"Workbook", tile_wb_sub:"your words & slang",
     wb_h:"Workbook", wb_words:"Words", wb_slang:"Slang", wb_del:"Remove", wb_mean_ph:"meaning", wb_need_kr:"Type the Korean word", wb_dup:"Already in your workbook",
     wb_empty_words:"No words yet — finish lessons and they’ll pile up here automatically.", wb_empty_slang:"No slang yet — it’ll collect from song breakdowns. You can add your own too.",
@@ -1817,7 +1860,7 @@ const T={
     connect_link:"💬 Chat with your idol in a messenger →",
     connect_h:"Chat in your messenger", connect_sub:"Same conversation, one more window. Reply to your idol from your favorite app — lessons and your notebook stay here.",
     connect_discord_sub:"one tap, no server needed", connect_line_sub:"Japan · Taiwan · Thailand",
-    connect_telegram_sub:"one tap · opens Telegram",
+    connect_telegram_sub:"one tap · opens Telegram", connect_other:"or another app",
     connect_active:"Connected", connect_open:"Open Telegram →", connect_step1:"1. Add the Idolingo bot and send it this code:", connect_step2:"2. Done — keep chatting right there. It's the same thread.",
     link_ok:"Discord connected 🎉 Open a DM with the bot and say hi!", link_fail:"Couldn't connect Discord — try again", link_login:"Log in first", link_noidol:"Get an idol first",
     chat_title:n=>`Lesson with ${n}`, chat_ph:"Answer or ask in Korean…",
@@ -1831,7 +1874,7 @@ const T={
     tab_girls:"Девушки", tab_boys:"Парни",
     concept_suffix:"· твой айдол-учитель", your_korean:"Твой корейский", level:"уровень", days_together:"дней вместе", streak_days:"дней подряд", streak_start:"Начни стрик — позанимайся сегодня",
     lesson_start:"Начать урок", lesson_sub:n=>`${n} учит корейскому — шаг за шагом`,
-    lessons_h:"Уроки", lsn_vocab_note:n=>`${n} новых слов сохранятся в Рабочую тетрадь`, lsn_quiz_h:"Проверь себя", lsn_check:"Проверить", lsn_next_quiz:"Далее — проверка →", lsn_toinfo:"назад к материалу", lsn_retry:"Переписать", lsn_ask:"Задать вопрос учителю", lsn_answer_all:"Сначала ответь на все вопросы.", lsn_wrong:n=>`Ошибок: ${n} — посмотри ещё раз и попробуй снова.`, lsn_passed:"Всё верно! Урок пройден 🎉", lsn_next:"Следующий урок →", lsn_toast:"Урок пройден · слова сохранены · прогресс карточек +", lsn_ask_seed:tt=>`У меня вопрос по уроку «${tt}»: `,
+    lessons_h:"Уроки", lsn_vocab_note:n=>`${n} новых слов сохранятся в Рабочую тетрадь`, lsn_quiz_h:"Проверь себя", lsn_check:"Проверить", lsn_next_quiz:"Далее — проверка →", lsn_toinfo:"назад к материалу", lsn_retry:"Переписать", lsn_ask:"Задать вопрос учителю", lsn_ask_named:nm=>`Спросить у ${nm}`, lsn_answer_all:"Сначала ответь на все вопросы.", lsn_wrong:n=>`Ошибок: ${n} — посмотри ещё раз и попробуй снова.`, lsn_passed:"Всё верно! Урок пройден 🎉", lsn_next:"Следующий урок →", lsn_toast:"Урок пройден · слова сохранены · прогресс карточек +", lsn_ask_seed:tt=>`У меня вопрос по уроку «${tt}»: `,
     tile_wb:"Рабочая тетрадь", tile_wb_sub:"твои слова и сленг",
     wb_h:"Рабочая тетрадь", wb_words:"Слова", wb_slang:"Сленг", wb_del:"Удалить", wb_mean_ph:"перевод", wb_need_kr:"Впиши корейское слово", wb_dup:"Уже есть в тетради",
     wb_empty_words:"Пока пусто — проходи уроки, и слова сами накопятся здесь.", wb_empty_slang:"Пока пусто — сленг накопится из разборов песен. Можно добавить и своё.",
@@ -1850,7 +1893,7 @@ const T={
     connect_link:"💬 Общайся с айдолом в мессенджере →",
     connect_h:"Общение в мессенджере", connect_sub:"Тот же разговор — просто ещё одно окно. Отвечай айдолу в удобном приложении, а уроки и тетрадь остаются здесь.",
     connect_discord_sub:"одна кнопка, сервер не нужен", connect_line_sub:"Япония · Тайвань · Таиланд",
-    connect_telegram_sub:"один тап · откроется Telegram",
+    connect_telegram_sub:"один тап · откроется Telegram", connect_other:"или другое приложение",
     connect_active:"Подключено", connect_open:"Открыть Telegram →", connect_step1:"1. Добавь бота Idolingo и пришли ему этот код:", connect_step2:"2. Готово — продолжай прямо там. Это тот же тред.",
     link_ok:"Discord подключён 🎉 Открой личку с ботом и напиши ему!", link_fail:"Не удалось подключить Discord — попробуй ещё раз", link_login:"Сначала войди", link_noidol:"Сначала заведи айдола",
     chat_title:n=>`Урок с ${n}`, chat_ph:"Ответь или спроси по-корейски…",

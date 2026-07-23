@@ -72,10 +72,16 @@ async function handleWebhook(req, res, buf) {
   const secret = process.env.STRIPE_WEBHOOK_SECRET;
   const sig = req.headers["stripe-signature"];
   let event;
+  // Без секрета доверять телу можно ТОЛЬКО в явном локальном тесте (ALLOW_UNSIGNED_WEBHOOK=1).
+  // Иначе — отказ: раньше прод без секрета принимал неподписанные события, и любой мог
+  // POST-запросом выдать себе подписку без оплаты (дыра найдена 23.07).
+  if (!secret && process.env.ALLOW_UNSIGNED_WEBHOOK !== "1") {
+    return res.status(400).json({ error: "Вебхук не сконфигурирован" });
+  }
   try {
     event = secret
       ? client().webhooks.constructEvent(buf, sig, secret)
-      : JSON.parse(buf.toString()); // без секрета (локальный тест) — доверяем телу
+      : JSON.parse(buf.toString()); // локальный тест с явным флагом
   } catch (e) {
     return res.status(400).json({ error: `Подпись не прошла: ${String(e?.message || e)}` });
   }
