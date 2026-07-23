@@ -1836,7 +1836,7 @@ function getLang(){return localStorage.getItem('s1_lang')||'en'}
 function setLang(v){localStorage.setItem('s1_lang',v);location.reload()}
 const T={
   en:{
-    nav_home:"My idol", nav_idols:"Idols", no_idol_h:"You don’t have an idol yet", no_idol_sub:"Pick an idol — he becomes your tutor and friend.", no_idol_btn:"Pick an idol →", footer:"Idolingo · learn Korean with an AI idol you pick · your friend and tutor in one", lang_cap:"learning language",
+    nav_home:"Backstage", nav_idols:"Idols", no_idol_h:"You don’t have an idol yet", no_idol_sub:"Pick an idol — he becomes your tutor and friend.", no_idol_btn:"Pick an idol →", footer:"Idolingo · learn Korean with an AI idol you pick · your friend and tutor in one", lang_cap:"learning language",
     pick_h:"Pick an idol — they become your friend and teach you Korean 🇰🇷", pick_sub:"One idol free, yours forever. Chat every day and learn Korean the fun way.",
     tab_girls:"Girls", tab_boys:"Boys",
     concept_suffix:"· your idol tutor", your_korean:"Your Korean", level:"level", days_together:"days together", streak_days:"day streak", streak_start:"Start your streak — study today",
@@ -1869,7 +1869,7 @@ const T={
     forgot_link:"Forgot password?", forgot_h:"Reset password", forgot_send:"Send reset link", forgot_sent:"If that email exists, we sent a reset link. Check your inbox.", back_login:"← Back to log in",
   },
   ru:{
-    nav_home:"Мой айдол", nav_idols:"Айдолы", no_idol_h:"У тебя ещё нет айдола", no_idol_sub:"Выбери айдола — он станет твоим учителем и другом.", no_idol_btn:"Выбрать айдола →", footer:"Idolingo · учи корейский с AI-айдолом, которого выбрал сам · твой друг и преподаватель в одном лице", lang_cap:"язык обучения",
+    nav_home:"Гримёрка", nav_idols:"Айдолы", no_idol_h:"У тебя ещё нет айдола", no_idol_sub:"Выбери айдола — он станет твоим учителем и другом.", no_idol_btn:"Выбрать айдола →", footer:"Idolingo · учи корейский с AI-айдолом, которого выбрал сам · твой друг и преподаватель в одном лице", lang_cap:"язык обучения",
     pick_h:"Выбери айдола — он станет твоим другом и научит тебя корейскому 🇰🇷", pick_sub:"Один айдол бесплатно и навсегда твой. Общайся каждый день — учи корейский играючи.",
     tab_girls:"Девушки", tab_boys:"Парни",
     concept_suffix:"· твой айдол-учитель", your_korean:"Твой корейский", level:"уровень", days_together:"дней вместе", streak_days:"дней подряд", streak_start:"Начни стрик — позанимайся сегодня",
