@@ -1,0 +1,138 @@
+[
+  {
+    "engine": "E-qwen3-Sohee",
+    "test": "01_как-сейчас_голая-буква-A",
+    "ok": true,
+    "ms": 26293,
+    "bytes": 61594,
+    "text": "ㅏ"
+  },
+  {
+    "engine": "E-qwen3-Sohee",
+    "test": "02_правильно_гласная-A",
+    "ok": true,
+    "ms": 3279,
+    "bytes": 18874,
+    "text": "아"
+  },
+  {
+    "engine": "E-qwen3-Sohee",
+    "test": "03_как-сейчас_голая-буква-R",
+    "ok": true,
+    "ms": 18866,
+    "bytes": 73018,
+    "text": "ㄹ"
+  },
+  {
+    "engine": "E-qwen3-Sohee",
+    "test": "04_правильно_имя-буквы-риыль",
+    "ok": true,
+    "ms": 12592,
+    "bytes": 18034,
+    "text": "리을"
+  },
+  {
+    "engine": "E-qwen3-Sohee",
+    "test": "05_пара-ЕО-О_первая-어",
+    "ok": true,
+    "ms": 4187,
+    "bytes": 16402,
+    "text": "어"
+  },
+  {
+    "engine": "E-qwen3-Sohee",
+    "test": "06_пара-ЕО-О_вторая-오",
+    "ok": true,
+    "ms": 2392,
+    "bytes": 17386,
+    "text": "오"
+  },
+  {
+    "engine": "E-qwen3-Sohee",
+    "test": "07_пара-Э-Е_первая-애",
+    "ok": true,
+    "ms": 3025,
+    "bytes": 20698,
+    "text": "애"
+  },
+  {
+    "engine": "E-qwen3-Sohee",
+    "test": "08_пара-Э-Е_вторая-에",
+    "ok": true,
+    "ms": 2618,
+    "bytes": 17986,
+    "text": "에"
+  },
+  {
+    "engine": "E-qwen3-Sohee",
+    "test": "09_тройка-К_обычная-가",
+    "ok": true,
+    "ms": 2585,
+    "bytes": 17026,
+    "text": "가"
+  },
+  {
+    "engine": "E-qwen3-Sohee",
+    "test": "10_тройка-К_придыхательная-카",
+    "ok": true,
+    "ms": 25153,
+    "bytes": 98506,
+    "text": "카"
+  },
+  {
+    "engine": "E-qwen3-Sohee",
+    "test": "11_тройка-К_напряжённая-까",
+    "ok": true,
+    "ms": 2186,
+    "bytes": 15490,
+    "text": "까"
+  },
+  {
+    "engine": "E-qwen3-Sohee",
+    "test": "12_патчхим_밥",
+    "ok": true,
+    "ms": 4273,
+    "bytes": 21898,
+    "text": "밥"
+  },
+  {
+    "engine": "E-qwen3-Sohee",
+    "test": "13_патчхим_각",
+    "ok": true,
+    "ms": 2223,
+    "bytes": 17146,
+    "text": "각"
+  },
+  {
+    "engine": "E-qwen3-Sohee",
+    "test": "14_замедленно_각",
+    "ok": true,
+    "ms": 25087,
+    "bytes": 50602,
+    "text": "각"
+  },
+  {
+    "engine": "E-qwen3-Sohee",
+    "test": "15_повтор_각_дубль2",
+    "ok": true,
+    "ms": 6629,
+    "bytes": 30058,
+    "text": "각"
+  },
+  {
+    "engine": "E-qwen3-Sohee",
+    "test": "16_фраза_안녕하세요-만나서-반가워요",
+    "ok": true,
+    "ms": 5884,
+    "bytes": 31354,
+    "text": "안녕하세요. 만나서 반가워요."
+  },
+  {
+    "engine": "E-qwen3-Sohee",
+    "test": "17_строка-песни",
+    "ok": true,
+    "ms": 6085,
+    "bytes": 33706,
+    "text": "오늘 밤 우리 둘만의 별빛 아래에서"
+  }
+]

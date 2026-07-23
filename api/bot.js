@@ -10,7 +10,16 @@
 import { createHmac, timingSafeEqual, randomBytes } from "crypto";
 import { supabase } from "../lib/supabase.js";
 import { readUserId } from "../lib/session.js";
-import { ownIdolByUser, resolveLinkedIdol, generateReply, generateProactive, idolById } from "../lib/reply.js";
+import {
+  ownIdolByUser,
+  resolveLinkedIdol,
+  generateReply,
+  generateProactive,
+  generateFirstMessage,
+  idolById,
+  resetPulseCache,
+  loadPulse,
+} from "../lib/reply.js";
 
 export const config = { api: { bodyParser: false }, maxDuration: 60 };
 
@@ -222,10 +231,23 @@ async function lastOwnerActivity(db, idolId) {
   return data?.created_at ? new Date(data.created_at).getTime() : null;
 }
 
+// Переменный ритм вместо будильника. Одинаковый интервал между сообщениями айдола читается
+// как рассылка по расписанию и убивает ощущение живого человека («постоянство схлопывается
+// в скуку» — docs/IDOL_BRAIN_SPEC.md §2.6). Поэтому кап гуляет в диапазоне ±4ч, но
+// детерминированно: значение стабильно внутри суток для конкретного айдола, чтобы почасовой
+// тик не «дрожал» и результат оставался воспроизводимым.
+export function jitteredCapH(idolId, nowMs, baseH = PROACTIVE_CAP_H) {
+  const day = new Date(nowMs).toISOString().slice(0, 10);
+  const s = String(idolId) + day;
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return baseH - 4 + (h % 9); // baseH-4 … baseH+4
+}
+
 // Решаем повод написать (или null). Чистая функция — легко тестировать/дай-ранить.
-function decideReason({ nowMs, lastOwnerMs, lastProactiveMs, studyStreak, lastStudyDate }) {
+function decideReason({ nowMs, lastOwnerMs, lastProactiveMs, studyStreak, lastStudyDate, capH = PROACTIVE_CAP_H }) {
   if (lastOwnerMs == null) return null; // ни разу не писал — не «холодим» незнакомца
-  if (lastProactiveMs != null && nowMs - lastProactiveMs < PROACTIVE_CAP_H * 3600e3) return null; // кап
+  if (lastProactiveMs != null && nowMs - lastProactiveMs < capH * 3600e3) return null; // кап
   const hoursOwner = (nowMs - lastOwnerMs) / 3600e3;
   const today = new Date(nowMs).toISOString().slice(0, 10);
   if (hoursOwner >= REENGAGE_H) return "reengage";
@@ -262,6 +284,7 @@ async function runProactiveTick(db, { dry = false, force = false, forceReason = 
           lastProactiveMs: ts?.last_proactive_at ? new Date(ts.last_proactive_at).getTime() : null,
           studyStreak: ts?.study_streak || 0,
           lastStudyDate: ts?.last_study_date || null,
+          capH: jitteredCapH(la.idol_id, nowMs),
         });
     if (!reason) { results.push({ idol_id: la.idol_id, platform: la.platform, skipped: true }); continue; }
     if (dry) { results.push({ idol_id: la.idol_id, platform: la.platform, reason, dry: true }); continue; }
@@ -292,6 +315,55 @@ async function runProactiveTick(db, { dry = false, force = false, forceReason = 
   return results;
 }
 
+// ── ПЕРВОЕ СООБЩЕНИЕ: подстраховка ────────────────────────────────────────────
+// Быстрый путь живёт в api/chat.js (фанат открыл чат — сообщение уже там). Этот проход
+// добирает тех, кто чат так и не открыл: айдол пишет им сам, и если мессенджер привязан —
+// сообщение уходит пушем. Ничего не открывший фанат иначе не получил бы от айдола ни строки,
+// а именно первый контакт решает, будет ли вторая сессия.
+async function runFirstMessageSweep(db, { dry = false, only = null } = {}) {
+  const weekAgo = new Date(Date.now() - 7 * 24 * 3600e3).toISOString();
+  let q = db
+    .from("idols")
+    .select("id,name,name_kr,bio,concept,gender,owner_id,created_at")
+    .gte("created_at", weekAgo)
+    .order("created_at", { ascending: false })
+    .limit(50);
+  if (only) q = q.eq("id", only);
+  const { data: fresh, error } = await q;
+  if (error) throw new Error(error.message);
+
+  const out = [];
+  for (const row of fresh || []) {
+    const idol = await idolById(db, row.id); // подтягивает language_pct
+    if (!idol) continue;
+    const { data: link } = await db
+      .from("linked_accounts")
+      .select("platform,platform_user_id,lang")
+      .eq("idol_id", idol.id)
+      .limit(1)
+      .maybeSingle();
+    const lang = link?.lang || "en";
+    if (dry) { out.push({ idol_id: idol.id, dry: true, channel: link?.platform || "web" }); continue; }
+
+    // Все проверки (пауза, возраст, пустой тред, замок идемпотентности) — внутри ядра.
+    const res = await generateFirstMessage({ db, idol, lang, channel: link?.platform || "web" });
+    if (res.skipped) continue; // самый частый случай: уже писали / фанат заговорил первым
+    if (res.error) { out.push({ idol_id: idol.id, error: res.error }); continue; }
+
+    let delivered = false;
+    if (link?.platform === "line") delivered = await linePush(link.platform_user_id, res.reply.content);
+    else if (link?.platform === "telegram") delivered = await telegramSend(link.platform_user_id, res.reply.content);
+    if (link && !delivered) {
+      await db.from("outbox").insert({
+        platform: link.platform, platform_user_id: link.platform_user_id,
+        idol_id: idol.id, content: res.reply.content, reason: "first",
+      });
+    }
+    out.push({ idol_id: idol.id, first: true, delivered: link ? (delivered ? "push" : "outbox") : "web" });
+  }
+  return out;
+}
+
 async function proactiveTick(req, res) {
   if (req.headers["x-ingest-secret"] !== process.env.INGEST_SECRET || !process.env.INGEST_SECRET) {
     return res.status(401).json({ error: "unauthorized" });
@@ -300,9 +372,42 @@ async function proactiveTick(req, res) {
   const force = req.query.force === "1";
   const forceReason = req.query.reason || "reengage";
   const only = req.query.only || null;
-  const results = await runProactiveTick(supabase(), { dry, force, forceReason, only });
+  const db = supabase();
+  // Сначала первые сообщения (новичкам важнее), потом обычный проактив старым.
+  const firsts = await runFirstMessageSweep(db, { dry, only }).catch((e) => [{ error: String(e?.message || e) }]);
+  const results = await runProactiveTick(db, { dry, force, forceReason, only });
   const sent = results.filter((r) => r.delivered).length;
-  return res.status(200).json({ ok: true, dry, sent, count: results.length, results });
+  return res.status(200).json({ ok: true, dry, sent, count: results.length, firsts, results });
+}
+
+// ── ПУЛЬС K-POP: курируемый блок в промпт, правится снаружи без деплоя ─────────
+// GET  — посмотреть, что лежит сейчас. POST { items: [...], source } — заменить.
+// Источник наполнения: агент trend-scout (шлёт отчёты ежечасно, но файлы в репозитории
+// править не может) либо руки. Пустой items не принимаем — лучше старый блок, чем никакой.
+async function pulseEndpoint(req, res) {
+  if (req.headers["x-ingest-secret"] !== process.env.INGEST_SECRET || !process.env.INGEST_SECRET) {
+    return res.status(401).json({ error: "unauthorized" });
+  }
+  const db = supabase();
+  if (req.method === "GET") {
+    const { data } = await db.from("kpop_pulse").select("items,source,updated_at").eq("id", 1).maybeSingle();
+    return res.status(200).json({ ok: true, pulse: data || null, effective: await loadPulse(db, { force: true }) });
+  }
+  const raw = await readRaw(req);
+  let body;
+  try { body = JSON.parse(raw || "{}"); } catch { return res.status(400).json({ error: "bad json" }); }
+  const items = (body.items || [])
+    .filter((s) => typeof s === "string" && s.trim())
+    .map((s) => s.trim().slice(0, 300))
+    .slice(0, 12);
+  if (!items.length) return res.status(400).json({ error: "items пуст — обновление отклонено" });
+
+  const { error } = await db
+    .from("kpop_pulse")
+    .upsert({ id: 1, items, source: String(body.source || "manual").slice(0, 200), updated_at: new Date().toISOString() });
+  if (error) return res.status(500).json({ error: error.message });
+  resetPulseCache(); // на этом инстансе — сразу; на остальных протухнет за 10 минут
+  return res.status(200).json({ ok: true, count: items.length });
 }
 
 // ── OUTBOX: воркер без прямого пуша забирает недоставленные проактивы ──────────
@@ -447,6 +552,7 @@ export default async function handler(req, res) {
     if (platform === "telegram" && req.method === "POST" && !action) return await telegramWebhook(req, res);
     if (action === "ingest" && req.method === "POST") return await ingest(req, res);
     if (action === "proactive-tick" && req.method === "POST") return await proactiveTick(req, res);
+    if (action === "pulse") return await pulseEndpoint(req, res);
     if (action === "outbox" && req.method === "GET") return await outboxPending(req, res);
     if (action === "outbox-ack" && req.method === "POST") return await outboxAck(req, res);
     if (action === "discord-oauth") return await discordOauth(req, res);

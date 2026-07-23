@@ -1,0 +1,681 @@
+[
+  {
+    "engine": "A-текущий-minimax02hd-1.2x",
+    "test": "01_как-сейчас_голая-буква-A",
+    "ok": true,
+    "ms": 4484,
+    "bytes": 12719,
+    "text": "ㅏ"
+  },
+  {
+    "engine": "A-текущий-minimax02hd-1.2x",
+    "test": "02_правильно_гласная-A",
+    "ok": true,
+    "ms": 3043,
+    "bytes": 12719,
+    "text": "아"
+  },
+  {
+    "engine": "A-текущий-minimax02hd-1.2x",
+    "test": "03_как-сейчас_голая-буква-R",
+    "ok": true,
+    "ms": 2758,
+    "bytes": 12719,
+    "text": "ㄹ"
+  },
+  {
+    "engine": "A-текущий-minimax02hd-1.2x",
+    "test": "04_правильно_имя-буквы-риыль",
+    "ok": true,
+    "ms": 2907,
+    "bytes": 15602,
+    "text": "리을"
+  },
+  {
+    "engine": "A-текущий-minimax02hd-1.2x",
+    "test": "05_пара-ЕО-О_первая-어",
+    "ok": true,
+    "ms": 2492,
+    "bytes": 12719,
+    "text": "어"
+  },
+  {
+    "engine": "A-текущий-minimax02hd-1.2x",
+    "test": "06_пара-ЕО-О_вторая-오",
+    "ok": true,
+    "ms": 2678,
+    "bytes": 12719,
+    "text": "오"
+  },
+  {
+    "engine": "A-текущий-minimax02hd-1.2x",
+    "test": "07_пара-Э-Е_первая-애",
+    "ok": true,
+    "ms": 2761,
+    "bytes": 13872,
+    "text": "애"
+  },
+  {
+    "engine": "A-текущий-minimax02hd-1.2x",
+    "test": "08_пара-Э-Е_вторая-에",
+    "ok": true,
+    "ms": 2683,
+    "bytes": 13296,
+    "text": "에"
+  },
+  {
+    "engine": "A-текущий-minimax02hd-1.2x",
+    "test": "09_тройка-К_обычная-가",
+    "ok": true,
+    "ms": 2669,
+    "bytes": 12719,
+    "text": "가"
+  },
+  {
+    "engine": "A-текущий-minimax02hd-1.2x",
+    "test": "10_тройка-К_придыхательная-카",
+    "ok": true,
+    "ms": 3250,
+    "bytes": 12719,
+    "text": "카"
+  },
+  {
+    "engine": "A-текущий-minimax02hd-1.2x",
+    "test": "11_тройка-К_напряжённая-까",
+    "ok": true,
+    "ms": 2836,
+    "bytes": 13872,
+    "text": "까"
+  },
+  {
+    "engine": "A-текущий-minimax02hd-1.2x",
+    "test": "12_патчхим_밥",
+    "ok": true,
+    "ms": 2508,
+    "bytes": 12719,
+    "text": "밥"
+  },
+  {
+    "engine": "A-текущий-minimax02hd-1.2x",
+    "test": "13_патчхим_각",
+    "ok": true,
+    "ms": 2690,
+    "bytes": 12719,
+    "text": "각"
+  },
+  {
+    "engine": "A-текущий-minimax02hd-1.2x",
+    "test": "14_замедленно_각",
+    "ok": true,
+    "ms": 2994,
+    "bytes": 17908,
+    "text": "각"
+  },
+  {
+    "engine": "A-текущий-minimax02hd-1.2x",
+    "test": "15_повтор_각_дубль2",
+    "ok": true,
+    "ms": 2423,
+    "bytes": 12719,
+    "text": "각"
+  },
+  {
+    "engine": "A-текущий-minimax02hd-1.2x",
+    "test": "16_фраза_안녕하세요-만나서-반가워요",
+    "ok": true,
+    "ms": 3107,
+    "bytes": 37512,
+    "text": "안녕하세요. 만나서 반가워요."
+  },
+  {
+    "engine": "A-текущий-minimax02hd-1.2x",
+    "test": "17_строка-песни",
+    "ok": true,
+    "ms": 3535,
+    "bytes": 60575,
+    "text": "오늘 밤 우리 둘만의 별빛 아래에서"
+  },
+  {
+    "engine": "B-minimax28hd",
+    "test": "01_как-сейчас_голая-буква-A",
+    "ok": true,
+    "ms": 2645,
+    "bytes": 17332,
+    "text": "ㅏ"
+  },
+  {
+    "engine": "B-minimax28hd",
+    "test": "02_правильно_гласная-A",
+    "ok": true,
+    "ms": 3188,
+    "bytes": 13872,
+    "text": "아"
+  },
+  {
+    "engine": "B-minimax28hd",
+    "test": "03_как-сейчас_голая-буква-R",
+    "ok": true,
+    "ms": 2962,
+    "bytes": 19638,
+    "text": "ㄹ"
+  },
+  {
+    "engine": "B-minimax28hd",
+    "test": "04_правильно_имя-буквы-риыль",
+    "ok": true,
+    "ms": 2479,
+    "bytes": 16179,
+    "text": "리을"
+  },
+  {
+    "engine": "B-minimax28hd",
+    "test": "05_пара-ЕО-О_первая-어",
+    "ok": true,
+    "ms": 2965,
+    "bytes": 15602,
+    "text": "어"
+  },
+  {
+    "engine": "B-minimax28hd",
+    "test": "06_пара-ЕО-О_вторая-오",
+    "ok": true,
+    "ms": 2663,
+    "bytes": 21368,
+    "text": "오"
+  },
+  {
+    "engine": "B-minimax28hd",
+    "test": "07_пара-Э-Е_первая-애",
+    "ok": true,
+    "ms": 2949,
+    "bytes": 13872,
+    "text": "애"
+  },
+  {
+    "engine": "B-minimax28hd",
+    "test": "08_пара-Э-Е_вторая-에",
+    "ok": true,
+    "ms": 2790,
+    "bytes": 16179,
+    "text": "에"
+  },
+  {
+    "engine": "B-minimax28hd",
+    "test": "09_тройка-К_обычная-가",
+    "ok": true,
+    "ms": 3204,
+    "bytes": 15602,
+    "text": "가"
+  },
+  {
+    "engine": "B-minimax28hd",
+    "test": "10_тройка-К_придыхательная-카",
+    "ok": true,
+    "ms": 2820,
+    "bytes": 19061,
+    "text": "카"
+  },
+  {
+    "engine": "B-minimax28hd",
+    "test": "11_тройка-К_напряжённая-까",
+    "ok": true,
+    "ms": 2827,
+    "bytes": 13872,
+    "text": "까"
+  },
+  {
+    "engine": "B-minimax28hd",
+    "test": "12_патчхим_밥",
+    "ok": true,
+    "ms": 2499,
+    "bytes": 12719,
+    "text": "밥"
+  },
+  {
+    "engine": "B-minimax28hd",
+    "test": "13_патчхим_각",
+    "ok": true,
+    "ms": 2940,
+    "bytes": 13296,
+    "text": "각"
+  },
+  {
+    "engine": "B-minimax28hd",
+    "test": "14_замедленно_각",
+    "ok": true,
+    "ms": 3083,
+    "bytes": 17332,
+    "text": "각"
+  },
+  {
+    "engine": "B-minimax28hd",
+    "test": "15_повтор_각_дубль2",
+    "ok": true,
+    "ms": 2255,
+    "bytes": 27133,
+    "text": "각"
+  },
+  {
+    "engine": "B-minimax28hd",
+    "test": "16_фраза_안녕하세요-만나서-반가워요",
+    "ok": true,
+    "ms": 3027,
+    "bytes": 52503,
+    "text": "안녕하세요. 만나서 반가워요."
+  },
+  {
+    "engine": "B-minimax28hd",
+    "test": "17_строка-песни",
+    "ok": true,
+    "ms": 3290,
+    "bytes": 72683,
+    "text": "오늘 밤 우리 둘만의 별빛 아래에서"
+  },
+  {
+    "engine": "C-inworld-Minji",
+    "test": "01_как-сейчас_голая-буква-A",
+    "ok": true,
+    "ms": 2607,
+    "bytes": 46664,
+    "text": "ㅏ"
+  },
+  {
+    "engine": "C-inworld-Minji",
+    "test": "02_правильно_гласная-A",
+    "ok": true,
+    "ms": 2229,
+    "bytes": 41864,
+    "text": "아"
+  },
+  {
+    "engine": "C-inworld-Minji",
+    "test": "03_как-сейчас_голая-буква-R",
+    "ok": true,
+    "ms": 3715,
+    "bytes": 41864,
+    "text": "ㄹ"
+  },
+  {
+    "engine": "C-inworld-Minji",
+    "test": "04_правильно_имя-буквы-риыль",
+    "ok": true,
+    "ms": 3815,
+    "bytes": 51464,
+    "text": "리을"
+  },
+  {
+    "engine": "C-inworld-Minji",
+    "test": "05_пара-ЕО-О_первая-어",
+    "ok": true,
+    "ms": 2199,
+    "bytes": 43784,
+    "text": "어"
+  },
+  {
+    "engine": "C-inworld-Minji",
+    "test": "06_пара-ЕО-О_вторая-오",
+    "ok": true,
+    "ms": 3993,
+    "bytes": 50504,
+    "text": "오"
+  },
+  {
+    "engine": "C-inworld-Minji",
+    "test": "07_пара-Э-Е_первая-애",
+    "ok": true,
+    "ms": 2257,
+    "bytes": 42824,
+    "text": "애"
+  },
+  {
+    "engine": "C-inworld-Minji",
+    "test": "08_пара-Э-Е_вторая-에",
+    "ok": true,
+    "ms": 2091,
+    "bytes": 42824,
+    "text": "에"
+  },
+  {
+    "engine": "C-inworld-Minji",
+    "test": "09_тройка-К_обычная-가",
+    "ok": true,
+    "ms": 2560,
+    "bytes": 43784,
+    "text": "가"
+  },
+  {
+    "engine": "C-inworld-Minji",
+    "test": "10_тройка-К_придыхательная-카",
+    "ok": true,
+    "ms": 2601,
+    "bytes": 60104,
+    "text": "카"
+  },
+  {
+    "engine": "C-inworld-Minji",
+    "test": "11_тройка-К_напряжённая-까",
+    "ok": true,
+    "ms": 2130,
+    "bytes": 41864,
+    "text": "까"
+  },
+  {
+    "engine": "C-inworld-Minji",
+    "test": "12_патчхим_밥",
+    "ok": true,
+    "ms": 2462,
+    "bytes": 43784,
+    "text": "밥"
+  },
+  {
+    "engine": "C-inworld-Minji",
+    "test": "13_патчхим_각",
+    "ok": true,
+    "ms": 3721,
+    "bytes": 41864,
+    "text": "각"
+  },
+  {
+    "engine": "C-inworld-Minji",
+    "test": "14_замедленно_각",
+    "ok": true,
+    "ms": 2019,
+    "bytes": 41864,
+    "text": "각"
+  },
+  {
+    "engine": "C-inworld-Minji",
+    "test": "15_повтор_각_дубль2",
+    "ok": true,
+    "ms": 2968,
+    "bytes": 41864,
+    "text": "각"
+  },
+  {
+    "engine": "C-inworld-Minji",
+    "test": "16_фраза_안녕하세요-만나서-반가워요",
+    "ok": true,
+    "ms": 4822,
+    "bytes": 144586,
+    "text": "안녕하세요. 만나서 반가워요."
+  },
+  {
+    "engine": "C-inworld-Minji",
+    "test": "17_строка-песни",
+    "ok": true,
+    "ms": 3262,
+    "bytes": 157066,
+    "text": "오늘 밤 우리 둘만의 별빛 아래에서"
+  },
+  {
+    "engine": "D-inworld-Yoona",
+    "test": "01_как-сейчас_голая-буква-A",
+    "ok": true,
+    "ms": 3811,
+    "bytes": 44744,
+    "text": "ㅏ"
+  },
+  {
+    "engine": "D-inworld-Yoona",
+    "test": "02_правильно_гласная-A",
+    "ok": true,
+    "ms": 2754,
+    "bytes": 42824,
+    "text": "아"
+  },
+  {
+    "engine": "D-inworld-Yoona",
+    "test": "03_как-сейчас_голая-буква-R",
+    "ok": true,
+    "ms": 2089,
+    "bytes": 44744,
+    "text": "ㄹ"
+  },
+  {
+    "engine": "D-inworld-Yoona",
+    "test": "04_правильно_имя-буквы-риыль",
+    "ok": true,
+    "ms": 2521,
+    "bytes": 46664,
+    "text": "리을"
+  },
+  {
+    "engine": "D-inworld-Yoona",
+    "test": "05_пара-ЕО-О_первая-어",
+    "ok": true,
+    "ms": 2420,
+    "bytes": 47624,
+    "text": "어"
+  },
+  {
+    "engine": "D-inworld-Yoona",
+    "test": "06_пара-ЕО-О_вторая-오",
+    "ok": true,
+    "ms": 2617,
+    "bytes": 41864,
+    "text": "오"
+  },
+  {
+    "engine": "D-inworld-Yoona",
+    "test": "07_пара-Э-Е_первая-애",
+    "ok": true,
+    "ms": 2258,
+    "bytes": 41864,
+    "text": "애"
+  },
+  {
+    "engine": "D-inworld-Yoona",
+    "test": "08_пара-Э-Е_вторая-에",
+    "ok": true,
+    "ms": 3404,
+    "bytes": 73544,
+    "text": "에"
+  },
+  {
+    "engine": "D-inworld-Yoona",
+    "test": "09_тройка-К_обычная-가",
+    "ok": true,
+    "ms": 2130,
+    "bytes": 42824,
+    "text": "가"
+  },
+  {
+    "engine": "D-inworld-Yoona",
+    "test": "10_тройка-К_придыхательная-카",
+    "ok": true,
+    "ms": 2692,
+    "bytes": 46664,
+    "text": "카"
+  },
+  {
+    "engine": "D-inworld-Yoona",
+    "test": "11_тройка-К_напряжённая-까",
+    "ok": true,
+    "ms": 2282,
+    "bytes": 50504,
+    "text": "까"
+  },
+  {
+    "engine": "D-inworld-Yoona",
+    "test": "12_патчхим_밥",
+    "ok": true,
+    "ms": 2146,
+    "bytes": 42824,
+    "text": "밥"
+  },
+  {
+    "engine": "D-inworld-Yoona",
+    "test": "13_патчхим_각",
+    "ok": true,
+    "ms": 2660,
+    "bytes": 48584,
+    "text": "각"
+  },
+  {
+    "engine": "D-inworld-Yoona",
+    "test": "14_замедленно_각",
+    "ok": true,
+    "ms": 3703,
+    "bytes": 43784,
+    "text": "각"
+  },
+  {
+    "engine": "D-inworld-Yoona",
+    "test": "15_повтор_각_дубль2",
+    "ok": true,
+    "ms": 2307,
+    "bytes": 41864,
+    "text": "각"
+  },
+  {
+    "engine": "D-inworld-Yoona",
+    "test": "16_фраза_안녕하세요-만나서-반가워요",
+    "ok": true,
+    "ms": 3009,
+    "bytes": 150346,
+    "text": "안녕하세요. 만나서 반가워요."
+  },
+  {
+    "engine": "D-inworld-Yoona",
+    "test": "17_строка-песни",
+    "ok": true,
+    "ms": 3416,
+    "bytes": 168586,
+    "text": "오늘 밤 우리 둘만의 별빛 아래에서"
+  },
+  {
+    "engine": "F-elevenlabs-v3-англоголос",
+    "test": "01_как-сейчас_голая-буква-A",
+    "ok": true,
+    "ms": 2270,
+    "bytes": 7150,
+    "text": "ㅏ"
+  },
+  {
+    "engine": "F-elevenlabs-v3-англоголос",
+    "test": "02_правильно_гласная-A",
+    "ok": true,
+    "ms": 2504,
+    "bytes": 15927,
+    "text": "아"
+  },
+  {
+    "engine": "F-elevenlabs-v3-англоголос",
+    "test": "03_как-сейчас_голая-буква-R",
+    "ok": false,
+    "status": 422,
+    "error": "{\"detail\":\"No audio returned by ElevenLabs stream.\"}"
+  },
+  {
+    "engine": "F-elevenlabs-v3-англоголос",
+    "test": "04_правильно_имя-буквы-риыль",
+    "ok": true,
+    "ms": 3332,
+    "bytes": 12165,
+    "text": "리을"
+  },
+  {
+    "engine": "F-elevenlabs-v3-англоголос",
+    "test": "05_пара-ЕО-О_первая-어",
+    "ok": true,
+    "ms": 2610,
+    "bytes": 13419,
+    "text": "어"
+  },
+  {
+    "engine": "F-elevenlabs-v3-англоголос",
+    "test": "06_пара-ЕО-О_вторая-오",
+    "ok": true,
+    "ms": 2788,
+    "bytes": 20942,
+    "text": "오"
+  },
+  {
+    "engine": "F-elevenlabs-v3-англоголос",
+    "test": "07_пара-Э-Е_первая-애",
+    "ok": true,
+    "ms": 2458,
+    "bytes": 15927,
+    "text": "애"
+  },
+  {
+    "engine": "F-elevenlabs-v3-англоголос",
+    "test": "08_пара-Э-Е_вторая-에",
+    "ok": true,
+    "ms": 2784,
+    "bytes": 15927,
+    "text": "에"
+  },
+  {
+    "engine": "F-elevenlabs-v3-англоголос",
+    "test": "09_тройка-К_обычная-가",
+    "ok": true,
+    "ms": 3941,
+    "bytes": 17181,
+    "text": "가"
+  },
+  {
+    "engine": "F-elevenlabs-v3-англоголос",
+    "test": "10_тройка-К_придыхательная-카",
+    "ok": true,
+    "ms": 2782,
+    "bytes": 10911,
+    "text": "카"
+  },
+  {
+    "engine": "F-elevenlabs-v3-англоголос",
+    "test": "11_тройка-К_напряжённая-까",
+    "ok": true,
+    "ms": 2808,
+    "bytes": 14673,
+    "text": "까"
+  },
+  {
+    "engine": "F-elevenlabs-v3-англоголос",
+    "test": "12_патчхим_밥",
+    "ok": true,
+    "ms": 2811,
+    "bytes": 12165,
+    "text": "밥"
+  },
+  {
+    "engine": "F-elevenlabs-v3-англоголос",
+    "test": "13_патчхим_각",
+    "ok": true,
+    "ms": 2751,
+    "bytes": 17181,
+    "text": "각"
+  },
+  {
+    "engine": "F-elevenlabs-v3-англоголос",
+    "test": "14_замедленно_각",
+    "ok": true,
+    "ms": 2602,
+    "bytes": 15927,
+    "text": "각"
+  },
+  {
+    "engine": "F-elevenlabs-v3-англоголос",
+    "test": "15_повтор_각_дубль2",
+    "ok": true,
+    "ms": 2963,
+    "bytes": 14673,
+    "text": "각"
+  },
+  {
+    "engine": "F-elevenlabs-v3-англоголос",
+    "test": "16_фраза_안녕하세요-만나서-반가워요",
+    "ok": true,
+    "ms": 3303,
+    "bytes": 35153,
+    "text": "안녕하세요. 만나서 반가워요."
+  },
+  {
+    "engine": "F-elevenlabs-v3-англоголос",
+    "test": "17_строка-песни",
+    "ok": true,
+    "ms": 3597,
+    "bytes": 46856,
+    "text": "오늘 밤 우리 둘만의 별빛 아래에서"
+  }
+]

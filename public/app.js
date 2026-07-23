@@ -149,6 +149,10 @@ function restoreOverlay(nav){
     if(nav.ov==='lessons')openLessons();
     else if(nav.ov==='lesson'&&nav.id)openLesson(nav.id);
     else if(nav.ov==='lessonQuiz'&&nav.id)openLessonQuiz(nav.id);
+    else if(nav.ov==='hangulMap')openHangulMap();
+    else if(nav.ov==='name')openNameHangul();
+    // Распевку после перезагрузки не перезапускаем молча — возвращаем в список.
+    else if(nav.ov==='daily')openLessons();
     else if(nav.ov==='songs')openSongs();
     else if(nav.ov==='song'&&nav.id)openSong(nav.id);
     else if(nav.ov==='workbook')openWorkbook();
@@ -386,8 +390,8 @@ function renderCabinet(chartEntry,readOnly){
       </button>
 
       <div class="tiles">
-        <button class="tile" onclick="openSongs()"><span class="t-emoji">🎵</span><b>${t('tile_song')}</b><small>${t('tile_song_sub')}</small></button>
         <button class="tile" onclick="openWorkbook()"><span class="t-emoji">📓</span><b>${t('tile_wb')}</b><small>${t('tile_wb_sub')}</small></button>
+        <button class="tile" onclick="openSongs()"><span class="t-emoji">🎵</span><b>${t('tile_song')}</b><small>${t('tile_song_sub')}</small></button>
         <button class="tile" onclick="openChat()"><span class="t-emoji">💬</span><b>${t('tile_phrase')}</b><small>${t('tile_phrase_sub')}</small></button>
       </div>
 
@@ -597,37 +601,13 @@ async function pingStudy(){
   }catch(e){return null}
 }
 
-/* ===================== ОЗВУЧКА (корейский голос) ===================== */
-// Приоритет — заранее сгенерённые нативные mp3 (MiniMax, кэш в /tts/), файл по хешу строки.
-// Если файла нет (новое слово из чата/песни) — фолбэк на браузерный TTS.
-// ВАЖНО: хеш ttsKey должен совпадать со скриптом генерации (scratch_gen_lessons.mjs).
-function ttsKey(s){let h=5381;for(let i=0;i<s.length;i++)h=((h<<5)+h+s.charCodeAt(i))>>>0;return h.toString(36);}
-let _ttsAudio=null;
-function speak(txt){
-  if(!txt)return;
-  const key=ttsKey(txt.trim());
-  try{
-    if(_ttsAudio){_ttsAudio.pause();_ttsAudio=null;}
-    const a=new Audio('/tts/'+key+'.mp3');
-    _ttsAudio=a;
-    let fell=false;const fb=()=>{if(fell)return;fell=true;speakBrowser(txt);};
-    a.play().catch(fb);
-    a.addEventListener('error',fb,{once:true});
-  }catch(e){speakBrowser(txt);}
-}
-// Резерв: системный голос ОС. На iOS есть корейский (Yuna), на Android — Google 한국어.
-function speakBrowser(txt){
-  if(!txt||!window.speechSynthesis)return;
-  try{
-    const u=new SpeechSynthesisUtterance(txt);
-    u.lang='ko-KR';u.rate=0.85;
-    const ko=(window.speechSynthesis.getVoices()||[]).find(v=>(v.lang||'').toLowerCase().startsWith('ko'));
-    if(ko)u.voice=ko;
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(u);
-  }catch(e){}
-}
-if(window.speechSynthesis)try{window.speechSynthesis.getVoices()}catch(e){}
+/* ===================== ОЗВУЧКА (корейский голос) =====================
+   Движок переехал в public/tts-engine.js (подключён в index.html ДО app.js).
+   Он определяет window.speakKo / window.speakKoStop и алиас window.speak
+   для старых вызовов из уроков и квизов. Контракт: C:\Users\user\IDOLINGO_CONTRACT_tts.md.
+   Здесь намеренно ничего нет: держать вторую копию speak() в app.js нельзя —
+   объявление функции перетрёт алиас движка и озвучка молча откатится на старую. */
+function speakBrowserFallbackNote(){}  // якорь секции, не удалять
 
 /* ===================== УРОК-ФУНДАМЕНТ ===================== */
 // Прогресс уроков и словарь копятся локально (server-sync — следующий шаг).
@@ -637,11 +617,196 @@ function lsnSaveDone(arr){localStorage.setItem('so_done_'+lsnUid(),JSON.stringif
 function lsnVocab(){try{return JSON.parse(localStorage.getItem('so_vocab_'+lsnUid())||'[]')}catch(e){return[]}}
 function lsnSaveVocab(arr){localStorage.setItem('so_vocab_'+lsnUid(),JSON.stringify(arr))}
 function allLessons(){return (window.CURRICULUM?window.CURRICULUM.units:[]).flatMap(u=>u.lessons.map(l=>({...l,unit:u})))}
-function lessonPct(){const all=allLessons();if(!all.length)return 0;return lsnDone().length/all.length*100}
 function optLabel(o){return typeof o==='string'?o:o[getLang()]}
+function lsnLS(k,def){try{const v=localStorage.getItem(k);return v===null?def:JSON.parse(v)}catch(e){return def}}
+function lsnLSSet(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+// Озвучка идёт строго через единую точку входа (см. контракт TTS выше).
+function lsnSay(s){try{if(typeof window.speakKo==='function')window.speakKo(s);else if(typeof speak==='function')speak(s)}catch(e){}}
+function lsnSayBtn(s,cls){return `<button class="say${cls?' '+cls:''}" aria-label="🔊" onclick="event.stopPropagation();lsnSay(${JSON.stringify(String(s)).replace(/"/g,'&quot;')})">🔊</button>`}
+function lsnIdolName(){return (typeof myIdol!=='undefined'&&myIdol&&myIdol.name)?myIdol.name:null}
+
+/* --- ИНТЕРВАЛЬНОЕ ПОВТОРЕНИЕ (DSR-lite) ---------------------------------
+   Эталон: FSRS-4.5, модель DSR — Difficulty / Stability / Retrievability
+   (open-spaced-repetition, wiki «The Algorithm», ред. 18.03.2026).
+   S — интервал, на котором вероятность вспомнить падает до 90%.
+   R(t,S) = (1 + 19/81 · t/S) ^ −0.5 — кривая забывания FSRS-4.5.
+   Прирост стабильности тем больше, чем ниже R в момент повторения
+   (эффект распределённого повторения). Обучаемых параметров у нас нет —
+   это осознанное упрощение: 21 параметр FSRS-6 не на чем обучать при 40
+   буквах и localStorage. Механика та же, коэффициенты фиксированные.
+   ЗАЧЕМ: даёт НЕслучайный повод вернуться завтра — «6 букв начали забываться»
+   вместо «пройди урок 6 из 17». Прямо работает на метрику «три сессии подряд». */
+const SRS_DECAY=-0.5, SRS_FACTOR=19/81;
+function srsKey(k,v){return k+':'+v}
+function srsAll(){return lsnLS('so_srs_'+lsnUid(),{})||{}}
+function srsSave(o){lsnLSSet('so_srs_'+lsnUid(),o)}
+function srsR(it){
+  if(!it||!it.n)return 0;
+  const days=Math.max(0,(Date.now()-(it.t||0))/86400000);
+  return Math.pow(1+SRS_FACTOR*days/Math.max(0.2,it.s||1),SRS_DECAY);
+}
+// 0 — не видел, 1 — знакомлюсь, 2 — знаю, 3 — крепко (в карте это «золото»).
+function srsTier(it){if(!it||!it.n)return 0;if(it.s>=21)return 3;if(it.s>=6)return 2;return 1}
+// Заводит карточки при прохождении урока. Уже заведённые не трогает.
+function srsSeed(items){
+  const o=srsAll();let added=0;
+  items.forEach(x=>{
+    const key=srsKey(x.k,x.id);
+    if(!o[key]){o[key]={s:1,d:5,t:0,n:0,k:x.k,kr:x.kr,rom:x.rom,ru:x.ru,en:x.en};added++}
+  });
+  if(added)srsSave(o);
+  return added;
+}
+// Оценка ответа. Возвращает XP за рост уровня владения — прогресс двигается
+// на КАЖДОМ ответе, а не только на «урок пройден целиком».
+function srsGrade(key,ok){
+  const o=srsAll();const it=o[key];if(!it)return 0;
+  const before=srsTier(it);
+  const R=srsR(it);
+  if(ok){
+    const grow=(1.6+1.8*(1-R))*(1.15-0.03*it.d);
+    it.s=it.n?Math.max(it.s*Math.max(1.25,grow),it.s+0.5):1;
+    it.d=Math.max(1,it.d-0.3);
+  }else{
+    it.s=Math.max(0.4,it.s*0.35);
+    it.d=Math.min(10,it.d+1);
+  }
+  it.n=(it.n||0)+1;it.t=Date.now();
+  o[key]=it;srsSave(o);
+  const gained=srsTier(it)-before;
+  return gained>0?(before===0?4:3)*gained:0;
+}
+// Очередь на сегодня: сначала то, что начало забываться (низкий R), потом новое.
+function srsQueue(limit){
+  const o=srsAll();
+  const rows=Object.keys(o).map(k=>({key:k,it:o[k],R:srsR(o[k])}));
+  const due=rows.filter(r=>!r.it.n||r.R<0.9).sort((a,b)=>a.R-b.R);
+  const rest=rows.filter(r=>r.it.n&&r.R>=0.9).sort((a,b)=>a.R-b.R);
+  return due.concat(rest).slice(0,limit||5);
+}
+function srsDueCount(){
+  const o=srsAll();
+  return Object.keys(o).filter(k=>{const it=o[k];return !it.n||srsR(it)<0.9}).length;
+}
+function srsLetterTier(ch){return srsTier(srsAll()[srsKey('c',ch)])}
+function hangulLetters(){return window.HANGUL_LETTERS||[]}
+function hangulKnown(){return hangulLetters().filter(l=>srsLetterTier(l.char)>0).length}
+
+/* --- ОПЫТ И УРОВЕНЬ -------------------------------------------------------
+   Причина бага «полоса Твой корейский стоит на нуле»: прогресс считался как
+   доля ПРОЙДЕННЫХ УРОКОВ от всего курса. Один урок из пятнадцати = 7%,
+   полоска шириной в несколько пикселей, и больше за урок не происходило
+   ровно ничего. Теперь прогресс — это опыт, и он растёт на каждом действии:
+   первое имя хангылем, распевка, каждая буква, перешедшая на новый уровень.
+   Бюджет курса — 1000 XP, отсюда langPct = XP/10 и уровень = XP/100.        */
+const XP_BUDGET=1000;
+function lsnXp(){
+  const k='so_xp_'+lsnUid();
+  let v=lsnLS(k,null);
+  // Миграция старых аккаунтов: у кого уже есть пройденные уроки — не обнуляем.
+  if(v===null||typeof v!=='number'){v=lsnDone().length*30;lsnLSSet(k,v)}
+  return v;
+}
+function lsnAddXp(n){
+  if(!n)return 0;
+  const v=Math.max(0,Math.min(XP_BUDGET*2,lsnXp()+n));
+  lsnLSSet('so_xp_'+lsnUid(),v);
+  return v;
+}
+// Формула уровня СОВПАДАЕТ с кабинетом (Math.round(langPct/10)) — иначе на
+// одном экране «Уровень 2», а на другом «уровень 1», и доверия к цифрам нет.
+function lsnLevel(){return Math.max(1,Math.min(10,Math.round(lsnXp()/100)))}
+function lsnLevelBand(){
+  const lvl=lsnLevel();
+  const lo=lvl===1?0:lvl*100-50, hi=Math.min(XP_BUDGET,(lvl+1)*100-50);
+  const xp=Math.min(hi,lsnXp());
+  return {lvl:lvl,pct:hi>lo?Math.round((xp-lo)/(hi-lo)*100):100,toNext:Math.max(0,hi-xp)};
+}
+function lessonPct(){try{return Math.min(100,lsnXp()/XP_BUDGET*100)}catch(e){return 0}}
+
+/* --- СЕРИЯ ДНЕЙ ------------------------------------------------------------
+   Эталон — Duolingo. Их собственный эксперимент (blog.duolingo.com,
+   19.11.2020): серию стали продлевать за ОДИН урок вместо дневной цели →
+   +3,3% удержания на 14-й день, +19% новичков с серией. Вывод их команды:
+   снизить порог ежедневного действия важнее, чем объём за день.
+   Поэтому серию у нас продлевает распевка на 5 карточек, около минуты.
+   Заморозки: две штуки (blog.duolingo.com, 31.01.2022 — три не дают прироста
+   против двух). Серия 7 дней = порог, после которого учащийся Duolingo
+   в 3,6 раза чаще доходит до конца курса — это ровно наша метрика возврата. */
+function lsnDayStr(d){const x=d||new Date();return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0')}
+function lsnStreak(){return lsnLS('so_streak_'+lsnUid(),{last:'',n:0,best:0,fr:2})||{last:'',n:0,best:0,fr:2}}
+function lsnStreakSave(s){lsnLSSet('so_streak_'+lsnUid(),s)}
+function lsnStreakN(){
+  const s=lsnStreak();
+  const srv=(typeof myTraining!=='undefined'&&myTraining&&myTraining.study_streak)||0;
+  // Серия жива, только если занимались сегодня или вчера — иначе показываем 0.
+  const y=lsnDayStr(new Date(Date.now()-86400000));
+  const alive=s.last===lsnDayStr()||s.last===y;
+  return Math.max(alive?s.n:0,srv);
+}
+function lsnDoneToday(){return lsnStreak().last===lsnDayStr()}
+function lsnTouchDay(){
+  const s=lsnStreak();const today=lsnDayStr();
+  if(s.last===today)return {n:s.n,best:s.best,fresh:false,froze:false,fr:s.fr};
+  const y=lsnDayStr(new Date(Date.now()-86400000));
+  const y2=lsnDayStr(new Date(Date.now()-2*86400000));
+  let froze=false;
+  if(s.last===y)s.n=(s.n||0)+1;
+  else if(s.last===y2&&s.fr>0){s.fr--;s.n=(s.n||0)+1;froze=true}
+  else s.n=1;
+  s.last=today;
+  s.best=Math.max(s.best||0,s.n);
+  if(s.n%7===0)s.fr=Math.min(2,(s.fr||0)+1);
+  lsnStreakSave(s);
+  return {n:s.n,best:s.best,fresh:true,froze:froze,fr:s.fr};
+}
+
+/* --- РЕАКЦИИ АЙДОЛА -------------------------------------------------------
+   Чего у Duolingo нет и быть не может: награда — не сова, а тот, ради кого
+   человек и пришёл. Переменное вознаграждение: реплика выбирается случайно,
+   на сериях выпадают редкие. Тон — дружеский, без заигрывания (красная линия
+   по тону, см. docs/IDOL_BRAIN_SPEC.md).                                    */
+const LSN_REACT={
+  ru:{ok:['Да, вот так.','Точно.','Ага, слышу — правильно.','Идёт.','Быстро схватываешь.','Верно.'],
+      miss:['Не страшно, смотри ещё раз.','Почти. Давай снова.','Я тоже путала эти две.','Мимо — но ты близко.'],
+      hot:['Пять подряд. Ты сегодня в ударе.','Не останавливайся, идёт же!','Вот это темп.'],
+      done:['На сегодня всё. Завтра жду.','Готово. Приходи завтра, продолжим.','Спасибо, что зашёл. До завтра.']},
+  en:{ok:['Yes, exactly.','Got it.','Right on.','Nice.','You pick this up fast.','Correct.'],
+      miss:['No worries, look again.','Almost. One more time.','I used to mix those two up too.','Missed it — but you were close.'],
+      hot:['Five in a row. You are on fire today.','Keep going, this is working!','Look at that pace.'],
+      done:['That is it for today. See you tomorrow.','Done. Come back tomorrow and we continue.','Thanks for showing up. Until tomorrow.']}
+};
+function lsnReact(kind){
+  const pool=(LSN_REACT[getLang()]||LSN_REACT.en)[kind]||[];
+  return pool.length?pool[Math.floor(Math.random()*pool.length)]:'';
+}
+function lsnIdolLine(kind){
+  const nm=lsnIdolName();const txt=lsnReact(kind);
+  if(!txt)return '';
+  return `<div class="lsn-idol-line"><span class="lil-who">${nm?escapeHtml(nm):t('lsn_your_idol')}</span><span class="lil-txt">${escapeHtml(txt)}</span></div>`;
+}
 
 function closeLessons(){document.getElementById('lessonOv').classList.remove('show');navClear()}
 document.getElementById('lessonOv').onclick=e=>{if(e.target.id==='lessonOv')closeLessons()};
+
+/* Шапка экрана уроков: серия, опыт, буквы. Это и есть «прогресс виден» —
+   три числа, которые двигаются каждый день, а не одна полоска на весь курс. */
+function lsnHeader(){
+  const n=lsnStreakN(), today=lsnDoneToday(), xp=lsnXp();
+  const band=lsnLevelBand(), lvl=band.lvl, inLvl=band.pct, toNext=band.toNext;
+  const known=hangulKnown(), all=hangulLetters().length||40;
+  const fr=lsnStreak().fr||0;
+  return `<div class="lsn-stats">
+    <div class="lsn-stat ${today?'on':''}"><b>🔥 ${n}</b><small>${t('lsn_st_streak')}</small></div>
+    <div class="lsn-stat"><b>⭐ ${xp}</b><small>${t('lsn_st_xp')}</small></div>
+    <div class="lsn-stat"><b>가 ${known}/${all}</b><small>${t('lsn_st_letters')}</small></div>
+  </div>
+  <div class="lsn-lvl">
+    <div class="lsn-lvl-top"><span>${t('lsn_level')} ${lvl}</span><span>${t('lsn_to_next')(toNext)}</span></div>
+    <div class="lsn-pbar"><i style="width:${inLvl}%"></i></div>
+  </div>
+  ${fr<2?`<div class="lsn-freeze">${t('lsn_freeze')(fr)}</div>`:''}`;
+}
 
 function openLessons(){
   if(!currentUser){openAuth('signup');return}
@@ -669,18 +834,285 @@ function openLessons(){
     });
     html+='</div>';
   });
-  const pct=Math.round(lessonPct());
-  html=`<div class="lsn-progress"><div class="lsn-pbar"><i style="width:${pct}%"></i></div><span>${done.length}/${flat.length} · ${pct}%</span></div><div class="topik-note"><span>🏅</span><span>${t('topik_note')}</span></div>`+html;
+
+  const nm=lsnIdolName();
+  const started=Object.keys(srsAll()).length>0;
+  const due=srsDueCount();
+  const doneToday=lsnDoneToday();
+  // 1. Распевка — ежедневный минимум. Стоит первой, потому что именно она
+  //    возвращает человека завтра. Пока учить нечего — ведёт в первый урок.
+  const daily=started
+    ? `<button class="lsn-daily ${doneToday?'ok':''}" onclick="${doneToday?'openDaily(1)':'openDaily()'}">
+         <span class="ld-ico">${doneToday?'✓':'🎤'}</span>
+         <span class="ld-txt"><b>${t('lsn_daily_h')}</b><small>${doneToday?t('lsn_daily_done'):t('lsn_daily_sub')(Math.min(5,Math.max(1,due||5)))}</small></span>
+         <span class="ld-go">→</span>
+       </button>`
+    : `<button class="lsn-daily soft" onclick="openLesson('${(flat[0]&&flat[0].id)||'l1'}')">
+         <span class="ld-ico">🎤</span>
+         <span class="ld-txt"><b>${t('lsn_daily_h')}</b><small>${t('lsn_daily_locked')}</small></span>
+         <span class="ld-go">→</span>
+       </button>`;
+
+  // 2. Имя хангылем — понятный лично тебе результат в первую минуту.
+  const myName=lsnLS('so_name_kr_'+lsnUid(),null);
+  const nameCard=myName&&myName.kr
+    ? `<button class="lsn-name done" onclick="openNameHangul()">
+         <span class="ln-kr">${escapeHtml(myName.kr)}</span>
+         <span class="ln-txt"><b>${t('lsn_name_yours')}</b><small>${t('lsn_name_again')}</small></span>
+       </button>`
+    : `<button class="lsn-name" onclick="openNameHangul()">
+         <span class="ln-kr">이름</span>
+         <span class="ln-txt"><b>${t('lsn_name_h')}</b><small>${t('lsn_name_sub')}</small></span>
+       </button>`;
+
+  // 3. Карта хангыля — навигация по секторам, а не свалка букв.
+  const map=`<button class="lsn-map" onclick="openHangulMap()">
+      <span class="lm-ico">가</span>
+      <span class="lm-txt"><b>${t('lsn_map_h')}</b><small>${t('lsn_map_sub')(hangulKnown(),hangulLetters().length||40)}</small></span>
+      <span class="ld-go">→</span>
+    </button>`;
+
+  html=lsnHeader()+daily+nameCard+map
+    +(nm?`<button class="lsn-ask-top" onclick="askIdolFree()">${t('lsn_ask_named')(escapeHtml(nm))}</button>`
+        :`<button class="lsn-ask-top" onclick="closeLessons();showView('roster')">${t('lsn_ask_pick')}</button>`)
+    +`<div class="topik-note"><span>🏅</span><span>${t('topik_note')}</span></div>`
+    +`<div class="lsn-progress"><div class="lsn-pbar"><i style="width:${flat.length?Math.round(done.length/flat.length*100):0}%"></i></div><span>${done.length}/${flat.length}</span></div>`
+    +html;
   document.getElementById('lessonBody').innerHTML=html;
   document.getElementById('lessonBody').scrollTop=0;
 }
 
+/* ===================== КАРТА ХАНГЫЛЯ =====================
+   Требование: секторы — это навигация, а не свалка. Человек видит все 40 букв
+   сразу и своё положение на них: цвет плитки = уровень владения из SRS.     */
+function openHangulMap(){
+  if(!currentUser){openAuth('signup');return}
+  navOv('hangulMap');
+  const L=getLang();
+  document.getElementById('lessonOv').classList.add('show');
+  document.getElementById('lsnBack').style.visibility='visible';
+  document.getElementById('lessonTitle').textContent=t('lsn_map_h');
+  const done=lsnDone();
+  const sectors=(window.HANGUL_SECTORS||[]).map(s=>{
+    const known=s.letters.filter(l=>srsLetterTier(l.char)>0).length;
+    const isDone=done.includes(s.lessonId);
+    const tiles=s.rule
+      ? (s.groups||[]).map(g=>`<div class="hm-tile rule ${isDone?'t3':''}">
+           <span class="hm-ch">${g.g}</span><span class="hm-rom">${escapeHtml(g[L]||'')}</span>
+         </div>`).join('')
+      : s.letters.map(l=>{
+          const tier=srsLetterTier(l.char);
+          return `<button class="hm-tile t${tier}" onclick="lsnSay(${JSON.stringify(l.char).replace(/"/g,'&quot;')})" title="${escapeHtml(l[L]||'')}">
+            <span class="hm-ch">${l.char}</span><span class="hm-rom">${escapeHtml(l.rom)}</span>
+          </button>`}).join('');
+    return `<div class="hm-sec">
+      <div class="hm-h"><span class="hm-icon">${s.icon}</span>
+        <b>${s.title[L]}</b>
+        <span class="hm-count">${s.rule?(isDone?'✓':'—'):known+'/'+s.letters.length}</span></div>
+      <div class="hm-grid">${tiles}</div>
+      <button class="hm-go" onclick="openLesson('${s.lessonId}')">${isDone?t('lsn_map_repeat'):t('lsn_map_learn')}</button>
+    </div>`;
+  }).join('');
+  document.getElementById('lessonBody').innerHTML=
+    `<div class="hm-legend"><span class="hm-dot t0"></span>${t('lsn_map_l0')}
+      <span class="hm-dot t1"></span>${t('lsn_map_l1')}
+      <span class="hm-dot t2"></span>${t('lsn_map_l2')}
+      <span class="hm-dot t3"></span>${t('lsn_map_l3')}</div>${sectors}`;
+  document.getElementById('lessonBody').scrollTop=0;
+}
+
+/* ===================== ПЕРВАЯ МИНУТА: ТВОЁ ИМЯ ХАНГЫЛЕМ =====================
+   Не «урок 1 из 17», а результат, понятный лично тебе, ещё до первого урока.
+   Спрос на это подтверждён массово: «write your name in Korean» — устойчивый
+   формат в TikTok/Instagram (выдача Google, проверено 23.07.2026).           */
+function openNameHangul(){
+  navOv('name');
+  document.getElementById('lessonOv').classList.add('show');
+  document.getElementById('lsnBack').style.visibility='visible';
+  document.getElementById('lessonTitle').textContent=t('lsn_name_h');
+  const saved=lsnLS('so_name_kr_'+lsnUid(),null);
+  const pre=(saved&&saved.src)||(currentUser&&currentUser.username)||'';
+  document.getElementById('lessonBody').innerHTML=`
+    <div class="lsn-goal">🎯 ${t('lsn_name_goal')}</div>
+    <div class="ln-form">
+      <input id="lsnNameIn" type="text" maxlength="24" placeholder="${t('lsn_name_ph')}" value="${escapeHtml(pre)}"
+        oninput="renderNameHangul()" autocomplete="off" spellcheck="false">
+    </div>
+    <div id="lsnNameOut"></div>`;
+  document.getElementById('lessonBody').scrollTop=0;
+  renderNameHangul();
+  const el=document.getElementById('lsnNameIn');
+  if(el&&!pre)try{el.focus()}catch(e){}
+}
+function renderNameHangul(){
+  const inp=document.getElementById('lsnNameIn'), out=document.getElementById('lsnNameOut');
+  if(!inp||!out)return;
+  const raw=inp.value.trim();
+  if(!raw||typeof window.hangulizeName!=='function'){out.innerHTML=`<div class="ln-empty">${t('lsn_name_empty')}</div>`;return}
+  const blocks=window.hangulizeName(raw);
+  if(!blocks.length){out.innerHTML=`<div class="ln-empty">${t('lsn_name_nope')}</div>`;return}
+  const kr=blocks.map(b=>b.block).join('');
+  const nm=lsnIdolName();
+  out.innerHTML=`
+    <div class="ln-big">${escapeHtml(kr)} ${lsnSayBtn(kr)}</div>
+    <div class="ln-blocks">${blocks.map(b=>`
+      <div class="ln-block">
+        <div class="ln-b-kr">${escapeHtml(b.block)}</div>
+        <div class="ln-b-parts">${b.parts.map(p=>`<span>${p.char}<i>${escapeHtml(p.rom||'')}</i></span>`).join('')}</div>
+      </div>`).join('')}</div>
+    <div class="ln-note">${t('lsn_name_note')}</div>
+    <button class="btn accent lsn-finish" onclick="saveNameHangul()">${t('lsn_name_save')}</button>
+    <button class="lsn-ask" onclick="askIdolAboutName()">${nm?t('lsn_name_ask')(escapeHtml(nm)):t('lsn_ask_pick')}</button>`;
+}
+function saveNameHangul(){
+  const inp=document.getElementById('lsnNameIn');if(!inp)return;
+  const raw=inp.value.trim();if(!raw)return;
+  const blocks=(window.hangulizeName||(()=>[]))(raw);
+  if(!blocks.length)return;
+  const kr=blocks.map(b=>b.block).join('');
+  const first=!lsnLS('so_name_kr_'+lsnUid(),null);
+  lsnLSSet('so_name_kr_'+lsnUid(),{src:raw,kr:kr});
+  // Первое имя — самая крупная разовая награда в курсе: это точка,
+  // где человек впервые получает личный результат, а не «прогресс урока».
+  if(first){lsnAddXp(40);toast(t('lsn_name_toast')(kr))}
+  else toast(t('lsn_name_saved'));
+  syncCabinet();
+  openLessons();
+}
+function askIdolAboutName(){
+  if(!lsnIdolName()){closeLessons();showView('roster');return}
+  const inp=document.getElementById('lsnNameIn');
+  const raw=inp?inp.value.trim():'';
+  const saved=lsnLS('so_name_kr_'+lsnUid(),null);
+  const kr=saved&&saved.kr?saved.kr:((window.hangulizeName||(()=>[]))(raw).map(b=>b.block).join(''));
+  closeLessons();
+  openChat(t('lsn_name_seed')(raw||'',kr||''),{ov:'name'});
+}
+
+/* ===================== РАСПЕВКА — ЕЖЕДНЕВНЫЙ МИНИМУМ =====================
+   5 карточек, около минуты. Продлевает серию. Мгновенная обратная связь на
+   каждый ответ (не «проверить всё в конце»), реплика айдола на каждый ответ.
+   Карточки берутся из очереди SRS: сначала то, что начало забываться.       */
+function openDaily(extra){
+  if(!currentUser){openAuth('signup');return}
+  const q=srsQueue(5);
+  if(!q.length){openLessons();return}
+  navOv('daily');
+  window._dq=q.map(r=>buildDrillItem(r,srsAll()));
+  window._di=0;window._dOk=0;window._dXp=0;window._dRun=0;window._dExtra=!!extra;
+  document.getElementById('lessonOv').classList.add('show');
+  document.getElementById('lsnBack').style.visibility='visible';
+  document.getElementById('lessonTitle').textContent=t('lsn_daily_h');
+  renderDrill();
+}
+// Тип задания зависит от уровня владения: узнавание → припоминание.
+// Знакомое узнавать бессмысленно, поэтому крепкие карточки идут «наоборот».
+function buildDrillItem(row,store){
+  const L=getLang();const it=row.it;
+  const same=Object.keys(store).map(k=>store[k]).filter(x=>x.k===it.k&&x.kr!==it.kr);
+  const reverse=srsTier(it)>=2;
+  const label=x=>it.k==='c'?x.rom:(x[L]||x.ru||x.en||x.rom);
+  const pool=[...new Set(same.map(label).filter(Boolean))];
+  const distr=shuffle(pool).slice(0,3);
+  const padC=['a','o','u','i','eo','eu','n','m','g','s','h','ya','b','d','j'];
+  const padW=L==='ru'?['вода','день','рука','город','время']:['water','day','hand','city','time'];
+  for(const p of (it.k==='c'?padC:padW)){if(distr.length>=3)break;if(p!==label(it)&&!distr.includes(p))distr.push(p)}
+  const right=reverse?it.kr:label(it);
+  const wrong=reverse?shuffle(same.map(x=>x.kr).filter(x=>x&&x!==it.kr)).slice(0,3):distr;
+  while(reverse&&wrong.length<3)wrong.push(['가','너','도','미'][wrong.length]);
+  const opts=shuffle([right,...wrong.slice(0,3)]);
+  return {
+    key:row.key, kr:it.kr, say:it.kr, reverse:reverse,
+    q:reverse?(it.k==='c'?t('lsn_q_which')(label(it)):t('lsn_q_how')(label(it))):(it.k==='c'?t('lsn_q_read')(it.kr):t('lsn_q_mean')(it.kr)),
+    show:reverse?'':it.kr,
+    opts:opts, answer:opts.indexOf(right)
+  };
+}
+function renderDrill(){
+  const q=window._dq||[], i=window._di||0;
+  if(i>=q.length){finishDrill();return}
+  const it=q[i];
+  document.getElementById('lessonBody').innerHTML=`
+    <div class="dr-top"><div class="lsn-pbar"><i style="width:${Math.round(i/q.length*100)}%"></i></div><span>${i+1}/${q.length}</span></div>
+    ${it.show?`<div class="dr-big">${escapeHtml(it.show)} ${lsnSayBtn(it.say)}</div>`:''}
+    <div class="dr-q">${it.q}</div>
+    <div class="lq-opts" id="drOpts">${it.opts.map((o,oi)=>`<button class="lq-opt dr-opt" onclick="answerDrill(${oi})">${escapeHtml(o)}</button>`).join('')}</div>
+    <div class="dr-react" id="drReact"></div>`;
+  document.getElementById('lessonBody').scrollTop=0;
+}
+function answerDrill(oi){
+  const q=window._dq||[], i=window._di||0, it=q[i];
+  if(!it||window._dLock)return;
+  window._dLock=1;
+  const ok=oi===it.answer;
+  document.querySelectorAll('#drOpts .dr-opt').forEach((b,bi)=>{
+    b.disabled=true;
+    if(bi===it.answer)b.classList.add('correct');
+    if(bi===oi&&!ok)b.classList.add('wrong');
+  });
+  window._dXp=(window._dXp||0)+srsGrade(it.key,ok);
+  if(ok){window._dOk++;window._dRun=(window._dRun||0)+1}else window._dRun=0;
+  lsnSay(it.say);
+  const r=document.getElementById('drReact');
+  if(r)r.innerHTML=lsnIdolLine(window._dRun>=5?'hot':ok?'ok':'miss');
+  clearTimeout(window._dT);
+  window._dT=setTimeout(()=>{window._dLock=0;window._di=i+1;renderDrill()},ok?850:1600);
+}
+function finishDrill(){
+  const q=window._dq||[];
+  const first=!lsnDoneToday();
+  const st=lsnTouchDay();
+  // 15 XP за первую распевку дня. Повторные дают до 5 — прокручивать её
+  // десять раз подряд смысла нет, но и совсем без отдачи оставлять нельзя.
+  const bonus=first?15:Math.min(5,window._dOk||0);
+  const before=lsnLevel();lsnAddXp((window._dXp||0)+bonus);const after=lsnLevel();
+  if(first&&typeof pingStudy==='function')pingStudy().then(d=>{
+    if(d&&d.ok&&typeof myTraining!=='undefined'&&myTraining){myTraining.study_streak=d.streak;myTraining.best_streak=d.best}
+    syncCabinet();
+  });
+  syncCabinet();
+  const nm=lsnIdolName();
+  const seven=st.n===7;
+  document.getElementById('lessonBody').innerHTML=`
+    <div class="dr-done">
+      <div class="dd-flame">🔥</div>
+      <div class="dd-n">${st.n}</div>
+      <div class="dd-cap">${t('lsn_streak_days')(st.n)}</div>
+      ${st.froze?`<div class="dd-froze">${t('lsn_froze')}</div>`:''}
+      ${seven?`<div class="dd-seven">${t('lsn_seven')}</div>`:''}
+      ${after>before?`<div class="dd-seven">${t('lsn_levelup')(after)}</div>`:''}
+      <div class="dd-row"><span>${t('lsn_dr_right')}</span><b>${window._dOk||0}/${q.length}</b></div>
+      <div class="dd-row"><span>${t('lsn_st_xp')}</span><b>+${(window._dXp||0)+bonus}</b></div>
+      ${lsnIdolLine('done')}
+      <button class="btn accent lsn-finish" onclick="openLessons()">${t('lsn_dr_back')}</button>
+      ${nm?`<button class="lsn-ask" onclick="askIdolFree()">${t('lsn_ask_named')(escapeHtml(nm))}</button>`:''}
+    </div>`;
+  document.getElementById('lessonBody').scrollTop=0;
+}
+// Перерисовать кабинет под оверлеем, чтобы полоса «Твой корейский» и
+// фотокарточки были уже обновлены, когда человек закроет урок.
+function syncCabinet(){
+  try{if(typeof renderCabinet==='function'&&typeof myIdol!=='undefined'&&myIdol&&document.getElementById('cabBody'))renderCabinet(null)}catch(e){}
+}
+
 function renderBlock(b){
   const L=getLang();
-  if(b.type==='hangul')return `<div class="lb-hangul"><span class="lb-char">${b.char}</span><span class="lb-rom">${b.rom}</span><span class="lb-mean">${b[L]}</span><button class="say" onclick="speak(${JSON.stringify(b.char).replace(/"/g,'&quot;')})">🔊</button></div>`;
-  if(b.type==='example')return `<div class="lb-ex"><span class="lb-kr">${b.kr}</span><span class="lb-rom">${b.rom}</span><span class="lb-mean">${b[L]}</span><button class="say" onclick="speak(${JSON.stringify(b.kr).replace(/"/g,'&quot;')})">🔊</button></div>`;
+  if(b.type==='hangul')return `<div class="lb-hangul"><span class="lb-char">${b.char}</span><span class="lb-rom">${b.rom}</span><span class="lb-mean">${b[L]}</span>${lsnSayBtn(b.char)}</div>`;
+  if(b.type==='example')return `<div class="lb-ex"><span class="lb-kr">${b.kr}</span><span class="lb-rom">${b.rom}</span><span class="lb-mean">${b[L]}</span>${lsnSayBtn(b.kr)}</div>`;
   if(b.type==='tip')return `<div class="lb-tip">💡 ${b[L]}</div>`;
+  // Патчхим — сектор правил: 19 букв внизу дают 7 звуков, показываем группами.
+  if(b.type==='batchim')return `<div class="lb-batchim"><span class="lb-bg">${b.g}</span><span class="lb-bc">${b.chars}</span><span class="lb-mean">${b[L]}</span></div>`;
+  // «Что ты теперь умеешь» — ощутимый результат вместо «урок 1 из 17».
+  if(b.type==='win')return `<div class="lb-win"><span>✦</span><span>${b[L]}</span></div>`;
   return `<div class="lb-text">${b[L]}</div>`;
+}
+// Айдол — не учитель, а друг, который учит. Безличного «учителя» в интерфейсе
+// нет нигде: если своего айдола ещё нет, зовём выбрать его, а не обезличиваем.
+function lsnAskBtn(){
+  const nm=lsnIdolName();
+  return nm
+    ? `<button class="lsn-ask" onclick="askTeacher()">${t('lsn_ask_named')(escapeHtml(nm))}</button>`
+    : `<button class="lsn-ask" onclick="closeLessons();showView('roster')">${t('lsn_ask_pick')}</button>`;
 }
 
 // СТРАНИЦА 1 — материал (буквы/слова + озвучка), внизу «Далее → проверка».
@@ -693,12 +1125,14 @@ function openLesson(id){
   document.getElementById('lsnBack').style.visibility='visible';
   document.getElementById('lessonTitle').textContent=lesson.title[getLang()];
   const blocks=lesson.blocks.map(renderBlock).join('');
+  const sec=(window.HANGUL_SECTORS||[]).find(s=>s.lessonId===lesson.id);
   document.getElementById('lessonBody').innerHTML=`
     <div class="lsn-goal">🎯 ${(lesson.goal&&lesson.goal[getLang()])||''}</div>
+    ${sec?`<button class="lsn-secline" onclick="openHangulMap()">${t('lsn_sec_of')(sec.title[getLang()],(window.HANGUL_SECTORS||[]).length)}</button>`:''}
     <div class="lsn-teacher">${blocks}</div>
     <div class="lsn-vocab-note">${t('lsn_vocab_note')(lesson.vocab.length)}</div>
     <button class="btn accent lsn-finish" onclick="openLessonQuiz('${lesson.id}')">${t('lsn_next_quiz')}</button>
-    <button class="lsn-ask" onclick="askTeacher()">${myIdol?t('lsn_ask_named')(myIdol.name):t('lsn_ask')}</button>`;
+    ${lsnAskBtn()}`;
   document.getElementById('lessonBody').scrollTop=0;
 }
 
@@ -725,131 +1159,427 @@ function buildQuiz(lesson){
       qs.push({q:{ru:`Что значит «${b.kr}»?`,en:`What does “${b.kr}” mean?`},opts,answer:opts.indexOf(b[L]),say:b.kr});
     }
   });
-  return qs.length?qs:(lesson.quiz||[]).map(q=>({q:q.q,opts:q.opts.map(o=>optLabel(o)),answer:q.answer}));
+  if(!qs.length)return (lesson.quiz||[]).map(q=>({q:q.q,opts:q.opts.map(o=>optLabel(o)),answer:q.answer}));
+  // Не больше 8 вопросов: проверочная на 15 экранов подряд — это не проверка,
+  // а наказание за длинный урок. Размер шага держим маленьким намеренно.
+  return shuffle(qs).slice(0,8);
 }
 
-// СТРАНИЦА 2 — проверочная (ответ не виден над вопросом, т.к. материал на прошлой странице).
+/* СТРАНИЦА 2 — проверочная. По одному вопросу на экран и МГНОВЕННАЯ обратная
+   связь на каждый тап (раньше все ответы проверялись одной кнопкой в конце —
+   человек десять раз тыкал вслепую и только потом узнавал результат).
+   Ошибка не отбрасывает в начало: неверная карточка возвращается в конец
+   очереди. Наказание за ошибку — прямой источник отвала, а не мотивация. */
 function openLessonQuiz(id){
   const lesson=allLessons().find(l=>l.id===id);if(!lesson)return;
-  window._lsnCur=lesson;window._lsnQuiz=buildQuiz(lesson);window._lsnAns={};navOv('lessonQuiz',id);
-  const L=getLang();
+  window._lsnCur=lesson;
+  window._lsnQuiz=buildQuiz(lesson);
+  window._lsnI=0;window._lsnOk=0;window._lsnMiss=0;window._lsnRun=0;window._lsnRetry=0;window._lsnLock=0;
+  navOv('lessonQuiz',id);
   document.getElementById('lessonOv').classList.add('show');
   document.getElementById('lsnBack').style.visibility='visible';
   document.getElementById('lessonTitle').textContent=t('lsn_quiz_h');
-  const quiz=window._lsnQuiz.map((q,qi)=>`
-    <div class="lq" data-qi="${qi}">
-      <div class="lq-q">${qi+1}. ${q.q[L]}${q.say?` <button class="say sm" onclick="speak(${JSON.stringify(q.say).replace(/"/g,'&quot;')})">🔊</button>`:''}</div>
-      <div class="lq-opts">${q.opts.map((o,oi)=>`<button class="lq-opt" onclick="pickQuiz(${qi},${oi})" data-oi="${oi}">${escapeHtml(o)}</button>`).join('')}</div>
-    </div>`).join('');
+  renderQuizStep();
+}
+function renderQuizStep(){
+  const quiz=window._lsnQuiz||[], i=window._lsnI||0, lesson=window._lsnCur;
+  if(!lesson)return;
+  if(i>=quiz.length){finishLesson();return}
+  const q=quiz[i], L=getLang();
   document.getElementById('lessonBody').innerHTML=`
-    <button class="lsn-toinfo" onclick="openLesson('${lesson.id}')">← ${t('lsn_toinfo')}</button>
-    <div class="lsn-quiz-h">${t('lsn_quiz_h')} · ${window._lsnQuiz.length}</div>
-    ${quiz}
-    <div class="lsn-quiz-msg" id="lsnQuizMsg"></div>
-    <button class="btn accent lsn-finish" id="lsnFinish" onclick="finishLesson()">${t('lsn_check')}</button>`;
+    <div class="dr-top"><div class="lsn-pbar"><i style="width:${Math.round(i/quiz.length*100)}%"></i></div><span>${i+1}/${quiz.length}</span></div>
+    ${q.say?`<div class="dr-big">${escapeHtml(q.say)} ${lsnSayBtn(q.say)}</div>`:''}
+    <div class="dr-q">${q.q[L]}</div>
+    <div class="lq-opts" id="lqOpts">${q.opts.map((o,oi)=>`<button class="lq-opt dr-opt" onclick="pickQuiz(${oi})">${escapeHtml(o)}</button>`).join('')}</div>
+    <div class="dr-react" id="lqReact"></div>
+    <button class="lsn-toinfo" onclick="openLesson('${lesson.id}')">← ${t('lsn_toinfo')}</button>`;
   document.getElementById('lessonBody').scrollTop=0;
 }
-
-function pickQuiz(qi,oi){
-  window._lsnAns[qi]=oi;
-  document.querySelectorAll(`.lq[data-qi="${qi}"] .lq-opt`).forEach(b=>b.classList.toggle('sel',+b.dataset.oi===oi));
+function pickQuiz(oi){
+  const quiz=window._lsnQuiz||[], i=window._lsnI||0, q=quiz[i];
+  if(!q||window._lsnLock)return;
+  window._lsnLock=1;
+  const ok=oi===q.answer;
+  document.querySelectorAll('#lqOpts .dr-opt').forEach((b,bi)=>{
+    b.disabled=true;
+    if(bi===q.answer)b.classList.add('correct');
+    if(bi===oi&&!ok)b.classList.add('wrong');
+  });
+  if(ok){window._lsnOk++;window._lsnRun=(window._lsnRun||0)+1}
+  else{
+    window._lsnMiss++;window._lsnRun=0;
+    // Промах возвращаем в конец очереди — но не больше трёх раз за урок,
+    // иначе проверочная превращается в бесконечную.
+    if((window._lsnRetry||0)<3){window._lsnRetry++;quiz.push(q)}
+  }
+  if(q.say)lsnSay(q.say);
+  const r=document.getElementById('lqReact');
+  if(r)r.innerHTML=lsnIdolLine(window._lsnRun>=5?'hot':ok?'ok':'miss');
+  clearTimeout(window._lsnT);
+  window._lsnT=setTimeout(()=>{window._lsnLock=0;window._lsnI=i+1;renderQuizStep()},ok?800:1600);
 }
 
 function finishLesson(){
   const lesson=window._lsnCur;if(!lesson)return;
   const quiz=window._lsnQuiz||[];
-  const msg=document.getElementById('lsnQuizMsg');
-  for(let i=0;i<quiz.length;i++){if(window._lsnAns[i]===undefined){msg.className='lsn-quiz-msg warn';msg.textContent=t('lsn_answer_all');return}}
-  let wrong=0;
-  quiz.forEach((q,qi)=>{
-    if(window._lsnAns[qi]!==q.answer)wrong++;
-    document.querySelectorAll(`.lq[data-qi="${qi}"] .lq-opt`).forEach(b=>{
-      const oi=+b.dataset.oi;
-      b.classList.toggle('correct',oi===q.answer);
-      b.classList.toggle('wrong',oi===window._lsnAns[qi]&&oi!==q.answer);
-    });
-  });
-  const fin=document.getElementById('lsnFinish');
-  if(wrong>0){
-    msg.className='lsn-quiz-msg warn';msg.textContent=t('lsn_wrong')(wrong);
-    fin.textContent=t('lsn_retry');fin.onclick=()=>openLessonQuiz(lesson.id);
-    return;
-  }
-  const done=lsnDone();
-  if(!done.includes(lesson.id)){
-    done.push(lesson.id);lsnSaveDone(done);
+  const L=getLang();
+  const first=!lsnDone().includes(lesson.id);
+  let xp=0;
+  if(first){
+    const done=lsnDone();done.push(lesson.id);lsnSaveDone(done);
     const voc=lsnVocab();const have=new Set(voc.map(v=>v.kr));
     lesson.vocab.forEach(v=>{if(!have.has(v.kr))voc.push({...v,from:'lesson'})});
     lsnSaveVocab(voc);
+    xp+=30;
   }
-  msg.className='lsn-quiz-msg ok';msg.textContent=t('lsn_passed');
-  fin.textContent=t('lsn_next');fin.onclick=()=>{
-    const flat=allLessons();const idx=flat.findIndex(l=>l.id===lesson.id);
-    const next=flat[idx+1];
-    if(next&&!lsnDone().includes(next.id))openLesson(next.id);else openLessons();
-  };
+  // Материал урока заводится в интервальное повторение: с этого момента у
+  // распевки есть что показывать завтра — это и есть повод вернуться.
+  const seed=[];
+  lesson.blocks.forEach(b=>{
+    if(b.type==='hangul')seed.push({k:'c',id:b.char,kr:b.char,rom:b.rom,ru:b.ru,en:b.en});
+    if(b.type==='example')seed.push({k:'w',id:b.kr,kr:b.kr,rom:b.rom,ru:b.ru,en:b.en});
+  });
+  (lesson.vocab||[]).forEach(v=>seed.push({k:'w',id:v.kr,kr:v.kr,rom:v.rom,ru:v.ru,en:v.en}));
+  srsSeed(seed);
+  // Ответы урока засчитываются как повторения — буквы сразу получают уровень.
+  const store=srsAll();let letters=0;
+  seed.forEach(x=>{
+    const key=srsKey(x.k,x.id);
+    if(store[key]&&!store[key].n){xp+=srsGrade(key,true);if(x.k==='c')letters++}
+  });
+  const st=lsnTouchDay();
+  if(st.fresh){xp+=10;if(typeof pingStudy==='function')pingStudy().then(d=>{
+    if(d&&d.ok&&typeof myTraining!=='undefined'&&myTraining){myTraining.study_streak=d.streak;myTraining.best_streak=d.best}
+    syncCabinet();
+  })}
+  const before=lsnLevel();lsnAddXp(xp);const after=lsnLevel();
+  syncCabinet();
+  document.getElementById('lessonTitle').textContent=lesson.title[L];
+  const flat=allLessons();const idx=flat.findIndex(l=>l.id===lesson.id);const next=flat[idx+1];
+  const win=(lesson.blocks.filter(b=>b.type==='win')[0]||{})[L]||'';
+  document.getElementById('lessonBody').innerHTML=`
+    <div class="dr-done">
+      <div class="dd-flame">🎉</div>
+      <div class="dd-cap">${t('lsn_passed')}</div>
+      ${win?`<div class="lb-win"><span>✦</span><span>${win}</span></div>`:''}
+      ${after>before?`<div class="dd-seven">${t('lsn_levelup')(after)}</div>`:''}
+      ${st.fresh?`<div class="dd-froze">🔥 ${t('lsn_streak_days')(st.n)}</div>`:''}
+      <div class="dd-row"><span>${t('lsn_dr_right')}</span><b>${window._lsnOk||0}/${quiz.length}</b></div>
+      <div class="dd-row"><span>${t('lsn_st_xp')}</span><b>+${xp}</b></div>
+      ${letters?`<div class="dd-row"><span>${t('lsn_st_letters')}</span><b>+${letters}</b></div>`:''}
+      ${lesson.vocab&&lesson.vocab.length?`<div class="dd-row"><span>${t('lsn_dr_words')}</span><b>+${lesson.vocab.length}</b></div>`:''}
+      ${lsnIdolLine('done')}
+      <button class="btn accent lsn-finish" onclick="${next?`openLesson('${next.id}')`:'openLessons()'}">${next?t('lsn_next'):t('lsn_dr_back')}</button>
+      <button class="lsn-ask" onclick="openLessons()">${t('lsn_dr_back')}</button>
+    </div>`;
+  document.getElementById('lessonBody').scrollTop=0;
   toast(t('lsn_toast'));
-  pingStudy().then(()=>{if(typeof renderCabinet==='function'&&myIdol)try{renderCabinet(null)}catch(e){}});
-  if(typeof renderCabinet==='function'&&myIdol)try{renderCabinet(null)}catch(e){}
 }
 
 function askTeacher(){
   const lesson=window._lsnCur;
+  if(!lsnIdolName()){closeLessons();showView('roster');return}
   closeLessons();
   openChat(lesson?t('lsn_ask_seed')(lesson.title[getLang()]):'', lesson?{ov:'lesson',id:lesson.id}:null);
+}
+function askIdolFree(){
+  if(!lsnIdolName()){closeLessons();showView('roster');return}
+  closeLessons();openChat('',{ov:'lessons'});
 }
 
 /* ===================== РАБОЧАЯ ТЕТРАДЬ ===================== */
 // Читает тот же реестр слов, что копят уроки (so_vocab_<uid>).
 // slang:true → вкладка «Сленг» (из песен / вручную), иначе → «Слова».
-function closeWorkbook(){document.getElementById('wbOv').classList.remove('show');navClear()}
+function closeWorkbook(){
+  try{if(typeof window.speakKoStop==='function')window.speakKoStop()}catch(e){}
+  document.getElementById('wbOv').classList.remove('show');navClear();
+}
 document.getElementById('wbOv').onclick=e=>{if(e.target.id==='wbOv')closeWorkbook()};
 
 function openWorkbook(tab){
   if(!currentUser){openAuth('signup');return}
   navOv('workbook');
   window._wbTab=tab||window._wbTab||'words';
+  _wbSrs=null;                    // uid мог смениться (вход/выход) — перечитать память слов
+  window._wbReview=null;          // открытие тетради всегда начинается со списка, не с карточки
   document.getElementById('wbOv').classList.add('show');
   document.getElementById('wbTitle').textContent='📓 '+t('wb_h');
   renderWorkbook();
 }
 
-function renderWorkbook(){
-  const L=getLang();
-  const voc=lsnVocab();
+/* --- Память по каждому слову. Свой ключ so_wbsrs_<uid>: агент песни в него не пишет,
+   он трогает только so_vocab_* и so_songstudy_*. Поле на слово: {l:уровень, d:когда снова, f:провалы}.
+   Разведка: Anki/FSRS хранит на карточку difficulty/stability/retrievability и планирует показ
+   [faqs.ankiweb.net, «What spaced repetition algorithm does Anki use»]; Duolingo на своей модели
+   half-life regression получил +12% к возврату к активности и +9.5% к ежедневным повторениям
+   [blog.duolingo.com, 14.12.2016]. Полноценный ML тут не нужен — нужен сам факт,
+   что у слова есть состояние и срок. Интервалы в днях по уровням: --- */
+const WB_INT=[0,1,2,4,8,16,32];
+const WB_DAILY=7;    // потолок порции. Растущий «долг повторений» — известная причина бросить SRS,
+                     // поэтому число на кнопке никогда не растёт выше семи.
+const WB_LEECH=3;    // после трёх провалов слово помечается тяжёлым. Anki на 8 провалах прячет карточку
+                     // [docs.ankiweb.net/leeches.html] — мы наоборот показываем её наверху списка.
+let _wbSrs=null;
+function wbSrs(){
+  if(_wbSrs)return _wbSrs;
+  try{_wbSrs=JSON.parse(localStorage.getItem('so_wbsrs_'+lsnUid())||'{}')||{}}catch(e){_wbSrs={}}
+  if(typeof _wbSrs!=='object'||!_wbSrs)_wbSrs={};
+  return _wbSrs;
+}
+function wbSaveSrs(){try{localStorage.setItem('so_wbsrs_'+lsnUid(),JSON.stringify(wbSrs()))}catch(e){}}
+function wbSt(kr){const s=wbSrs()[kr];return (s&&typeof s==='object')?{l:s.l|0,d:s.d||0,f:s.f|0}:{l:0,d:0,f:0}}
+
+/* Транслитерация хангыля (Revised Romanization) — чтобы транскрипция была У КАЖДОГО слова,
+   а не только у тех, что пришли из урока. Ассимиляция на стыках не учитывается: показываем
+   послоговое чтение, для чтения вслух этого достаточно. */
+const WB_ON=['g','kk','n','d','tt','r','m','b','pp','s','ss','','j','jj','ch','k','t','p','h'];
+const WB_VO=['a','ae','ya','yae','eo','e','yeo','ye','o','wa','wae','oe','yo','u','wo','we','wi','yu','eu','ui','i'];
+const WB_CO=['','k','k','k','n','n','n','t','l','k','m','p','l','l','p','l','m','p','p','t','t','ng','t','t','k','t','p','t'];
+function wbRomanize(s){
+  let out='';
+  for(const ch of String(s||'')){
+    const c=ch.charCodeAt(0)-0xAC00;
+    if(c>=0&&c<11172){out+=WB_ON[Math.floor(c/588)]+WB_VO[Math.floor((c%588)/28)]+WB_CO[c%28]}
+    else out+=ch;
+  }
+  return out;
+}
+// rr — кириллическая транскрипция от агента песни (контракт IDOLINGO_CONTRACT_songs.md, §3).
+function wbTr(v){const L=getLang();return (L==='ru'&&v.rr)?v.rr:(v.rom||wbRomanize(v.kr))}
+function wbMean(v){const L=getLang();return v[L]||v.ru||v.en||''}
+function wbDir(){return localStorage.getItem('so_wbdir')==='nat'?'nat':'kr'}
+function wbSetDir(d){localStorage.setItem('so_wbdir',d);renderWorkbook()}
+function wbReveal(el){el.classList.add('on')}
+function wbAttr(s){return JSON.stringify(String(s)).replace(/"/g,'&quot;')}
+
+// Слова текущей вкладки (с учётом фильтра по песне)
+function wbScope(){
   const isSlang=window._wbTab==='slang';
-  const list=voc.filter(v=>!!v.slang===isSlang);
-  document.getElementById('wbTabs').innerHTML=`
-    <button class="wb-tab ${!isSlang?'on':''}" onclick="switchWb('words')">${t('wb_words')} <span>${voc.filter(v=>!v.slang).length}</span></button>
-    <button class="wb-tab ${isSlang?'on':''}" onclick="switchWb('slang')">${t('wb_slang')} <span>${voc.filter(v=>!!v.slang).length}</span></button>`;
-  const items=list.length?list.map((v,i)=>`
-    <div class="wb-row">
-      <div class="wb-word"><b>${escapeHtml(v.kr)}</b>${v.rom?`<i>${escapeHtml(v.rom)}</i>`:''}</div>
-      <div class="wb-mean">${escapeHtml(v[L]||v.ru||v.en||'')}</div>
-      <button class="wb-say" title="🔊" onclick="speak(${JSON.stringify(v.kr).replace(/"/g,'&quot;')})">🔊</button>
-      <div class="wb-src">${v.from==='lesson'?'📘':v.from==='song'?'🎵':'✍️'}</div>
-      <button class="wb-del" title="${t('wb_del')}" onclick="wbDelete(${JSON.stringify(v.kr).replace(/"/g,'&quot;')})">✕</button>
-    </div>`).join(''):`<div class="wb-empty">${isSlang?t('wb_empty_slang'):t('wb_empty_words')}</div>`;
-  document.getElementById('wbBody').innerHTML=`
+  let list=lsnVocab().filter(v=>v&&v.kr&&!!v.slang===isSlang);
+  if(window._wbSongFilter)list=list.filter(v=>v.songId===window._wbSongFilter);
+  return list;
+}
+// Что показать сегодня: сначала тяжёлые, потом самые просроченные. Порция ограничена жёстко.
+function wbDue(list){
+  const now=Date.now();
+  return list.filter(v=>wbSt(v.kr).d<=now)
+    .sort((a,b)=>{const A=wbSt(a.kr),B=wbSt(b.kr);return (B.f-A.f)||(A.d-B.d)})
+    .slice(0,WB_DAILY);
+}
+function wbNextDays(list){
+  const now=Date.now();
+  const next=list.map(v=>wbSt(v.kr).d).filter(d=>d>now).sort((a,b)=>a-b)[0];
+  if(!next)return 1;
+  return Math.max(1,Math.ceil((next-now)/86400000));
+}
+
+function renderWorkbook(){
+  const tabs=document.getElementById('wbTabs'),body=document.getElementById('wbBody');
+  if(!tabs||!body)return;
+  if(window._wbReview){renderWbReview();return}
+  const voc=lsnVocab();
+  const tab=window._wbTab==='slang'?'slang':window._wbTab==='songs'?'songs':'words';
+  const songs=(typeof window.studiedSongs==='function')?(window.studiedSongs()||[]):[];
+  tabs.innerHTML=`
+    <button class="wb-tab ${tab==='words'?'on':''}" onclick="switchWb('words')">${t('wb_words')} <span>${voc.filter(v=>v&&!v.slang).length}</span></button>
+    <button class="wb-tab ${tab==='slang'?'on':''}" onclick="switchWb('slang')">${t('wb_slang')} <span>${voc.filter(v=>v&&!!v.slang).length}</span></button>
+    <button class="wb-tab ${tab==='songs'?'on':''}" onclick="switchWb('songs')">${t('wb_songs')} <span>${songs.length}</span></button>`;
+  if(tab==='songs'){renderWbSongs(songs);return}
+  const isSlang=tab==='slang';
+  const list=wbScope();
+  const due=wbDue(list);
+  const dir=wbDir();
+  const rows=list.length?list.slice().sort((a,b)=>wbSt(b.kr).f-wbSt(a.kr).f).map(v=>{
+    const st=wbSt(v.kr),tr=wbTr(v),mean=wbMean(v);
+    const dots='<span class="on">'+'●'.repeat(st.l)+'</span>'+'○'.repeat(WB_INT.length-1-st.l);
+    const say=`onpointerdown="wbSayDown(this,${wbAttr(v.kr)})" onpointerup="wbSayUp(this,${wbAttr(v.kr)})" onpointerleave="wbSayCancel()" onpointercancel="wbSayCancel()"`;
+    const word=dir==='kr'
+      ? `<b>${escapeHtml(v.kr)}</b><i>${escapeHtml(tr)}</i><span class="wb-mean">${escapeHtml(mean)}</span>`
+      : `<b>${escapeHtml(mean||v.kr)}</b><span class="wb-hide" onclick="wbReveal(this)" title="${t('wb_tap')}"><em>${escapeHtml(v.kr)}</em><i>${escapeHtml(tr)}</i></span>`;
+    return `<div class="wb-row${st.f>=WB_LEECH?' hard':''}">
+      <button class="wb-say" aria-label="${t('wb_say')}" ${say}>🔊</button>
+      <div class="wb-word">${word}</div>
+      <div class="wb-meta">
+        <span class="wb-prog" title="${t('wb_prog')}">${dots}</span>
+        <span class="wb-src" title="${v.songTitle?escapeHtml(v.songTitle):''}">${v.from==='lesson'?'📘':v.from==='song'?'🎵':'✍️'}</span>
+      </div>
+      <button class="wb-del" aria-label="${t('wb_del')}" onclick="wbDelete(${wbAttr(v.kr)})">✕</button>
+    </div>`;
+  }).join(''):`<div class="wb-empty">${window._wbSongFilter?t('wb_empty_filter'):isSlang?t('wb_empty_slang'):t('wb_empty_words')}</div>`;
+  const today=!list.length?''
+    :due.length?`<button class="wb-go" onclick="wbStartReview()"><b>${t('wb_go')(due.length)}</b><small>${t('wb_go_sub')}</small></button>`
+    :`<div class="wb-alldone"><b>${t('wb_alldone')}</b><small>${t('wb_next_in')(wbNextDays(list))}</small></div>`;
+  const filter=window._wbSongFilter?`<button class="wb-chip" onclick="wbClearFilter()">${escapeHtml(t('wb_filter_on')(wbSongTitle(window._wbSongFilter)))} ✕</button>`:'';
+  body.innerHTML=`
+    ${today}
+    ${filter}
+    <div class="wb-dir" role="group" aria-label="${t('wb_dir_h')}">
+      <button class="${dir==='kr'?'on':''}" onclick="wbSetDir('kr')">${t('wb_dir_a')}</button>
+      <button class="${dir==='nat'?'on':''}" onclick="wbSetDir('nat')">${t('wb_dir_b')}</button>
+    </div>
     <div class="wb-add">
       <input id="wbKr" placeholder="한국어" maxlength="40">
       <input id="wbMean" placeholder="${t('wb_mean_ph')}" maxlength="60">
       <button class="btn accent wb-addbtn" onclick="wbAddWord()">+</button>
     </div>
     <div class="wb-hint">${isSlang?t('wb_hint_slang'):t('wb_hint_words')}</div>
-    <div class="wb-list">${items}</div>`;
+    <div class="wb-list">${rows}</div>`;
 }
 
-function switchWb(tab){window._wbTab=tab;renderWorkbook()}
+/* ---- Озвучка слова: короткий тап — обычно, долгий — медленно. Всё через speakKo. ---- */
+let _wbHoldT=null,_wbHeld=false;
+function wbSay(btn,txt,slow){
+  if(btn)btn.classList.add('busy');
+  const p=(typeof window.speakKo==='function')?window.speakKo(txt,{slow:!!slow}):Promise.resolve('fail');
+  Promise.resolve(p).then(r=>{
+    if(!btn)return;
+    btn.classList.remove('busy');
+    if(r==='fail')btn.classList.add('mute');
+  }).catch(()=>{if(btn)btn.classList.remove('busy')});
+}
+function wbSayDown(btn,txt){_wbHeld=false;clearTimeout(_wbHoldT);_wbHoldT=setTimeout(()=>{_wbHeld=true;wbSay(btn,txt,true)},520)}
+function wbSayUp(btn,txt){clearTimeout(_wbHoldT);if(_wbHeld){_wbHeld=false;return}wbSay(btn,txt,false)}
+function wbSayCancel(){clearTimeout(_wbHoldT)}
+
+/* ---- Повторение: одна порция, конец виден с первого экрана ---- */
+function wbStartReview(){
+  const due=wbDue(wbScope());
+  if(!due.length)return;
+  window._wbReview={q:due.map(v=>v.kr),i:0,ok:0,total:due.length,shown:false,again:{},done:false};
+  renderWorkbook();
+}
+function wbExitReview(){window._wbReview=null;renderWorkbook()}
+function renderWbReview(){
+  const R=window._wbReview,tabs=document.getElementById('wbTabs'),body=document.getElementById('wbBody');
+  tabs.innerHTML=`<button class="wb-tab wb-rev-back" onclick="wbExitReview()">${t('wb_back')}</button>
+    <span class="wb-rev-count">${Math.min(R.i+1,R.total)} / ${R.total}</span>`;
+  if(R.done){
+    body.innerHTML=`<div class="wb-fin">
+      <div class="wb-fin-n">${R.ok} / ${R.total}</div>
+      <div class="wb-fin-h">${t('wb_fin_h')}</div>
+      <div class="wb-fin-sub">${t('wb_fin_sub')(wbNextDays(wbScope()))}</div>
+      <button class="btn accent wb-fin-btn" onclick="wbExitReview()">${t('wb_fin_btn')}</button>
+    </div>`;
+    return;
+  }
+  const kr=R.q[R.i];
+  const v=lsnVocab().find(x=>x&&x.kr===kr);
+  if(!v){R.i++;if(R.i>=R.q.length){R.done=true}renderWbReview();return}
+  const st=wbSt(kr),tr=wbTr(v),mean=wbMean(v);
+  // Направление задаёт не тумблер, а уровень слова: сперва узнавание (кор → родной),
+  // с третьего уровня — воспроизведение (родной → кор). Это то же восхождение,
+  // что Quizlet ведёт внутри Learn от выбора варианта к письменному ответу
+  // [help.quizlet.com, «Studying with Learn»], и то, чего нет в плоском списке слов.
+  const prod=st.l>=2;
+  const q=prod?mean:v.kr, a=prod?v.kr:mean;
+  const pct=Math.round(Math.min(R.i/R.total,1)*100);
+  body.innerHTML=`
+    <div class="wb-rev">
+      <div class="wb-bar"><i style="transform:scaleX(${pct/100})"></i></div>
+      <div class="wb-rev-mode">${prod?t('wb_rev_prod'):t('wb_rev_recog')}${st.f>=WB_LEECH?` · <span class="wb-hardtag">${t('wb_hard')}</span>`:''}</div>
+      <div class="wb-rev-q">${escapeHtml(q)}</div>
+      ${!prod?`<div class="wb-rev-tr">${escapeHtml(tr)}</div>`:''}
+      <button class="wb-say big" aria-label="${t('wb_say')}"
+        onpointerdown="wbSayDown(this,${wbAttr(v.kr)})" onpointerup="wbSayUp(this,${wbAttr(v.kr)})"
+        onpointerleave="wbSayCancel()" onpointercancel="wbSayCancel()">🔊</button>
+      ${R.shown
+        ? `<div class="wb-rev-a">${escapeHtml(a)}${prod?`<span>${escapeHtml(tr)}</span>`:''}</div>
+           ${v.songTitle?`<div class="wb-rev-from">${t('wb_from_song')} · ${escapeHtml(v.songTitle)}</div>`:''}
+           <div class="wb-rev-btns">
+             <button class="wb-no" onclick="wbGrade(0)">${t('wb_no')}</button>
+             <button class="wb-yes" onclick="wbGrade(1)">${t('wb_yes')}</button>
+           </div>`
+        : `<div class="wb-rev-a ghost"></div>
+           <div class="wb-rev-btns"><button class="wb-show" onclick="wbShowAnswer()">${t('wb_show')}</button></div>`}
+    </div>`;
+}
+function wbShowAnswer(){if(window._wbReview){window._wbReview.shown=true;renderWbReview()}}
+function wbGrade(ok){
+  const R=window._wbReview;if(!R||R.done)return;
+  const kr=R.q[R.i],st=wbSt(kr),now=Date.now(),all=wbSrs();
+  if(ok){st.l=Math.min(st.l+1,WB_INT.length-1);st.d=now+WB_INT[st.l]*86400000;R.ok++}
+  else{
+    st.f++;st.l=Math.max(0,st.l-1);st.d=now+WB_INT[1]*86400000;
+    if(!R.again[kr]){R.again[kr]=1;R.q.push(kr)}   // ещё один заход в этой же сессии, но только один
+  }
+  all[kr]=st;wbSaveSrs();
+  R.i++;R.shown=false;
+  if(R.i>=R.q.length){
+    R.done=true;
+    try{localStorage.setItem('so_wblast_'+lsnUid(),String(Date.now()))}catch(e){}
+    try{window.dispatchEvent(new CustomEvent('so:wbreview',{detail:{done:R.ok,total:R.total}}))}catch(e){}
+    // Повторение — такой же учебный день, как урок: кормит стрик и прогресс карточки.
+    try{if(currentUser&&typeof pingStudy==='function')pingStudy().then(()=>{if(typeof renderCabinet==='function'&&myIdol)try{renderCabinet(null)}catch(e){}})}catch(e){}
+  }
+  renderWbReview();
+}
+
+/* ---- Вкладка «Разобранные песни». Данные — только чтение, контракт IDOLINGO_CONTRACT_songs.md ---- */
+function wbSongTitle(id){
+  const s=((typeof window.studiedSongs==='function')?(window.studiedSongs()||[]):[]).find(x=>x&&x.id===id);
+  return s?s.title:'';
+}
+function wbOpenSong(id){if(typeof openSong==='function'){closeWorkbook();openSong(id)}}
+function wbFilterSong(id){window._wbSongFilter=id;window._wbTab='words';renderWorkbook()}
+function wbClearFilter(){window._wbSongFilter=null;renderWorkbook()}
+function renderWbSongs(songs){
+  const body=document.getElementById('wbBody');
+  if(!songs.length){
+    body.innerHTML=`<div class="wb-empty">${t('wb_empty_songs')}
+      <button class="btn accent wb-empty-btn" onclick="closeWorkbook();openSongs()">${t('wb_empty_songs_btn')}</button></div>`;
+    return;
+  }
+  body.innerHTML=`<div class="wb-hint">${t('wb_hint_songs')}</div><div class="wb-list">`+songs.map(s=>{
+    const tot=s.wordsTotal|0,sav=s.wordsSaved|0;
+    const pct=tot?Math.round(Math.min(sav/tot,1)*100):0;
+    return `<div class="wb-song">
+      <div class="wb-song-t"><b>${escapeHtml(s.title||'')}</b><small>${escapeHtml(s.artist||'')}${s.done?' · ✓':''}</small></div>
+      <div class="wb-bar sm"><i style="transform:scaleX(${pct/100})"></i></div>
+      <div class="wb-song-n">${t('wb_song_words')(sav,tot)}</div>
+      <div class="wb-song-btns">
+        <button onclick="wbOpenSong(${wbAttr(s.id)})">${t('wb_song_open')}</button>
+        <button onclick="wbFilterSong(${wbAttr(s.id)})" ${sav?'':'disabled'}>${t('wb_song_filter_btn')}</button>
+      </div>
+    </div>`;
+  }).join('')+`</div>`;
+}
+/* ---- Наружу для агента проактива: сколько слов ждёт человека прямо сейчас.
+   Ничего не рендерит, ничего не пишет. Контракт — в IDOLINGO_CONTRACT_songs.md, раздел «Тетрадь → проактив». ---- */
+window.wbDueCount=function(){
+  try{
+    const now=Date.now();
+    return lsnVocab().filter(v=>v&&v.kr&&wbSt(v.kr).d<=now).length;
+  }catch(e){return 0}
+};
+window.wbDuePreview=function(n){
+  try{
+    const now=Date.now();
+    return lsnVocab().filter(v=>v&&v.kr&&wbSt(v.kr).d<=now).slice(0,n||3)
+      .map(v=>({kr:v.kr,rom:wbTr(v),mean:wbMean(v),songTitle:v.songTitle||''}));
+  }catch(e){return[]}
+};
+window.wbLastReview=function(){try{return Number(localStorage.getItem('so_wblast_'+lsnUid()))||0}catch(e){return 0}};
+
+// Агент песни шлёт это событие после каждой записи (контракт §2) — вкладка живая без перезагрузки.
+if(!window._wbSongHook){
+  window._wbSongHook=1;
+  window.addEventListener('so:songstudy',()=>{
+    const ov=document.getElementById('wbOv');
+    if(ov&&ov.classList.contains('show')&&!window._wbReview)try{renderWorkbook()}catch(e){}
+  });
+}
+
+function switchWb(tab){window._wbTab=tab;if(tab!=='words')window._wbSongFilter=null;renderWorkbook()}
 
 function wbAddWord(){
   const kr=document.getElementById('wbKr').value.trim();
   const mean=document.getElementById('wbMean').value.trim();
   if(!kr){toast(t('wb_need_kr'));return}
   const voc=lsnVocab();
-  if(voc.some(v=>v.kr===kr)){toast(t('wb_dup'));return}
-  voc.push({kr,rom:'',ru:mean,en:mean,from:'manual',slang:window._wbTab==='slang'});
+  if(voc.some(v=>v&&v.kr===kr)){toast(t('wb_dup'));return}
+  voc.push({kr,rom:wbRomanize(kr),ru:mean,en:mean,from:'manual',slang:window._wbTab==='slang'});
   lsnSaveVocab(voc);
+  window._wbSongFilter=null;
   renderWorkbook();
 }
 
@@ -964,6 +1694,42 @@ async function addSong(artist,track,btn){
   }catch(e){toast(t('song_net'));if(btn){btn.disabled=false;if(badge)badge.textContent='➕';}}
 }
 
+/* ---- «Разобранные песни»: данные для вкладки в тетради ----------------------
+   Формат и гарантии описаны в IDOLINGO_CONTRACT_songs.md (его читает агент тетради).
+   Тетрадь ТОЛЬКО читает: window.studiedSongs() + событие 'so:songstudy'.        */
+function songStudyKey(){return 'so_songstudy_'+lsnUid()}
+function songStudyAll(){try{const a=JSON.parse(localStorage.getItem(songStudyKey())||'[]');return Array.isArray(a)?a:[]}catch(e){return[]}}
+function studiedSongs(){return songStudyAll().slice().sort((a,b)=>(b.at||0)-(a.at||0))}
+window.studiedSongs=studiedSongs;
+// Все слова песни, сгруппированные по куплетам (дубли внутри куплета схлопнуты).
+function songWordsByVerse(song){
+  return ((song&&song.verses)||[]).map((v,i)=>{
+    const seen={},words=[];
+    (v.lines||[]).forEach(ln=>(ln.w||[]).forEach(w=>{
+      const kr=((w&&w.k)||'').trim();
+      if(!kr||seen[kr])return;seen[kr]=1;
+      words.push({kr,rom:w.r||w.rom||'',rr:w.rr||'',ru:w.ru||'',en:w.en||''});
+    }));
+    const g={i,tr:v.tr||{ru:'',en:''},words};
+    if(v.lit)g.lit=v.lit;if(v.why)g.why=v.why;
+    return g;
+  });
+}
+function songStudyTouch(song,done){
+  if(!song||!song.id)return;
+  const all=songStudyAll();
+  const prev=all.find(x=>x.id===song.id)||{};
+  const have={};lsnVocab().forEach(v=>{have[v.kr]=1});
+  let total=0,got=0;
+  const verses=songWordsByVerse(song).map(g=>({...g,words:g.words.map(w=>{
+    const saved=!!have[w.kr];total++;if(saved)got++;return {...w,saved};
+  })}));
+  const rec={id:song.id,title:song.title||'',artist:song.artist||'',ytId:song.ytId||'',
+    at:Date.now(),done:!!done||!!prev.done,wordsTotal:total,wordsSaved:got,verses};
+  try{localStorage.setItem(songStudyKey(),JSON.stringify([rec,...all.filter(x=>x.id!==song.id)].slice(0,60)))}catch(e){}
+  try{window.dispatchEvent(new CustomEvent('so:songstudy',{detail:{id:song.id}}))}catch(e){}
+}
+
 // ---- Караоке-движок: подсветка по таймкодам + авто-пауза в конце куплета ----
 function karaBuild(song){
   // wordAligned: у каждого слова свой абсолютный тайминг клипа (t) из ASR — самый точный.
@@ -1013,7 +1779,9 @@ function karaBuild(song){
 }
 
 function openSong(id){
-  const song=allSongs().find(s=>s.id===id);if(!song)return;
+  // Холодный старт: каталог с сервера мог ещё не приехать (восстановление вкладки из
+  // навигации). Раньше это оставляло пустой экран — теперь честно падаем в список песен.
+  const song=allSongs().find(s=>s.id===id);if(!song){openSongs();return}
   navOv('song',id);
   if(window._kara&&window._kara.timer)clearInterval(window._kara.timer);
   window._kara=karaBuild(song);
@@ -1024,13 +1792,9 @@ function openSong(id){
   document.getElementById('ytStage').style.display='';
   const lk=document.getElementById('ytOpenLink');if(lk)lk.href='https://www.youtube.com/watch?v='+song.ytId;
   const rl=document.getElementById('ytReloadLbl');if(rl)rl.textContent=t('song_reload');
-  document.getElementById('songBody').innerHTML=`
-    <div class="kara">
-      <div class="kara-lines" id="karaLines"></div>
-      <div class="kara-pause" id="karaPause" style="display:none"></div>
-    </div>`;
+  renderKaraBody();
   document.getElementById('songBody').scrollTop=0;
-  renderKaraVerse();
+  songStudyTouch(song);
   window._ytLastErr=null;
   ensureYtPlayer(p=>{
     const K=window._kara;if(!K)return;
@@ -1045,8 +1809,20 @@ function openSong(id){
     try{p.cueVideoById(song.ytId)}catch(e){}
     K.loadAt=Date.now();K.recovered=false;K.playing=false;K.errored=false;karaShowErr(null);karaShowHint(true);
     if(K.timer)clearInterval(K.timer);
-    K.timer=setInterval(karaTick,120);
+    K.timer=setInterval(karaTick,200); // опрос плеера; между опросами время идёт само (karaFrame)
+    karaStartRaf();
   });
+}
+// Тело экрана песни: текст + панель куплета. Отдельной функцией, потому что из набора
+// слов («все слова песни») мы возвращаемся обратно и пересобираем эту же разметку.
+function renderKaraBody(){
+  const b=document.getElementById('songBody');if(!b)return;
+  b.innerHTML=`
+    <div class="kara">
+      <div class="kara-lines" id="karaLines"></div>
+      <div class="kara-pause" id="karaPause" style="display:none"></div>
+    </div>`;
+  renderKaraVerse();
 }
 
 // Единственный плеер на всё приложение — создаётся ОДИН раз, дальше только loadVideoById.
@@ -1080,6 +1856,7 @@ function loadYT(cb){
 function karaStop(){
   const K=window._kara;
   if(K&&K.timer)clearInterval(K.timer);
+  karaStopRaf();
   try{window._ytPlayer&&window._ytPlayer.pauseVideo&&window._ytPlayer.pauseVideo()}catch(e){}
   window._kara=null;
 }
@@ -1132,78 +1909,220 @@ function karaFocus(K,t){
   }
   return{vi:L[L.length-1].vi,li:L[L.length-1].li,up:false};
 }
+// Опрос плеера — редкий (200мс), он только СВЕРЯЕТ часы. Между опросами время
+// доигрывается само в karaFrame (requestAnimationFrame), поэтому заливка идёт
+// на частоте экрана, а не рывками по 8 кадров в секунду.
 function karaTick(){
   const K=window._kara;if(!K||!K.player||!K.player.getCurrentTime)return;
   karaWatchdog(K);
-  const t=K.player.getCurrentTime()-K.off;
+  let ct=0,st=1;
+  try{ct=K.player.getCurrentTime()||0;st=K.player.getPlayerState?K.player.getPlayerState():1;}catch(e){}
+  K.clock={t:ct-K.off,wall:(window.performance&&performance.now?performance.now():Date.now()),run:st===1};
+  karaApply(K.clock.t);
+}
+function karaNow(K){
+  const c=K.clock;if(!c)return 0;
+  if(!c.run)return c.t;
+  const now=(window.performance&&performance.now?performance.now():Date.now());
+  return c.t+(now-c.wall)/1000;
+}
+function karaStartRaf(){
+  if(window._karaRaf||!window.requestAnimationFrame)return;
+  window._karaRaf=requestAnimationFrame(karaFrame);
+}
+function karaStopRaf(){
+  if(window._karaRaf){cancelAnimationFrame(window._karaRaf);window._karaRaf=null;}
+}
+function karaFrame(){
+  window._karaRaf=null;
+  const K=window._kara;
+  if(!K)return;
+  window._karaRaf=requestAnimationFrame(karaFrame);
+  if(!K.clock||!K.clock.run)return;
+  karaApply(karaNow(K));
+}
+function karaApply(t){
+  const K=window._kara;if(!K)return;
   const f=karaFocus(K,t);
   if(f.vi!==K.vIdx){K.vIdx=f.vi;renderKaraVerse();}
   updateKaraWords(t,f);
+  // Песня кончилась → сразу набор всех слов по куплетам. Это и есть момент,
+  // ради которого мы держали человека: он только что всё услышал и понял.
+  const last=K.lines[K.lines.length-1];
+  if(last&&!K.recap&&!K.recapShown&&t>last.end+1.5){K.recapShown=true;openSongRecap();}
 }
 
 // Транскрипция под язык: для русского — кириллица (rr), иначе латиница (r/rom).
 function romOf(w){const L=getLang();if(L==='ru'&&w&&w.rr)return w.rr;return (w&&(w.r!=null?w.r:w.rom))||'';}
+// escapeHtml не трогает кавычки — для атрибутов нужен свой.
+function attrEsc(s){return escapeHtml(s).replace(/"/g,'&quot;')}
 function renderKaraVerse(){
-  const K=window._kara;const v=K.verses[K.vIdx];const L=getLang();
+  const K=window._kara;if(!K)return;
+  const box=document.getElementById('karaLines');if(!box)return;
+  const v=K.verses[K.vIdx];const L=getLang();
   K.tok=[];K.lastLine=null;
   const html=v.lines.map(ln=>{
     const toks=ln.words.map(w=>{
-      const idx=K.tok.length;K.tok.push({t0:w.t0,t1:w.t1});
-      return `<span class="tok" data-i="${idx}"><span class="tok-k">${escapeHtml(w.k)}</span><span class="tok-r">${escapeHtml(romOf(w))}</span><span class="tok-m">${escapeHtml(w[L]||'')}</span></span>`;
+      const idx=K.tok.length;K.tok.push({t0:w.t0,t1:w.t1,fill:-1,cls:''});
+      const kr=w.k||'',rm=romOf(w);
+      // data-txt — та же строка для слоя-заливки (::after), см. .tok-k::after в style.css
+      return `<span class="tok" data-i="${idx}"><span class="tok-k" data-txt="${attrEsc(kr)}">${escapeHtml(kr)}</span><span class="tok-r" data-txt="${attrEsc(rm)}">${escapeHtml(rm)}</span><span class="tok-m">${escapeHtml(w[L]||'')}</span></span>`;
     }).join('');
     return `<div class="kline">${toks}</div>`;
   }).join('');
-  document.getElementById('karaLines').innerHTML=html;
+  box.innerHTML=html;
+  // Элементы кэшируем: заливка идёт 60 раз в секунду, querySelectorAll в кадре — расточительство.
+  K.tokEls=box.querySelectorAll('.tok');
+  K.lineEls=box.querySelectorAll('.kline');
   renderVersePanel();
 }
 
 // Плавная заливка: активное слово красится слева-направо по мере произношения.
+// Красим через градиент по тексту (--fill), НЕ через ширину/высоту — те дёргают лейаут.
 // Скролл/подсветка «готовности» ведёт по строке-фокусу (karaFocus) — в проигрыше
 // заранее показывает следующую строку, не закрашивая её.
 function updateKaraWords(t,f){
-  const box=document.getElementById('karaLines');if(!box)return;
-  const K=window._kara;const toks=box.querySelectorAll('.tok');
-  toks.forEach((el,i)=>{
-    const tk=K.tok[i];if(!tk)return;
-    if(t>=tk.t1){el.classList.add('done');el.classList.remove('on');el.style.setProperty('--fill','100%');}
-    else if(t>=tk.t0){el.classList.add('on');el.classList.remove('done');el.style.setProperty('--fill',Math.round(Math.max(0,Math.min(1,(t-tk.t0)/((tk.t1-tk.t0)||1)))*100)+'%');}
-    else {el.classList.remove('on','done');el.style.setProperty('--fill','0%');}
-  });
-  // строка-фокус: скроллим к ней; если «готовится» в проигрыше — помечаем .upcoming
-  const lineEls=box.querySelectorAll('.kline');
-  lineEls.forEach(el=>el.classList.remove('upcoming'));
-  const fl=f?lineEls[f.li]:null;
-  if(fl){
-    if(f.up)fl.classList.add('upcoming');
-    if(fl!==K.lastLine){K.lastLine=fl;fl.scrollIntoView({behavior:'smooth',block:'center'});}
+  const K=window._kara;if(!K||!K.tokEls)return;
+  const els=K.tokEls;
+  for(let i=0;i<els.length;i++){
+    const tk=K.tok[i];if(!tk)continue;
+    let cls,fill;
+    if(t>=tk.t1){cls='done';fill=100;}
+    else if(t>=tk.t0){cls='on';fill=Math.max(0,Math.min(100,((t-tk.t0)/((tk.t1-tk.t0)||1))*100));}
+    else {cls='';fill=0;}
+    const el=els[i];
+    if(cls!==tk.cls){
+      el.classList.toggle('on',cls==='on');
+      el.classList.toggle('done',cls==='done');
+      tk.cls=cls;
+    }
+    // Пишем в DOM только при заметном сдвиге — иначе каждый кадр дёргает стили впустую.
+    const r=Math.round(fill*10)/10;
+    if(r!==tk.fill){el.style.setProperty('--fill',r+'%');tk.fill=r;}
   }
+  // строка-фокус: скроллим к ней; если «готовится» в проигрыше — помечаем .upcoming
+  const lineEls=K.lineEls;if(!lineEls)return;
+  const fl=f?lineEls[f.li]:null;
+  if(fl&&(fl!==K.lastFocusEl||(!!f.up)!==K.lastUp)){
+    for(let i=0;i<lineEls.length;i++)lineEls[i].classList.remove('upcoming');
+    if(f.up)fl.classList.add('upcoming');
+    K.lastFocusEl=fl;K.lastUp=!!f.up;
+  }
+  if(fl&&fl!==K.lastLine){K.lastLine=fl;fl.scrollIntoView({behavior:'smooth',block:'center'});}
 }
 
-// Живая панель текущего куплета (перевод + слова столбиком) — без остановки видео.
+// Панель куплета. Главное здесь — СМЫСЛОВОЙ перевод: не «слово=слово», а что фраза
+// значит на самом деле, плюс раскрывающееся «дословно ≠ по смыслу» с объяснением,
+// почему они расходятся. Отдельные слова во время проигрывания читать некогда —
+// их набор ждёт в конце песни (openSongRecap).
 function renderVersePanel(){
-  const K=window._kara;const v=K.verses[K.vIdx];const L=getLang();
-  const vocab=v.vocab||[];
+  const K=window._kara;if(!K)return;
   const p=document.getElementById('karaPause');if(!p)return;
+  const v=K.verses[K.vIdx];const L=getLang();
+  const tr=(v.tr&&(v.tr[L]||v.tr.en||v.tr.ru))||'';
+  const lit=(v.lit&&(v.lit[L]||v.lit.en||v.lit.ru))||'';
+  const why=(v.why&&(v.why[L]||v.why.en||v.why.ru))||'';
+  const note=(v.note&&(v.note[L]||v.note.en||v.note.ru))||'';
+  const open=!!K.senseOpen;
   p.style.display='block';
   p.innerHTML=`
     <div class="kp-h">${t('kara_verse')} ${K.vIdx+1}/${K.verses.length}</div>
-    ${v.tr?`<div class="kp-tr">${v.tr[L]}</div>`:''}
-    ${v.note?`<div class="kp-note">💡 ${v.note[L]}</div>`:''}
-    ${vocab.length?`<div class="kp-vocab-col">${vocab.map((w,i)=>{const s=K.saved[K.vIdx+'_'+i];return `
-      <div class="kpw">
-        <button class="kpw-add ${s?'on':''}" ${s?'disabled':''} onclick="karaSave(${i})" title="${t('song_save')(t('wb_words'))}">${s?'✓':'+'}</button>
-        <b class="kpw-k">${escapeHtml(w.kr)}</b>
-        <span class="kpw-r">${escapeHtml(romOf(w))}</span>
-        <span class="kpw-m">${escapeHtml(w[L]||w.ru||'')}</span>
-      </div>`;}).join('')}</div>`:''}`;
+    ${tr?`<div class="kp-tr">${escapeHtml(tr)}</div>`:`<div class="kp-tr kp-dim">${t('kara_tr_none')}</div>`}
+    ${(lit||why)?`<div class="kp-sense">
+      <button class="kp-sense-t" type="button" aria-expanded="${open?'true':'false'}" onclick="karaToggleSense()">
+        <span class="kp-caret">${open?'▾':'▸'}</span>${t('kara_sense_h')}</button>
+      ${open?`<div class="kp-sense-b">
+        ${lit?`<p class="kp-lit"><span class="kp-tag">${t('kara_lit')}</span>${escapeHtml(lit)}</p>`:''}
+        ${why?`<p class="kp-why"><span class="kp-tag">${t('kara_why')}</span>${escapeHtml(why)}</p>`:''}
+      </div>`:''}
+    </div>`:''}
+    ${note?`<p class="kp-note">💡 ${escapeHtml(note)}</p>`:''}
+    <button class="kp-allwords" type="button" onclick="openSongRecap()">🗂 ${t('kara_allwords')}</button>`;
 }
+function karaToggleSense(){const K=window._kara;if(!K)return;K.senseOpen=!K.senseOpen;renderVersePanel();}
 
-function karaSave(i){const K=window._kara,v=K.verses[K.vIdx],w=(v.vocab||[])[i];if(!w)return;const voc=lsnVocab();if(!voc.some(x=>x.kr===w.kr)){voc.push({...w,from:'song'});lsnSaveVocab(voc);}K.saved[K.vIdx+'_'+i]=true;renderVersePanel();toast(t('song_save_toast'));}
+/* ---- Конец песни: все слова по куплетам + добавление в тетрадь ---- */
+function songVocabEntry(song,vi,w){
+  return {kr:w.kr,rom:w.rom||'',rr:w.rr||'',ru:w.ru||'',en:w.en||'',
+    from:'song',songId:song.id,songTitle:song.title||'',verse:vi};
+}
+function openSongRecap(){
+  const K=window._kara;if(!K)return;
+  // Клип НЕ останавливаем: музыка продолжает играть, пока человек разбирает слова —
+  // так набор слов ощущается частью песни, а не экзаменом после неё.
+  K.recap=true;K.lastLine=null;K.tokEls=null;K.lineEls=null;
+  renderSongRecap();
+  const b=document.getElementById('songBody');if(b)b.scrollTop=0;
+}
+function closeSongRecap(){
+  const K=window._kara;if(!K)return;
+  K.recap=false;
+  renderKaraBody();
+}
+function renderSongRecap(){
+  const K=window._kara;if(!K)return;
+  const b=document.getElementById('songBody');if(!b)return;
+  const L=getLang();
+  const groups=songWordsByVerse(K.song);
+  const have={};lsnVocab().forEach(x=>{have[x.kr]=1});
+  let total=0,got=0;
+  groups.forEach(g=>g.words.forEach(w=>{total++;if(have[w.kr])got++}));
+  const body=groups.map(g=>{
+    const allIn=g.words.length>0&&g.words.every(w=>have[w.kr]);
+    const tr=(g.tr&&(g.tr[L]||g.tr.en||g.tr.ru))||'';
+    return `<section class="rcp-v">
+      <div class="rcp-vh">
+        <span class="rcp-vn">${t('kara_verse')} ${g.i+1}</span>
+        <button class="rcp-all" type="button" ${allIn?'disabled':''} onclick="songAddVerse(${g.i})">${allIn?'✓ '+t('song_saved'):t('song_add_verse')}</button>
+      </div>
+      ${tr?`<p class="rcp-tr">${escapeHtml(tr)}</p>`:''}
+      <div class="rcp-words">${g.words.map((w,wi)=>{
+        const on=!!have[w.kr];
+        const rom=(L==='ru'&&w.rr)?w.rr:(w.rom||'');
+        return `<div class="rcp-w${on?' on':''}">
+          <button class="rcp-add" type="button" ${on?'disabled':''} onclick="songAddWord(${g.i},${wi})" aria-label="${escapeHtml(w.kr)} — ${t('song_save')(t('wb_words'))}">${on?'✓':'+'}</button>
+          <span class="rcp-txt"><b class="rcp-k">${escapeHtml(w.kr)}</b>${rom?`<i class="rcp-r">${escapeHtml(rom)}</i>`:''}</span>
+          <span class="rcp-m">${escapeHtml(w[L]||w.ru||w.en||'')}</span>
+        </div>`;}).join('')||`<div class="rcp-none">${t('song_recap_none')}</div>`}</div>
+    </section>`;}).join('');
+  b.innerHTML=`<div class="rcp">
+    <div class="rcp-head">
+      <div class="rcp-h">${t('song_recap_h')}</div>
+      <div class="rcp-sub">${t('song_recap_sub')(got,total)}</div>
+    </div>
+    ${body||`<div class="rcp-none">${t('song_recap_none')}</div>`}
+    <div class="rcp-foot">
+      <button class="rcp-back" type="button" onclick="closeSongRecap()">${t('song_recap_back')}</button>
+      <button class="btn accent rcp-done" type="button" onclick="songComplete()">${t('song_finish')}</button>
+    </div>
+  </div>`;
+}
+function songAddWord(vi,wi){
+  const K=window._kara;if(!K)return;
+  const g=songWordsByVerse(K.song)[vi];const w=g&&g.words[wi];if(!w)return;
+  const voc=lsnVocab();
+  if(!voc.some(x=>x.kr===w.kr)){voc.push(songVocabEntry(K.song,vi,w));lsnSaveVocab(voc);}
+  songStudyTouch(K.song);
+  if(K.recap)renderSongRecap();
+  toast(t('song_save_toast'));
+}
+function songAddVerse(vi){
+  const K=window._kara;if(!K)return;
+  const g=songWordsByVerse(K.song)[vi];if(!g)return;
+  const voc=lsnVocab();const have={};voc.forEach(x=>{have[x.kr]=1});
+  let n=0;
+  g.words.forEach(w=>{if(!have[w.kr]){voc.push(songVocabEntry(K.song,vi,w));have[w.kr]=1;n++;}});
+  if(n)lsnSaveVocab(voc);
+  songStudyTouch(K.song);
+  if(K.recap)renderSongRecap();
+  toast(n?t('song_added_n')(n):t('wb_dup'));
+}
 
 function songComplete(){
   const K=window._kara;if(!K)return;
   const id=K.song.id;const done=songsDone();
   if(!done.includes(id)){done.push(id);songsSaveDone(done)}
+  songStudyTouch(K.song,true);
   toast(t('song_done_toast'));
   openSongs();
 }
@@ -1841,13 +2760,44 @@ const T={
     tab_girls:"Girls", tab_boys:"Boys",
     concept_suffix:"· your idol tutor", your_korean:"Your Korean", level:"level", days_together:"days together", streak_days:"day streak", streak_start:"Start your streak — study today",
     lesson_start:"Start a lesson", lesson_sub:n=>`${n} teaches you Korean, step by step`,
-    lessons_h:"Lessons", lsn_vocab_note:n=>`${n} new words will be saved to your Workbook`, lsn_quiz_h:"Check yourself", lsn_check:"Check answers", lsn_next_quiz:"Next: quick check →", lsn_toinfo:"back to the material", lsn_retry:"Try again", lsn_ask:"Ask the teacher a question", lsn_ask_named:nm=>`Ask ${nm}`, lsn_answer_all:"Answer every question first.", lsn_wrong:n=>`${n} wrong — look again and retry.`, lsn_passed:"All correct! Lesson complete 🎉", lsn_next:"Next lesson →", lsn_toast:"Lesson done · words saved · card progress +", lsn_ask_seed:tt=>`I have a question about the lesson "${tt}": `,
+    lessons_h:"Lessons", lsn_vocab_note:n=>`${n} new words will be saved to your Workbook`, lsn_quiz_h:"Check yourself", lsn_check:"Check answers", lsn_next_quiz:"Next: quick check →", lsn_toinfo:"back to the material", lsn_retry:"Try again", lsn_ask:"Ask a question", lsn_ask_named:nm=>`Ask ${nm}`, lsn_answer_all:"Answer every question first.", lsn_wrong:n=>`${n} wrong — look again and retry.`, lsn_passed:"Lesson complete 🎉", lsn_next:"Next lesson →", lsn_toast:"Lesson done · words saved · progress +", lsn_ask_seed:tt=>`I have a question about the lesson "${tt}": `,
+    lsn_ask_pick:"Pick your idol — and ask them", lsn_your_idol:"your idol",
+    lsn_st_streak:"day streak", lsn_st_xp:"XP", lsn_st_letters:"letters", lsn_level:"Level", lsn_to_next:n=>`${n} XP to the next level`,
+    lsn_freeze:n=>n>0?`❄ ${n} streak freeze left — one missed day will not break the streak.`:"❄ No freezes left. Miss a day and the streak resets.",
+    lsn_daily_h:"Warm-up", lsn_daily_sub:n=>`${n} cards, about a minute — keeps your streak alive`, lsn_daily_done:"Done today ✓ · come back for more anyway", lsn_daily_locked:"Finish your first lesson to unlock it",
+    lsn_name_h:"Your name in Hangul", lsn_name_sub:"Read yourself in Korean — takes 10 seconds", lsn_name_yours:"Your name in Hangul", lsn_name_again:"change or check it again",
+    lsn_name_goal:"By the end of this screen you will read your own name in Korean.", lsn_name_ph:"Type your name", lsn_name_empty:"Type your name above — I will build it out of Hangul letters.", lsn_name_nope:"Latin or Cyrillic letters only, please.",
+    lsn_name_note:"This is a by-sound spelling, the way Koreans would hear your name — not an official transcription.",
+    lsn_name_save:"That's me — save it", lsn_name_saved:"Saved", lsn_name_toast:kr=>`${kr} — that is you in Hangul. +40 XP`,
+    lsn_name_ask:nm=>`Ask ${nm} if it looks right`, lsn_name_seed:(raw,kr)=>`My name is ${raw}. Would ${kr} be right in Hangul, or would you spell it differently?`,
+    lsn_map_h:"Hangul map", lsn_map_sub:(k,n)=>`${k} of ${n} letters — vowels, consonants, diphthongs, batchim`, lsn_map_learn:"Learn this sector →", lsn_map_repeat:"Go through it again →",
+    lsn_map_l0:"new", lsn_map_l1:"learning", lsn_map_l2:"known", lsn_map_l3:"solid",
+    lsn_sec_of:(nm,n)=>`Sector "${nm}" · 1 of ${n} on the Hangul map →`,
+    lsn_q_read:ch=>`How is ${ch} read?`, lsn_q_mean:w=>`What does ${w} mean?`, lsn_q_which:r=>`Which letter is "${r}"?`, lsn_q_how:m=>`How do you say "${m}"?`,
+    lsn_dr_right:"Correct", lsn_dr_words:"Words to the Workbook", lsn_dr_back:"Back to lessons",
+    lsn_streak_days:n=>`${n} ${n===1?'day':'days'} in a row`, lsn_froze:"❄ A freeze covered your missed day — the streak holds.",
+    lsn_seven:"7 days in a row. This is the point where it stops being an effort.", lsn_levelup:n=>`Level ${n} — new level!`,
     tile_wb:"Workbook", tile_wb_sub:"your words & slang",
     wb_h:"Workbook", wb_words:"Words", wb_slang:"Slang", wb_del:"Remove", wb_mean_ph:"meaning", wb_need_kr:"Type the Korean word", wb_dup:"Already in your workbook",
     wb_empty_words:"No words yet — finish lessons and they’ll pile up here automatically.", wb_empty_slang:"No slang yet — it’ll collect from song breakdowns. You can add your own too.",
     wb_hint_words:"📘 auto from lessons · ✍️ added by you", wb_hint_slang:"🎵 from songs · ✍️ added by you",
+    wb_songs:"Songs", wb_hint_songs:"Songs you’ve broken down · every word is already in your words tab",
+    wb_say:"Play the word · hold for slow", wb_prog:"How well it sits in memory", wb_tap:"tap to check yourself",
+    wb_go:n=>`Review ${n} ${n===1?'word':'words'}`, wb_go_sub:"about a minute — that’s the whole batch",
+    wb_alldone:"Today’s batch is done ✓", wb_next_in:n=>n<=1?"The next words come back tomorrow":`The next words come back in ${n} days`,
+    wb_dir_h:"Direction", wb_dir_a:"한국어 → EN", wb_dir_b:"EN → 한국어",
+    wb_hard:"tough one", wb_rev_recog:"do you know this word?", wb_rev_prod:"say it in Korean",
+    wb_show:"Show", wb_no:"Didn’t know it", wb_yes:"Knew it", wb_back:"← workbook",
+    wb_fin_h:"Batch complete", wb_fin_sub:n=>n<=1?"These words come back tomorrow — that’s how they stay.":`These words come back in ${n} days — that’s how they stay.`,
+    wb_fin_btn:"Done", wb_from_song:"from the song",
+    wb_empty_filter:"No words from this song in your workbook yet.", wb_filter_on:ttl=>`Words from “${ttl}”`,
+    wb_empty_songs:"No songs broken down yet. Each one leaves its words here — and they come back to you on a schedule.",
+    wb_empty_songs_btn:"Break your first song →",
+    wb_song_words:(s,tot)=>`${s} of ${tot} words in your workbook`, wb_song_open:"Open the breakdown", wb_song_filter_btn:"Its words",
     songs_h:"Break a song", songs_intro:"Pick a song — your idol walks you through it line by line.", songs_empty:"No songs yet.", songs_done_h:"Songs you’ve done", song_search:"e.g. BLACKPINK DDU-DU or Ditto", song_search_hint:"Type the title/artist in English or Korean — not transliterated.", song_none:q=>`“${q}” isn’t here yet. Soon you’ll add any song — we’ll pull lyrics, translation and sync automatically.`, song_botnote:"Asks to sign in? That’s YouTube’s bot-check (worse on VPN) →", song_fail:"The clip couldn’t load — open it on YouTube below 👇 (the breakdown still works)", song_online_h:"Add from search", song_searching:"Searching the database…", song_search_empty:"Nothing with synced lyrics — try another spelling (English or Korean).", song_need_login:"Log in to search and add songs.", song_building:"Building the breakdown… (~30 sec)", song_build_fail:"Couldn’t build this one — try another song", song_added:"Added 🎉", song_net:"Network unavailable", song_guide:"Play the video, then step through the lyrics line by line below.", song_next:"Next line", song_finish:"Finish song ✓", song_save:tab=>`+ ${tab}`, song_saved:"Saved ✓", song_save_toast:"Saved to your Workbook", song_done_toast:"Song complete 🎉", song_open_yt:"Open on YouTube", song_reload:"Reload video",
     kara_hint:"Press play — words light up in time. At each verse end it pauses for the breakdown. If the highlight drifts from the clip, tap “Sync” exactly when you hear the verse’s first word.", kara_synctap:"Sync", kara_syncdone:"Synced to the clip ✓", kara_cont:"Don’t stop", kara_verse:"Verse", kara_repeat:"Repeat verse", kara_nextv:"Next verse",
+    kara_sense_h:"Word-for-word ≠ what it means", kara_lit:"word-for-word", kara_why:"why they differ", kara_allwords:"All the words in this song", kara_tr_none:"No translation for this verse yet.",
+    song_recap_h:"Every word, verse by verse", song_recap_sub:(a,b)=>`${a} of ${b} already in your workbook`, song_add_verse:"+ whole verse", song_added_n:n=>`${n} words added to the workbook`, song_recap_back:"← back to the lyrics", song_recap_none:"No words in this verse yet.",
     onb_title:"How it all works", onb_help_chip:"How it works", onb_tour:"Show me around →", onb_ok:"Got it", onb_next:"Next", onb_done:"Done",
     topik_note:"Built to the <b>TOPIK I</b> standard, modeled on the King Sejong Institute — steps you toward the official TOPIK proficiency exam.",
     tile_song:"Break a song", tile_song_sub:"line by line", tile_slang:"Song slang", tile_slang_sub:"real Korean", tile_phrase:"Chat with your idol", tile_phrase_sub:"just talk, in Korean",
@@ -1874,13 +2824,45 @@ const T={
     tab_girls:"Девушки", tab_boys:"Парни",
     concept_suffix:"· твой айдол-учитель", your_korean:"Твой корейский", level:"уровень", days_together:"дней вместе", streak_days:"дней подряд", streak_start:"Начни стрик — позанимайся сегодня",
     lesson_start:"Начать урок", lesson_sub:n=>`${n} учит корейскому — шаг за шагом`,
-    lessons_h:"Уроки", lsn_vocab_note:n=>`${n} новых слов сохранятся в Рабочую тетрадь`, lsn_quiz_h:"Проверь себя", lsn_check:"Проверить", lsn_next_quiz:"Далее — проверка →", lsn_toinfo:"назад к материалу", lsn_retry:"Переписать", lsn_ask:"Задать вопрос учителю", lsn_ask_named:nm=>`Спросить у ${nm}`, lsn_answer_all:"Сначала ответь на все вопросы.", lsn_wrong:n=>`Ошибок: ${n} — посмотри ещё раз и попробуй снова.`, lsn_passed:"Всё верно! Урок пройден 🎉", lsn_next:"Следующий урок →", lsn_toast:"Урок пройден · слова сохранены · прогресс карточек +", lsn_ask_seed:tt=>`У меня вопрос по уроку «${tt}»: `,
+    lessons_h:"Уроки", lsn_vocab_note:n=>`${n} новых слов сохранятся в Рабочую тетрадь`, lsn_quiz_h:"Проверь себя", lsn_check:"Проверить", lsn_next_quiz:"Далее — проверка →", lsn_toinfo:"назад к материалу", lsn_retry:"Переписать", lsn_ask:"Задать вопрос", lsn_ask_named:nm=>`Спросить у ${nm}`, lsn_answer_all:"Сначала ответь на все вопросы.", lsn_wrong:n=>`Ошибок: ${n} — посмотри ещё раз и попробуй снова.`, lsn_passed:"Урок пройден 🎉", lsn_next:"Следующий урок →", lsn_toast:"Урок пройден · слова сохранены · прогресс +", lsn_ask_seed:tt=>`У меня вопрос по уроку «${tt}»: `,
+    lsn_ask_pick:"Выбери своего айдола — и спроси у него", lsn_your_idol:"твой айдол",
+    lsn_st_streak:"дней подряд", lsn_st_xp:"опыт", lsn_st_letters:"буквы", lsn_level:"Уровень", lsn_to_next:n=>`${n} опыта до следующего уровня`,
+    lsn_freeze:n=>n>0?`❄ Осталось заморозок: ${n}. Один пропущенный день серию не оборвёт.`:"❄ Заморозок не осталось. Пропустишь день — серия обнулится.",
+    lsn_daily_h:"Распевка", lsn_daily_sub:n=>`${n} карточек, около минуты — держит серию`, lsn_daily_done:"Сегодня сделано ✓ · можно пройти ещё раз", lsn_daily_locked:"Пройди первый урок, чтобы открыть",
+    lsn_name_h:"Твоё имя хангылем", lsn_name_sub:"Прочитай себя по-корейски — 10 секунд", lsn_name_yours:"Твоё имя хангылем", lsn_name_again:"поменять или проверить ещё раз",
+    lsn_name_goal:"К концу этого экрана ты прочитаешь своё имя по-корейски.", lsn_name_ph:"Впиши своё имя", lsn_name_empty:"Впиши имя выше — соберу его из букв хангыля.", lsn_name_nope:"Только латиница или кириллица.",
+    lsn_name_note:"Это запись по звучанию — так твоё имя услышал бы кореец. Не официальная транскрипция.",
+    lsn_name_save:"Это я — сохранить", lsn_name_saved:"Сохранено", lsn_name_toast:kr=>`${kr} — это ты хангылем. +40 опыта`,
+    lsn_name_ask:nm=>`Спросить у ${nm}, верно ли`, lsn_name_seed:(raw,kr)=>`Меня зовут ${raw}. Хангылем это будет ${kr} или ты бы записала иначе?`,
+    lsn_map_h:"Карта хангыля", lsn_map_sub:(k,n)=>`${k} из ${n} букв — гласные, согласные, дифтонги, патчхим`, lsn_map_learn:"Пройти сектор →", lsn_map_repeat:"Пройти ещё раз →",
+    lsn_map_l0:"новая", lsn_map_l1:"учу", lsn_map_l2:"знаю", lsn_map_l3:"крепко",
+    lsn_sec_of:(nm,n)=>`Сектор «${nm}» · 1 из ${n} на карте хангыля →`,
+    lsn_q_read:ch=>`Как читается ${ch}?`, lsn_q_mean:w=>`Что значит ${w}?`, lsn_q_which:r=>`Где буква «${r}»?`, lsn_q_how:m=>`Как будет «${m}»?`,
+    lsn_dr_right:"Верно", lsn_dr_words:"Слов в тетрадь", lsn_dr_back:"К урокам",
+    lsn_streak_days:n=>`${n} ${n%10===1&&n%100!==11?'день':(n%10>=2&&n%10<=4&&(n%100<10||n%100>=20))?'дня':'дней'} подряд`,
+    lsn_froze:"❄ Заморозка закрыла пропущенный день — серия цела.",
+    lsn_seven:"Семь дней подряд. Дальше это перестаёт быть усилием.", lsn_levelup:n=>`Уровень ${n} — новый уровень!`,
     tile_wb:"Рабочая тетрадь", tile_wb_sub:"твои слова и сленг",
     wb_h:"Рабочая тетрадь", wb_words:"Слова", wb_slang:"Сленг", wb_del:"Удалить", wb_mean_ph:"перевод", wb_need_kr:"Впиши корейское слово", wb_dup:"Уже есть в тетради",
     wb_empty_words:"Пока пусто — проходи уроки, и слова сами накопятся здесь.", wb_empty_slang:"Пока пусто — сленг накопится из разборов песен. Можно добавить и своё.",
     wb_hint_words:"📘 авто с уроков · ✍️ добавил ты", wb_hint_slang:"🎵 из песен · ✍️ добавил ты",
+    wb_songs:"Песни", wb_hint_songs:"Разобранные песни · их слова уже лежат во вкладке «Слова»",
+    wb_say:"Послушать слово · держи дольше — медленно", wb_prog:"Насколько крепко слово сидит", wb_tap:"тап — проверь себя",
+    wb_go:n=>`Повторить ${n} ${n===1?'слово':(n<5?'слова':'слов')}`, wb_go_sub:"минута — это вся сегодняшняя порция",
+    wb_alldone:"Сегодняшняя порция закрыта ✓", wb_next_in:n=>n<=1?"Следующие слова вернутся завтра":`Следующие слова вернутся через ${n} дн.`,
+    wb_dir_h:"Направление", wb_dir_a:"한국어 → RU", wb_dir_b:"RU → 한국어",
+    wb_hard:"тяжёлое", wb_rev_recog:"знаешь это слово?", wb_rev_prod:"скажи по-корейски",
+    wb_show:"Показать", wb_no:"Не помню", wb_yes:"Помню", wb_back:"← в тетрадь",
+    wb_fin_h:"Порция закрыта", wb_fin_sub:n=>n<=1?"Эти слова вернутся завтра — так они и остаются в голове.":`Эти слова вернутся через ${n} дн. — так они и остаются в голове.`,
+    wb_fin_btn:"Готово", wb_from_song:"из песни",
+    wb_empty_filter:"Слов из этой песни в тетради пока нет.", wb_filter_on:ttl=>`Слова из «${ttl}»`,
+    wb_empty_songs:"Разобранных песен пока нет. Каждая оставляет здесь свои слова — и они сами возвращаются к тебе по расписанию.",
+    wb_empty_songs_btn:"Разобрать первую песню →",
+    wb_song_words:(s,tot)=>`${s} из ${tot} слов в тетради`, wb_song_open:"Открыть разбор", wb_song_filter_btn:"Её слова",
     songs_h:"Разбор песни", songs_intro:"Выбери песню — айдол разберёт её строка за строкой.", songs_empty:"Пока нет песен.", songs_done_h:"Пройденные песни", song_search:"напр. BLACKPINK DDU-DU или Ditto", song_search_hint:"Пиши название/артиста по-английски или по-корейски — не русскими буквами.", song_none:q=>`«${q}» пока нет. Скоро можно будет добавить любую — текст, перевод и синхрон соберём автоматически.`, song_botnote:"Просит войти? Это бот-чек YouTube (чаще на VPN) →", song_fail:"Клип не загрузился — открой его на YouTube ниже 👇 (разбор всё равно работает)", song_online_h:"Добавить из поиска", song_searching:"Ищу в базе…", song_search_empty:"Нет с синхро-текстом — попробуй другое написание (англ. или кор.).", song_need_login:"Войди, чтобы искать и добавлять песни.", song_building:"Собираю разбор… (~30 сек)", song_build_fail:"Эту не получилось собрать — попробуй другую", song_added:"Добавлено 🎉", song_net:"Сеть недоступна", song_guide:"Включи видео, а затем разбирай текст строку за строкой ниже.", song_next:"Следующая строка", song_finish:"Завершить песню ✓", song_save:tab=>`+ в ${tab}`, song_saved:"Сохранено ✓", song_save_toast:"Сохранено в Рабочую тетрадь", song_done_toast:"Песня пройдена 🎉", song_open_yt:"Открыть на YouTube", song_reload:"Перезагрузить видео",
     kara_hint:"Нажми play — слова подсвечиваются в такт. В конце куплета — пауза для разбора. Если подсветка не совпадает с клипом — жми «Синхрон» ровно когда слышишь первое слово куплета.", kara_synctap:"Синхрон", kara_syncdone:"Синхронизировано ✓", kara_cont:"Не останавливать", kara_verse:"Куплет", kara_repeat:"Повторить куплет", kara_nextv:"Следующий куплет",
+    kara_sense_h:"Дословно ≠ по смыслу", kara_lit:"дословно", kara_why:"почему расходится", kara_allwords:"Все слова песни", kara_tr_none:"Перевод этого куплета пока не собран.",
+    song_recap_h:"Все слова, куплет за куплетом", song_recap_sub:(a,b)=>`${a} из ${b} уже в тетради`, song_add_verse:"+ весь куплет", song_added_n:n=>`${n} слов в тетради`, song_recap_back:"← назад к тексту", song_recap_none:"В этом куплете слов пока нет.",
     onb_title:"Как здесь всё устроено", onb_help_chip:"Как это устроено", onb_tour:"Показать по экрану →", onb_ok:"Понятно", onb_next:"Далее", onb_done:"Готово",
     topik_note:"Программа построена по стандарту <b>TOPIK I</b> — по образцу King Sejong Institute. Ведёт к официальному экзамену TOPIK.",
     tile_song:"Разбор песни", tile_song_sub:"строка за строкой", tile_slang:"Сленг из песен", tile_slang_sub:"живой корейский", tile_phrase:"Чат с айдолом", tile_phrase_sub:"живое общение",

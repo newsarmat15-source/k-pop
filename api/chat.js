@@ -4,7 +4,21 @@
 // чтобы мессенджеры (Discord/LINE/Telegram) отвечали в ТОТ ЖЕ тред тем же ядром.
 import { supabase } from "../lib/supabase.js";
 import { readUserId } from "../lib/session.js";
-import { ownIdolByUser, generateReply } from "../lib/reply.js";
+import { ownIdolByUser, generateReply, generateFirstMessage, firstMessageDue } from "../lib/reply.js";
+
+// Язык для первого сообщения. В GET-истории клиент язык не передаёт (менять public/app.js
+// нельзя), поэтому берём то, что и так есть: привязанный мессенджер → заголовок браузера → en.
+const SUPPORTED = ["en", "ru", "es", "pt", "ja", "zh", "id", "th"];
+async function guessLang(db, idolId, req) {
+  const { data: link } = await db.from("linked_accounts").select("lang").eq("idol_id", idolId).limit(1).maybeSingle();
+  if (link?.lang && SUPPORTED.includes(link.lang)) return link.lang;
+  const header = String(req.headers["accept-language"] || "");
+  for (const part of header.split(",")) {
+    const code = part.trim().slice(0, 2).toLowerCase();
+    if (SUPPORTED.includes(code)) return code;
+  }
+  return "en";
+}
 
 async function handleHistory(req, res) {
   const uid = readUserId(req);
@@ -13,13 +27,30 @@ async function handleHistory(req, res) {
   const idol = await ownIdolByUser(db, uid);
   if (!idol) return res.status(200).json({ ok: true, idol: null, messages: [] });
 
-  const { data: rows, error } = await db
-    .from("chat_messages")
-    .select("id,sender,content,is_voice,audio_url,created_at")
-    .eq("idol_id", idol.id)
-    .order("created_at", { ascending: true })
-    .limit(200);
+  const load = () =>
+    db
+      .from("chat_messages")
+      .select("id,sender,content,is_voice,audio_url,created_at")
+      .eq("idol_id", idol.id)
+      .order("created_at", { ascending: true })
+      .limit(200);
+
+  let { data: rows, error } = await load();
   if (error) return res.status(500).json({ error: error.message });
+
+  // ХУК ПЕРВОГО СООБЩЕНИЯ, быстрый путь. Тред пуст и айдол «отлежался» — значит фанат
+  // выбрал айдола и пришёл, а тот ему ещё не написал. Пишем прямо сейчас, чтобы он увидел
+  // сообщение, а не пустой экран: пустой чат при первом заходе — это ровно тот момент,
+  // где теряется вторая сессия. Идемпотентность держит замок first_msg_at внутри ядра,
+  // поэтому параллельные вкладки/устройства дубля не создадут.
+  if (!rows?.length && firstMessageDue(idol.created_at)) {
+    const lang = await guessLang(db, idol.id, req);
+    const first = await generateFirstMessage({ db, idol, lang, channel: "web" });
+    if (first.reply) {
+      const again = await load();
+      if (!again.error) rows = again.data;
+    }
+  }
 
   return res.status(200).json({
     ok: true,

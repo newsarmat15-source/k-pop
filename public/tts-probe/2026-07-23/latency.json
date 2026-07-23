@@ -1,0 +1,326 @@
+{
+  "texts": {
+    "01-jamo-vowel-RAW": "ㅏ",
+    "02-jamo-cons-RAW": "ㄹ",
+    "03-vowel-FIXED": "아",
+    "04-cons-name": "리을",
+    "05-cons-demo": "리을. 라, 러, 로, 루.",
+    "06-syllable": "가",
+    "07-phrase": "안녕하세요. 만나서 반가워요.",
+    "08-songline": "오늘 밤 우리 둘만의 별빛 아래에서"
+  },
+  "report": [
+    {
+      "engine": "gemini-31-flash",
+      "text": "01-jamo-vowel-RAW",
+      "ok": false,
+      "status": 422,
+      "error": "{\"detail\":[{\"loc\":[\"body\",\"prompt\"],\"msg\":\"The content could not be processed because it contained material flagged by a content checker.\",\"type\":\"content_policy_violation\",\"url\":\"https://docs.fal.ai/errors#content_policy_violation\",\"input\":{\"prompt\":\"ㅏ\",\"style_instructions\":\"You are a young Korean "
+    },
+    {
+      "engine": "gemini-31-flash",
+      "text": "02-jamo-cons-RAW",
+      "ok": false,
+      "status": 422,
+      "error": "{\"detail\":[{\"loc\":[\"body\",\"prompt\"],\"msg\":\"The content could not be processed because it contained material flagged by a content checker.\",\"type\":\"content_policy_violation\",\"url\":\"https://docs.fal.ai/errors#content_policy_violation\",\"input\":{\"prompt\":\"ㄹ\",\"style_instructions\":\"You are a young Korean "
+    },
+    {
+      "engine": "gemini-31-flash",
+      "text": "03-vowel-FIXED",
+      "ok": false,
+      "status": 422,
+      "error": "{\"detail\":[{\"loc\":[\"body\",\"prompt\"],\"msg\":\"The content could not be processed because it contained material flagged by a content checker.\",\"type\":\"content_policy_violation\",\"url\":\"https://docs.fal.ai/errors#content_policy_violation\",\"input\":{\"prompt\":\"아\",\"style_instructions\":\"You are a young Korean "
+    },
+    {
+      "engine": "gemini-31-flash",
+      "text": "04-cons-name",
+      "ok": false,
+      "status": 422,
+      "error": "{\"detail\":[{\"loc\":[\"body\",\"prompt\"],\"msg\":\"The content could not be processed because it contained material flagged by a content checker.\",\"type\":\"content_policy_violation\",\"url\":\"https://docs.fal.ai/errors#content_policy_violation\",\"input\":{\"prompt\":\"리을\",\"style_instructions\":\"You are a young Korean"
+    },
+    {
+      "engine": "gemini-31-flash",
+      "text": "05-cons-demo",
+      "ok": true,
+      "ms": 7132,
+      "bytes": 141357,
+      "chars": 15
+    },
+    {
+      "engine": "gemini-31-flash",
+      "text": "06-syllable",
+      "ok": false,
+      "status": 422,
+      "error": "{\"detail\":[{\"loc\":[\"body\",\"prompt\"],\"msg\":\"The content could not be processed because it contained material flagged by a content checker.\",\"type\":\"content_policy_violation\",\"url\":\"https://docs.fal.ai/errors#content_policy_violation\",\"input\":{\"prompt\":\"가\",\"style_instructions\":\"You are a young Korean "
+    },
+    {
+      "engine": "gemini-31-flash",
+      "text": "07-phrase",
+      "ok": true,
+      "ms": 3726,
+      "bytes": 60333,
+      "chars": 16
+    },
+    {
+      "engine": "gemini-31-flash",
+      "text": "08-songline",
+      "ok": true,
+      "ms": 5174,
+      "bytes": 94125,
+      "chars": 19
+    },
+    {
+      "engine": "qwen3-sohee",
+      "text": "01-jamo-vowel-RAW",
+      "ok": true,
+      "ms": 24143,
+      "bytes": 17506,
+      "chars": 1
+    },
+    {
+      "engine": "qwen3-sohee",
+      "text": "02-jamo-cons-RAW",
+      "ok": true,
+      "ms": 13365,
+      "bytes": 22138,
+      "chars": 1
+    },
+    {
+      "engine": "qwen3-sohee",
+      "text": "03-vowel-FIXED",
+      "ok": true,
+      "ms": 10279,
+      "bytes": 17458,
+      "chars": 1
+    },
+    {
+      "engine": "qwen3-sohee",
+      "text": "04-cons-name",
+      "ok": true,
+      "ms": 16132,
+      "bytes": 36082,
+      "chars": 2
+    },
+    {
+      "engine": "qwen3-sohee",
+      "text": "05-cons-demo",
+      "ok": true,
+      "ms": 15197,
+      "bytes": 28738,
+      "chars": 15
+    },
+    {
+      "engine": "qwen3-sohee",
+      "text": "06-syllable",
+      "ok": true,
+      "ms": 2326,
+      "bytes": 19186,
+      "chars": 1
+    },
+    {
+      "engine": "qwen3-sohee",
+      "text": "07-phrase",
+      "ok": true,
+      "ms": 4282,
+      "bytes": 29266,
+      "chars": 16
+    },
+    {
+      "engine": "qwen3-sohee",
+      "text": "08-songline",
+      "ok": true,
+      "ms": 7656,
+      "bytes": 42274,
+      "chars": 19
+    },
+    {
+      "engine": "inworld-minji",
+      "text": "01-jamo-vowel-RAW",
+      "ok": false,
+      "error": "fetch failed"
+    },
+    {
+      "engine": "inworld-minji",
+      "text": "02-jamo-cons-RAW",
+      "ok": true,
+      "ms": 108885,
+      "bytes": 93706,
+      "chars": 1
+    },
+    {
+      "engine": "inworld-minji",
+      "text": "03-vowel-FIXED",
+      "ok": true,
+      "ms": 2244,
+      "bytes": 72584,
+      "chars": 1
+    },
+    {
+      "engine": "inworld-minji",
+      "text": "04-cons-name",
+      "ok": true,
+      "ms": 1623,
+      "bytes": 93706,
+      "chars": 2
+    },
+    {
+      "engine": "inworld-minji",
+      "text": "05-cons-demo",
+      "ok": true,
+      "ms": 2492,
+      "bytes": 393226,
+      "chars": 15
+    },
+    {
+      "engine": "inworld-minji",
+      "text": "06-syllable",
+      "ok": true,
+      "ms": 2102,
+      "bytes": 80266,
+      "chars": 1
+    },
+    {
+      "engine": "inworld-minji",
+      "text": "07-phrase",
+      "ok": true,
+      "ms": 3677,
+      "bytes": 276106,
+      "chars": 16
+    },
+    {
+      "engine": "inworld-minji",
+      "text": "08-songline",
+      "ok": true,
+      "ms": 2305,
+      "bytes": 320266,
+      "chars": 19
+    },
+    {
+      "engine": "inworld-yoona",
+      "text": "01-jamo-vowel-RAW",
+      "ok": true,
+      "ms": 7384,
+      "bytes": 109066,
+      "chars": 1
+    },
+    {
+      "engine": "inworld-yoona",
+      "text": "02-jamo-cons-RAW",
+      "ok": true,
+      "ms": 2292,
+      "bytes": 70664,
+      "chars": 1
+    },
+    {
+      "engine": "inworld-yoona",
+      "text": "03-vowel-FIXED",
+      "ok": true,
+      "ms": 1394,
+      "bytes": 80266,
+      "chars": 1
+    },
+    {
+      "engine": "inworld-yoona",
+      "text": "04-cons-name",
+      "ok": true,
+      "ms": 6264,
+      "bytes": 76424,
+      "chars": 2
+    },
+    {
+      "engine": "inworld-yoona",
+      "text": "05-cons-demo",
+      "ok": true,
+      "ms": 2629,
+      "bytes": 389386,
+      "chars": 15
+    },
+    {
+      "engine": "inworld-yoona",
+      "text": "06-syllable",
+      "ok": true,
+      "ms": 3100,
+      "bytes": 70664,
+      "chars": 1
+    },
+    {
+      "engine": "inworld-yoona",
+      "text": "07-phrase",
+      "ok": true,
+      "ms": 2094,
+      "bytes": 258826,
+      "chars": 16
+    },
+    {
+      "engine": "inworld-yoona",
+      "text": "08-songline",
+      "ok": true,
+      "ms": 2286,
+      "bytes": 308746,
+      "chars": 19
+    },
+    {
+      "engine": "elevenlabs-v3-jessica",
+      "text": "01-jamo-vowel-RAW",
+      "ok": true,
+      "ms": 2052,
+      "bytes": 12165,
+      "chars": 1
+    },
+    {
+      "engine": "elevenlabs-v3-jessica",
+      "text": "02-jamo-cons-RAW",
+      "ok": false,
+      "status": 422,
+      "error": "{\"detail\":\"No audio returned by ElevenLabs stream.\"}"
+    },
+    {
+      "engine": "elevenlabs-v3-jessica",
+      "text": "03-vowel-FIXED",
+      "ok": true,
+      "ms": 2641,
+      "bytes": 12165,
+      "chars": 1
+    },
+    {
+      "engine": "elevenlabs-v3-jessica",
+      "text": "04-cons-name",
+      "ok": true,
+      "ms": 2491,
+      "bytes": 19689,
+      "chars": 2
+    },
+    {
+      "engine": "elevenlabs-v3-jessica",
+      "text": "05-cons-demo",
+      "ok": true,
+      "ms": 3052,
+      "bytes": 67336,
+      "chars": 15
+    },
+    {
+      "engine": "elevenlabs-v3-jessica",
+      "text": "06-syllable",
+      "ok": true,
+      "ms": 1846,
+      "bytes": 15927,
+      "chars": 1
+    },
+    {
+      "engine": "elevenlabs-v3-jessica",
+      "text": "07-phrase",
+      "ok": true,
+      "ms": 2292,
+      "bytes": 33899,
+      "chars": 16
+    },
+    {
+      "engine": "elevenlabs-v3-jessica",
+      "text": "08-songline",
+      "ok": true,
+      "ms": 2746,
+      "bytes": 48110,
+      "chars": 19
+    }
+  ]
+}

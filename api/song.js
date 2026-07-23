@@ -54,7 +54,7 @@ function parseSynced(lrc) {
     if (!m) continue;
     const t = +m[1] * 60 + +m[2] + (m[3] ? +("0." + m[3]) : 0);
     const kr = (m[4] || "").trim();
-    if (kr && /[가-힣]/.test(kr)) out.push({ t: +t.toFixed(2), kr });
+    if (kr && /[가-힣]/.test(kr)) out.push({ t: +t.toFixed(2), kr, i: out.length });
   }
   return out;
 }
@@ -75,17 +75,48 @@ function groupVerses(lines) {
   return verses;
 }
 
-async function annotate(lines) {
+// Транскрипция: НЕ книжная романизация, а фактическое звучание слога у артиста.
+// Модель обязана применить корейские звуковые правила (напряжение, ассимиляция,
+// перенос патчхима, выпадение ㅎ) и разбить результат на слоги через «·».
+// Плюс смысловой слой куплета: дословно / по смыслу / почему они расходятся —
+// это то единственное, ради чего пользователь остаётся на экране разбора.
+const TRANSCRIPTION_RULES = [
+  "TRANSCRIPTION IS THE MOST IMPORTANT FIELD. Do NOT output textbook Revised Romanization.",
+  "Transcribe how the syllable is ACTUALLY SUNG, after Korean phonological rules:",
+  "  tensification: 보고 싶다 -> bo·go·sip·tta (not sipda); 잡고 -> jap·kko",
+  "  liaison of the patchim: 사진을 -> sa·ji·neul; 8월에도 -> pa·rwo·re·do; 눈이 -> nu·ni",
+  "  ㅎ weakening/aspiration: 말하니까 -> ma·ra·ni·kka; 이렇게 -> i·reo·ke; 야속한 -> ya·so·kan",
+  "  nasal/lateral assimilation: 설국열차 -> seol·gung·nyeol·cha; 홀로 -> hol·lo; 끝내고파 -> kkeun·nae·go·pa",
+  "Split every transcription into SYLLABLES separated by the middle dot '·'. One dot between syllables, no spaces.",
+  "'r'  = Latin syllables (for English and all non-Cyrillic UI languages).",
+  "'rr' = Cyrillic syllables for Russian speakers, Kontsevich system, also pronunciation-based:",
+  "  보고 싶다 -> по·го·сип·та; 시간 -> щи·ган; 설국열차 -> соль·гун·нёль·ча; 잡고 -> чап·ко.",
+  "Latin words inside Korean lyrics (e.g. 'friend') keep the word itself in 'r' and a Cyrillic reading in 'rr'.",
+].join("\n");
+
+async function annotate(verseGroups) {
   const key = process.env.FAL_KEY;
   if (!key) throw new Error("FAL_KEY не задан");
   const system =
     "You are a Korean lyrics annotator for a language-learning app. Output ONLY valid minified JSON, no prose, no markdown fences.";
+  const listing = verseGroups
+    .map((g, v) => g.map((l) => `V${v} L${l.i} ${l.kr}`).join("\n"))
+    .join("\n");
   const prompt =
-    `Korean song lines (index, then text):\n` +
-    lines.map((l, i) => i + " " + l.kr).join("\n") +
+    `Korean song, already grouped into verses. Each row is "V<verse> L<line> <lyrics>":\n` +
+    listing +
     `\n\nReturn ONLY JSON of this exact shape:\n` +
-    `{"lines":[{"i":0,"rom":"<Revised romanization of the whole line>","tr":{"ru":"<short Russian translation>","en":"<short English translation>"},"w":[{"k":"<korean word>","r":"<rom>","ru":"<1-2 word Russian>","en":"<1-2 word English>"}]}]}\n` +
-    `Rules: one object per input line, same index. Split each line into meaningful words (keep particles attached to their word). Revised Romanization. JSON only.`;
+    `{"lines":[{"i":0,"tr":{"ru":"","en":""},"w":[{"k":"","r":"","rr":"","ru":"","en":""}]}],` +
+    `"verses":[{"v":0,"tr":{"ru":"","en":""},"lit":{"ru":"","en":""},"why":{"ru":"","en":""}}]}\n\n` +
+    TRANSCRIPTION_RULES +
+    `\n\nOther rules:\n` +
+    `- "lines": exactly one object per input line, "i" = the L number from the input.\n` +
+    `- Split each line into meaningful words; keep particles attached to their word. "ru"/"en" = 1-3 word gloss of THAT word alone.\n` +
+    `- "verses": exactly one object per verse, "v" = the V number.\n` +
+    `- verses[].lit = word-for-word literal translation of the whole verse. It MUST read clumsily — that is the point.\n` +
+    `- verses[].tr = what the verse actually means in natural Russian/English.\n` +
+    `- verses[].why = 2-4 sentences explaining WHY lit and tr differ. Name concrete words: word A means X on its own, word B means Y on its own, but together they mean Z. Cover idioms, film/culture references and grammar tails that carry feeling no single word carries. Write it for a fan with zero Korean.\n` +
+    `- Russian text in Russian, English text in English. No markdown. JSON only.`;
   // 21.07: any-llm deprecated → OpenRouter chat-completions (OpenAI-совместимый, тот же FAL_KEY).
   const r = await fetch("https://fal.run/openrouter/router/openai/v1/chat/completions", {
     method: "POST",
@@ -104,7 +135,44 @@ async function annotate(lines) {
   let out = (d.choices?.[0]?.message?.content || "").trim().replace(/^```json?/i, "").replace(/```$/, "").trim();
   const m = out.match(/\{[\s\S]*\}/);
   const parsed = JSON.parse(m ? m[0] : out);
-  return parsed.lines || [];
+  return { lines: parsed.lines || [], verses: parsed.verses || [] };
+}
+
+// Страховка от книжной романизации: если модель вернула слитную строку без «·»,
+// хотя бы режем её на слоги по границам гласных — лучше приблизительно по слогам,
+// чем сплошным куском, который невозможно спеть.
+const VOWELS = ["yeo", "wae", "yae", "eo", "eu", "ae", "oe", "ui", "ya", "yo", "yu", "ye", "wa", "wo", "wi", "a", "e", "i", "o", "u"];
+const ONSETS = ["kk", "tt", "pp", "jj", "ss", "ch", "g", "n", "d", "r", "l", "m", "b", "s", "j", "k", "t", "p", "h", "w", "y"];
+function syllabify(s) {
+  const str = String(s || "").trim();
+  if (!str || str.includes("·")) return str;
+  if (!/^[a-z\s'-]+$/i.test(str)) return str;
+  const low = str.toLowerCase();
+  const isVowelAt = (i) => VOWELS.find((x) => low.startsWith(x, i));
+  const out = [];
+  let buf = "";
+  let i = 0;
+  const flush = () => { if (buf) out.push(buf); buf = ""; };
+  while (i < low.length) {
+    if (low[i] === " " || low[i] === "-") { flush(); i++; continue; }
+    const v = isVowelAt(i);
+    if (!v) { buf += str[i]; i++; continue; }
+    buf += str.slice(i, i + v.length);
+    i += v.length;
+    // согласные после гласной: последняя «онсетная» группа уходит в следующий слог,
+    // остальное — патчхим текущего. В конце слова всё остаётся патчхимом.
+    let run = "";
+    while (i < low.length && !isVowelAt(i) && low[i] !== " " && low[i] !== "-") { run += str[i]; i++; }
+    if (!run || i >= low.length || low[i] === " " || low[i] === "-") { buf += run; flush(); continue; }
+    const tail = run.toLowerCase();
+    const onset = ONSETS.find((o) => tail.endsWith(o)) || run.slice(-1);
+    const coda = run.slice(0, run.length - onset.length);
+    buf += coda;
+    flush();
+    buf = run.slice(run.length - onset.length);
+  }
+  flush();
+  return out.filter(Boolean).join("·") || str;
 }
 
 // Ищем id клипа на YouTube по названию (скрейп страницы результатов).
@@ -144,37 +212,51 @@ async function handleBuild(req, res) {
   if (!allLines.length) return res.status(422).json({ error: "В песне нет корейского текста" });
   const lines = allLines.slice(0, MAX_LINES);
 
+  // Куплеты режем ДО обращения к модели: она должна видеть границы куплета,
+  // чтобы дать смысловой перевод целого куплета, а не склейку построчных обрывков.
+  const groups = groupVerses(lines);
+
   let ann;
   try {
-    ann = await annotate(lines);
+    ann = await annotate(groups);
   } catch (e) {
     return res.status(502).json({ error: "Не удалось собрать разбор, попробуй другую песню", detail: String(e?.message || e) });
   }
 
-  // Склеиваем тайминги (lrclib) с разбором (LLM) построчно.
+  const byLine = new Map();
+  for (const a of ann.lines) if (a && a.i != null) byLine.set(+a.i, a);
+  const byVerse = new Map();
+  for (const v of ann.verses) if (v && v.v != null) byVerse.set(+v.v, v);
+
   const built = lines.map((l, i) => {
-    const a = ann.find((x) => x.i === i) || ann[i] || {};
-    const w = Array.isArray(a.w) && a.w.length ? a.w : [{ k: l.kr, r: a.rom || "", ru: (a.tr && a.tr.ru) || "", en: (a.tr && a.tr.en) || "" }];
-    return { t: l.t, kr: l.kr, rom: a.rom || "", tr: a.tr || { ru: "", en: "" }, w };
+    const a = byLine.get(i) || ann.lines[i] || {};
+    const raw = Array.isArray(a.w) && a.w.length ? a.w : [{ k: l.kr, r: "", rr: "", ru: (a.tr && a.tr.ru) || "", en: (a.tr && a.tr.en) || "" }];
+    const w = raw.map((x) => ({
+      k: x.k || "",
+      r: syllabify(x.r),
+      rr: String(x.rr || ""),
+      ru: x.ru || "",
+      en: x.en || "",
+    })).filter((x) => x.k);
+    return { t: l.t, kr: l.kr, tr: a.tr || { ru: "", en: "" }, w: w.length ? w : [{ k: l.kr, r: "", rr: "", ru: "", en: "" }] };
   });
 
-  // Куплеты по паузам, с переводом-склейкой и парой слов в тетрадь.
-  const groups = groupVerses(built);
-  const flat = built;
-  const verses = groups.map((g) => {
-    const lastIdx = flat.indexOf(g[g.length - 1]);
-    const end = flat[lastIdx + 1] ? flat[lastIdx + 1].t : g[g.length - 1].t + 4;
-    const vocab = [];
-    for (const ln of g) for (const wd of ln.w) {
-      if (vocab.length < 2 && wd.k && wd.k.length > 1 && !vocab.some((v) => v.kr === wd.k))
-        vocab.push({ kr: wd.k, rom: wd.r, ru: wd.ru, en: wd.en });
-    }
-    return {
+  const verses = groups.map((g, vi) => {
+    const last = g[g.length - 1];
+    const end = lines[last.i + 1] ? lines[last.i + 1].t : last.t + 4;
+    const va = byVerse.get(vi) || ann.verses[vi] || {};
+    const glines = g.map((l) => built[l.i]);
+    // Фолбэк, если модель не дала перевод куплета: склейка построчных.
+    const joined = (k) => glines.map((l) => (l.tr && l.tr[k]) || "").filter(Boolean).join(" ");
+    const tr = va.tr && (va.tr.ru || va.tr.en) ? va.tr : { ru: joined("ru"), en: joined("en") };
+    const v = {
       end: +end.toFixed(2),
-      tr: { ru: g.map((l) => l.tr.ru).filter(Boolean).join(" "), en: g.map((l) => l.tr.en).filter(Boolean).join(" ") },
-      vocab,
-      lines: g.map((l) => ({ t: l.t, w: l.w })),
+      tr,
+      lines: glines.map((l) => ({ t: l.t, w: l.w })),
     };
+    if (va.lit && (va.lit.ru || va.lit.en)) v.lit = va.lit;
+    if (va.why && (va.why.ru || va.why.en)) v.why = va.why;
+    return v;
   });
 
   const ytId = await youtubeId(rec.artistName + " " + rec.trackName + " official");

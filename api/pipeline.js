@@ -10,6 +10,7 @@ import os from "node:os";
 import ffmpegPath from "ffmpeg-static";
 import { fetchWithRetry } from "../lib/fal-fetch.js";
 import { readUserId } from "../lib/session.js";
+import { synthesize, toSpeakable, DEFAULT_ENGINE } from "../lib/tts-ko.js";
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 async function withRetry(fn, tries = 4) {
@@ -915,32 +916,34 @@ async function handleLastframe(req, res) {
   }
 }
 
-/* ===================== TTS (голосовые — задел под чат-компаньона) ===================== */
+/* ===================== TTS =====================
+ * Движок выбирается в ОДНОМ месте — env TTS_ENGINE, таблица в lib/tts-ko.js.
+ * Здесь только транспорт: проверки, лимиты, кэш-заголовки.
+ * Гостю разрешены короткие строки (буква/слово) — учебная вкладка обязана
+ * работать без аккаунта. Длинные тексты (голосовые айдола) — только с сессией.
+ */
+const TTS_GUEST_MAX_CHARS = 40;
+
 async function handleTts(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Use POST" });
-  if (!readUserId(req)) return res.status(401).json({ error: "Нужно войти в аккаунт" });
-  const ELEVEN_KEY = process.env.ELEVENLABS_API_KEY;
-  if (!ELEVEN_KEY) return res.status(500).json({ error: "ELEVENLABS_API_KEY не задан" });
 
-  const { text, voiceId = "21m00Tcm4TlvDq8ikWAM" } = req.body || {};
-  if (!text || !String(text).trim()) return res.status(400).json({ error: "Нужен непустой text" });
+  const { text, slow = false, demo = false, engine, voiceId } = req.body || {};
+  const raw = String(text || "").trim();
+  if (!raw) return res.status(400).json({ error: "Нужен непустой text" });
+  if (raw.length > 500) return res.status(400).json({ error: "Слишком длинный текст" });
+
+  // защита от слива денег анонимами: гостю — только короткие учебные строки
+  if (!readUserId(req) && raw.length > TTS_GUEST_MAX_CHARS) {
+    return res.status(401).json({ error: "Нужно войти в аккаунт" });
+  }
 
   try {
-    const r = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
-      method: "POST",
-      headers: { "xi-api-key": ELEVEN_KEY, "Content-Type": "application/json", Accept: "audio/mpeg" },
-      body: JSON.stringify({
-        text,
-        model_id: "eleven_multilingual_v2",
-        voice_settings: { stability: 0.5, similarity_boost: 0.75 },
-      }),
-    });
-    if (!r.ok) {
-      const errText = await r.text().catch(() => "");
-      return res.status(r.status).json({ ok: false, error: errText || `ElevenLabs вернул ${r.status}` });
-    }
-    const buf = Buffer.from(await r.arrayBuffer());
+    const buf = await synthesize(raw, { slow: !!slow, demo: !!demo, engine, voiceId });
     res.setHeader("Content-Type", "audio/mpeg");
+    // алфавит конечен и неизменен — пусть браузер и CDN держат его у себя
+    res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+    res.setHeader("X-TTS-Engine", engine || process.env.TTS_ENGINE || DEFAULT_ENGINE);
+    res.setHeader("X-TTS-Spoken", encodeURIComponent(toSpeakable(raw, { demo: !!demo }).speak));
     return res.status(200).send(buf);
   } catch (e) {
     return res.status(500).json({ ok: false, error: String(e?.message || e) });

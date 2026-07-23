@@ -1,0 +1,810 @@
+[
+  {
+    "file": "01_как-сейчас_голая-буква-A__A-текущий-minimax02hd-1.2x.mp3",
+    "engine": "A-текущий-minimax02hd-1.2x",
+    "test": "01_",
+    "expect": "ㅏ",
+    "heard": "아",
+    "hit": false
+  },
+  {
+    "file": "01_как-сейчас_голая-буква-A__B-minimax28hd.mp3",
+    "engine": "B-minimax28hd",
+    "test": "01_",
+    "expect": "ㅏ",
+    "heard": "어...",
+    "hit": false
+  },
+  {
+    "file": "01_как-сейчас_голая-буква-A__C-inworld-Minji.wav",
+    "engine": "C-inworld-Minji",
+    "test": "01_",
+    "expect": "ㅏ",
+    "heard": "감사합니다.",
+    "hit": false
+  },
+  {
+    "file": "01_как-сейчас_голая-буква-A__D-inworld-Yoona.wav",
+    "engine": "D-inworld-Yoona",
+    "test": "01_",
+    "expect": "ㅏ",
+    "heard": "어",
+    "hit": false
+  },
+  {
+    "file": "01_как-сейчас_голая-буква-A__E-qwen3-Sohee.mp3",
+    "engine": "E-qwen3-Sohee",
+    "test": "01_",
+    "expect": "ㅏ",
+    "heard": "아... 철도인현듯... 니분이 허?",
+    "hit": false
+  },
+  {
+    "file": "01_как-сейчас_голая-буква-A__F-elevenlabs-v3-англоголос.mp3",
+    "engine": "F-elevenlabs-v3-англоголос",
+    "test": "01_",
+    "expect": "ㅏ",
+    "heard": "조",
+    "hit": false
+  },
+  {
+    "file": "02_правильно_гласная-A__A-текущий-minimax02hd-1.2x.mp3",
+    "engine": "A-текущий-minimax02hd-1.2x",
+    "test": "02_",
+    "expect": "아",
+    "heard": "아",
+    "hit": true
+  },
+  {
+    "file": "02_правильно_гласная-A__B-minimax28hd.mp3",
+    "engine": "B-minimax28hd",
+    "test": "02_",
+    "expect": "아",
+    "heard": "어",
+    "hit": false
+  },
+  {
+    "file": "02_правильно_гласная-A__C-inworld-Minji.wav",
+    "engine": "C-inworld-Minji",
+    "test": "02_",
+    "expect": "아",
+    "heard": "감사합니다.",
+    "hit": false
+  },
+  {
+    "file": "02_правильно_гласная-A__D-inworld-Yoona.wav",
+    "engine": "D-inworld-Yoona",
+    "test": "02_",
+    "expect": "아",
+    "heard": "아",
+    "hit": true
+  },
+  {
+    "file": "02_правильно_гласная-A__E-qwen3-Sohee.mp3",
+    "engine": "E-qwen3-Sohee",
+    "test": "02_",
+    "expect": "아",
+    "heard": "아",
+    "hit": true
+  },
+  {
+    "file": "02_правильно_гласная-A__F-elevenlabs-v3-англоголос.mp3",
+    "engine": "F-elevenlabs-v3-англоголос",
+    "test": "02_",
+    "expect": "아",
+    "heard": "아",
+    "hit": true
+  },
+  {
+    "file": "03_как-сейчас_голая-буква-R__A-текущий-minimax02hd-1.2x.mp3",
+    "engine": "A-текущий-minimax02hd-1.2x",
+    "test": "03_",
+    "expect": "ㄹ",
+    "heard": "에릭",
+    "hit": false
+  },
+  {
+    "file": "03_как-сейчас_голая-буква-R__B-minimax28hd.mp3",
+    "engine": "B-minimax28hd",
+    "test": "03_",
+    "expect": "ㄹ",
+    "heard": "리얼",
+    "hit": false
+  },
+  {
+    "file": "03_как-сейчас_голая-буква-R__C-inworld-Minji.wav",
+    "engine": "C-inworld-Minji",
+    "test": "03_",
+    "expect": "ㄹ",
+    "heard": "하",
+    "hit": false
+  },
+  {
+    "file": "03_как-сейчас_голая-буква-R__D-inworld-Yoona.wav",
+    "engine": "D-inworld-Yoona",
+    "test": "03_",
+    "expect": "ㄹ",
+    "heard": "",
+    "hit": false
+  },
+  {
+    "file": "03_как-сейчас_голая-буква-R__E-qwen3-Sohee.mp3",
+    "engine": "E-qwen3-Sohee",
+    "test": "03_",
+    "expect": "ㄹ",
+    "heard": "이수아질로 아니요 도르더리 해면 죽음을 듣지 나나 자문에 자들을",
+    "hit": false
+  },
+  {
+    "file": "04_правильно_имя-буквы-риыль__A-текущий-minimax02hd-1.2x.mp3",
+    "engine": "A-текущий-minimax02hd-1.2x",
+    "test": "04_",
+    "expect": "리을",
+    "heard": "리얼",
+    "hit": false
+  },
+  {
+    "file": "04_правильно_имя-буквы-риыль__B-minimax28hd.mp3",
+    "engine": "B-minimax28hd",
+    "test": "04_",
+    "expect": "리을",
+    "heard": "리얼",
+    "hit": false
+  },
+  {
+    "file": "04_правильно_имя-буквы-риыль__C-inworld-Minji.wav",
+    "engine": "C-inworld-Minji",
+    "test": "04_",
+    "expect": "리을",
+    "heard": "리을",
+    "hit": true
+  },
+  {
+    "file": "04_правильно_имя-буквы-риыль__D-inworld-Yoona.wav",
+    "engine": "D-inworld-Yoona",
+    "test": "04_",
+    "expect": "리을",
+    "heard": "리을",
+    "hit": true
+  },
+  {
+    "file": "04_правильно_имя-буквы-риыль__E-qwen3-Sohee.mp3",
+    "engine": "E-qwen3-Sohee",
+    "test": "04_",
+    "expect": "리을",
+    "heard": "릴",
+    "hit": false
+  },
+  {
+    "file": "04_правильно_имя-буквы-риыль__F-elevenlabs-v3-англоголос.mp3",
+    "engine": "F-elevenlabs-v3-англоголос",
+    "test": "04_",
+    "expect": "리을",
+    "heard": "리에",
+    "hit": false
+  },
+  {
+    "file": "05_пара-ЕО-О_первая-어__A-текущий-minimax02hd-1.2x.mp3",
+    "engine": "A-текущий-minimax02hd-1.2x",
+    "test": "05_",
+    "expect": "어",
+    "heard": "어",
+    "hit": true
+  },
+  {
+    "file": "05_пара-ЕО-О_первая-어__B-minimax28hd.mp3",
+    "engine": "B-minimax28hd",
+    "test": "05_",
+    "expect": "어",
+    "heard": "어",
+    "hit": true
+  },
+  {
+    "file": "05_пара-ЕО-О_первая-어__C-inworld-Minji.wav",
+    "engine": "C-inworld-Minji",
+    "test": "05_",
+    "expect": "어",
+    "heard": "아",
+    "hit": false
+  },
+  {
+    "file": "05_пара-ЕО-О_первая-어__D-inworld-Yoona.wav",
+    "engine": "D-inworld-Yoona",
+    "test": "05_",
+    "expect": "어",
+    "heard": "",
+    "hit": false
+  },
+  {
+    "file": "05_пара-ЕО-О_первая-어__E-qwen3-Sohee.mp3",
+    "engine": "E-qwen3-Sohee",
+    "test": "05_",
+    "expect": "어",
+    "heard": "어",
+    "hit": true
+  },
+  {
+    "file": "05_пара-ЕО-О_первая-어__F-elevenlabs-v3-англоголос.mp3",
+    "engine": "F-elevenlabs-v3-англоголос",
+    "test": "05_",
+    "expect": "어",
+    "heard": "아...",
+    "hit": false
+  },
+  {
+    "file": "06_пара-ЕО-О_вторая-오__A-текущий-minimax02hd-1.2x.mp3",
+    "engine": "A-текущий-minimax02hd-1.2x",
+    "test": "06_",
+    "expect": "오",
+    "heard": "어...",
+    "hit": false
+  },
+  {
+    "file": "06_пара-ЕО-О_вторая-오__B-minimax28hd.mp3",
+    "engine": "B-minimax28hd",
+    "test": "06_",
+    "expect": "오",
+    "heard": "어...",
+    "hit": false
+  },
+  {
+    "file": "06_пара-ЕО-О_вторая-오__C-inworld-Minji.wav",
+    "engine": "C-inworld-Minji",
+    "test": "06_",
+    "expect": "오",
+    "heard": "오",
+    "hit": true
+  },
+  {
+    "file": "06_пара-ЕО-О_вторая-오__D-inworld-Yoona.wav",
+    "engine": "D-inworld-Yoona",
+    "test": "06_",
+    "expect": "오",
+    "heard": "오",
+    "hit": true
+  },
+  {
+    "file": "06_пара-ЕО-О_вторая-오__E-qwen3-Sohee.mp3",
+    "engine": "E-qwen3-Sohee",
+    "test": "06_",
+    "expect": "오",
+    "heard": "오",
+    "hit": true
+  },
+  {
+    "file": "06_пара-ЕО-О_вторая-오__F-elevenlabs-v3-англоголос.mp3",
+    "engine": "F-elevenlabs-v3-англоголос",
+    "test": "06_",
+    "expect": "오",
+    "heard": "오",
+    "hit": true
+  },
+  {
+    "file": "07_пара-Э-Е_первая-애__A-текущий-minimax02hd-1.2x.mp3",
+    "engine": "A-текущий-minimax02hd-1.2x",
+    "test": "07_",
+    "expect": "애",
+    "heard": "에",
+    "hit": false
+  },
+  {
+    "file": "07_пара-Э-Е_первая-애__B-minimax28hd.mp3",
+    "engine": "B-minimax28hd",
+    "test": "07_",
+    "expect": "애",
+    "heard": "에",
+    "hit": false
+  },
+  {
+    "file": "07_пара-Э-Е_первая-애__C-inworld-Minji.wav",
+    "engine": "C-inworld-Minji",
+    "test": "07_",
+    "expect": "애",
+    "heard": "네.",
+    "hit": false
+  },
+  {
+    "file": "07_пара-Э-Е_первая-애__D-inworld-Yoona.wav",
+    "engine": "D-inworld-Yoona",
+    "test": "07_",
+    "expect": "애",
+    "heard": "에?",
+    "hit": false
+  },
+  {
+    "file": "07_пара-Э-Е_первая-애__E-qwen3-Sohee.mp3",
+    "engine": "E-qwen3-Sohee",
+    "test": "07_",
+    "expect": "애",
+    "heard": "으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으으",
+    "hit": false
+  },
+  {
+    "file": "07_пара-Э-Е_первая-애__F-elevenlabs-v3-англоголос.mp3",
+    "engine": "F-elevenlabs-v3-англоголос",
+    "test": "07_",
+    "expect": "애",
+    "heard": "에",
+    "hit": false
+  },
+  {
+    "file": "08_пара-Э-Е_вторая-에__A-текущий-minimax02hd-1.2x.mp3",
+    "engine": "A-текущий-minimax02hd-1.2x",
+    "test": "08_",
+    "expect": "에",
+    "heard": "에...",
+    "hit": true
+  },
+  {
+    "file": "08_пара-Э-Е_вторая-에__B-minimax28hd.mp3",
+    "engine": "B-minimax28hd",
+    "test": "08_",
+    "expect": "에",
+    "heard": "에...",
+    "hit": true
+  },
+  {
+    "file": "08_пара-Э-Е_вторая-에__C-inworld-Minji.wav",
+    "engine": "C-inworld-Minji",
+    "test": "08_",
+    "expect": "에",
+    "heard": "A",
+    "hit": false
+  },
+  {
+    "file": "08_пара-Э-Е_вторая-에__D-inworld-Yoona.wav",
+    "engine": "D-inworld-Yoona",
+    "test": "08_",
+    "expect": "에",
+    "heard": "에",
+    "hit": true
+  },
+  {
+    "file": "08_пара-Э-Е_вторая-에__E-qwen3-Sohee.mp3",
+    "engine": "E-qwen3-Sohee",
+    "test": "08_",
+    "expect": "에",
+    "heard": "에",
+    "hit": true
+  },
+  {
+    "file": "08_пара-Э-Е_вторая-에__F-elevenlabs-v3-англоголос.mp3",
+    "engine": "F-elevenlabs-v3-англоголос",
+    "test": "08_",
+    "expect": "에",
+    "heard": "",
+    "hit": false
+  },
+  {
+    "file": "09_тройка-К_обычная-가__A-текущий-minimax02hd-1.2x.mp3",
+    "engine": "A-текущий-minimax02hd-1.2x",
+    "test": "09_",
+    "expect": "가",
+    "heard": "감사합니다.",
+    "hit": false
+  },
+  {
+    "file": "09_тройка-К_обычная-가__B-minimax28hd.mp3",
+    "engine": "B-minimax28hd",
+    "test": "09_",
+    "expect": "가",
+    "heard": "그",
+    "hit": false
+  },
+  {
+    "file": "09_тройка-К_обычная-가__C-inworld-Minji.wav",
+    "engine": "C-inworld-Minji",
+    "test": "09_",
+    "expect": "가",
+    "heard": "다",
+    "hit": false
+  },
+  {
+    "file": "09_тройка-К_обычная-가__D-inworld-Yoona.wav",
+    "engine": "D-inworld-Yoona",
+    "test": "09_",
+    "expect": "가",
+    "heard": "",
+    "hit": false
+  },
+  {
+    "file": "09_тройка-К_обычная-가__E-qwen3-Sohee.mp3",
+    "engine": "E-qwen3-Sohee",
+    "test": "09_",
+    "expect": "가",
+    "heard": "가",
+    "hit": true
+  },
+  {
+    "file": "09_тройка-К_обычная-가__F-elevenlabs-v3-англоголос.mp3",
+    "engine": "F-elevenlabs-v3-англоголос",
+    "test": "09_",
+    "expect": "가",
+    "heard": "카",
+    "hit": false
+  },
+  {
+    "file": "10_тройка-К_придыхательная-카__A-текущий-minimax02hd-1.2x.mp3",
+    "engine": "A-текущий-minimax02hd-1.2x",
+    "test": "10_",
+    "expect": "카",
+    "heard": "허어.",
+    "hit": false
+  },
+  {
+    "file": "10_тройка-К_придыхательная-카__B-minimax28hd.mp3",
+    "engine": "B-minimax28hd",
+    "test": "10_",
+    "expect": "카",
+    "heard": "カ.",
+    "hit": false
+  },
+  {
+    "file": "10_тройка-К_придыхательная-카__C-inworld-Minji.wav",
+    "engine": "C-inworld-Minji",
+    "test": "10_",
+    "expect": "카",
+    "heard": "카",
+    "hit": true
+  },
+  {
+    "file": "10_тройка-К_придыхательная-카__D-inworld-Yoona.wav",
+    "engine": "D-inworld-Yoona",
+    "test": "10_",
+    "expect": "카",
+    "heard": "",
+    "hit": false
+  },
+  {
+    "file": "10_тройка-К_придыхательная-카__E-qwen3-Sohee.mp3",
+    "engine": "E-qwen3-Sohee",
+    "test": "10_",
+    "expect": "카",
+    "heard": "하하...맞아 파벨 니자가 제풀이오...대체... 이스로 망월하니들 유트로윤 엣데거 퍼페서...",
+    "hit": false
+  },
+  {
+    "file": "10_тройка-К_придыхательная-카__F-elevenlabs-v3-англоголос.mp3",
+    "engine": "F-elevenlabs-v3-англоголос",
+    "test": "10_",
+    "expect": "카",
+    "heard": "가",
+    "hit": false
+  },
+  {
+    "file": "11_тройка-К_напряжённая-까__A-текущий-minimax02hd-1.2x.mp3",
+    "engine": "A-текущий-minimax02hd-1.2x",
+    "test": "11_",
+    "expect": "까",
+    "heard": "가",
+    "hit": false
+  },
+  {
+    "file": "11_тройка-К_напряжённая-까__B-minimax28hd.mp3",
+    "engine": "B-minimax28hd",
+    "test": "11_",
+    "expect": "까",
+    "heard": "가",
+    "hit": false
+  },
+  {
+    "file": "11_тройка-К_напряжённая-까__C-inworld-Minji.wav",
+    "engine": "C-inworld-Minji",
+    "test": "11_",
+    "expect": "까",
+    "heard": "다",
+    "hit": false
+  },
+  {
+    "file": "11_тройка-К_напряжённая-까__D-inworld-Yoona.wav",
+    "engine": "D-inworld-Yoona",
+    "test": "11_",
+    "expect": "까",
+    "heard": "까",
+    "hit": true
+  },
+  {
+    "file": "11_тройка-К_напряжённая-까__E-qwen3-Sohee.mp3",
+    "engine": "E-qwen3-Sohee",
+    "test": "11_",
+    "expect": "까",
+    "heard": "까?",
+    "hit": true
+  },
+  {
+    "file": "11_тройка-К_напряжённая-까__F-elevenlabs-v3-англоголос.mp3",
+    "engine": "F-elevenlabs-v3-англоголос",
+    "test": "11_",
+    "expect": "까",
+    "heard": "까",
+    "hit": true
+  },
+  {
+    "file": "12_патчхим_밥__A-текущий-minimax02hd-1.2x.mp3",
+    "engine": "A-текущий-minimax02hd-1.2x",
+    "test": "12_",
+    "expect": "밥",
+    "heard": "밥",
+    "hit": true
+  },
+  {
+    "file": "12_патчхим_밥__B-minimax28hd.mp3",
+    "engine": "B-minimax28hd",
+    "test": "12_",
+    "expect": "밥",
+    "heard": "밥",
+    "hit": true
+  },
+  {
+    "file": "12_патчхим_밥__C-inworld-Minji.wav",
+    "engine": "C-inworld-Minji",
+    "test": "12_",
+    "expect": "밥",
+    "heard": "팟",
+    "hit": false
+  },
+  {
+    "file": "12_патчхим_밥__D-inworld-Yoona.wav",
+    "engine": "D-inworld-Yoona",
+    "test": "12_",
+    "expect": "밥",
+    "heard": "",
+    "hit": false
+  },
+  {
+    "file": "12_патчхим_밥__E-qwen3-Sohee.mp3",
+    "engine": "E-qwen3-Sohee",
+    "test": "12_",
+    "expect": "밥",
+    "heard": "네",
+    "hit": false
+  },
+  {
+    "file": "12_патчхим_밥__F-elevenlabs-v3-англоголос.mp3",
+    "engine": "F-elevenlabs-v3-англоголос",
+    "test": "12_",
+    "expect": "밥",
+    "heard": "팝",
+    "hit": false
+  },
+  {
+    "file": "13_патчхим_각__A-текущий-minimax02hd-1.2x.mp3",
+    "engine": "A-текущий-minimax02hd-1.2x",
+    "test": "13_",
+    "expect": "각",
+    "heard": "하",
+    "hit": false
+  },
+  {
+    "file": "13_патчхим_각__B-minimax28hd.mp3",
+    "engine": "B-minimax28hd",
+    "test": "13_",
+    "expect": "각",
+    "heard": "각",
+    "hit": true
+  },
+  {
+    "file": "13_патчхим_각__C-inworld-Minji.wav",
+    "engine": "C-inworld-Minji",
+    "test": "13_",
+    "expect": "각",
+    "heard": "갓",
+    "hit": false
+  },
+  {
+    "file": "13_патчхим_각__D-inworld-Yoona.wav",
+    "engine": "D-inworld-Yoona",
+    "test": "13_",
+    "expect": "각",
+    "heard": "",
+    "hit": false
+  },
+  {
+    "file": "13_патчхим_각__E-qwen3-Sohee.mp3",
+    "engine": "E-qwen3-Sohee",
+    "test": "13_",
+    "expect": "각",
+    "heard": "아",
+    "hit": false
+  },
+  {
+    "file": "13_патчхим_각__F-elevenlabs-v3-англоголос.mp3",
+    "engine": "F-elevenlabs-v3-англоголос",
+    "test": "13_",
+    "expect": "각",
+    "heard": "카카오",
+    "hit": false
+  },
+  {
+    "file": "14_замедленно_각__A-текущий-minimax02hd-1.2x.mp3",
+    "engine": "A-текущий-minimax02hd-1.2x",
+    "test": "14_",
+    "expect": "각",
+    "heard": "각",
+    "hit": true
+  },
+  {
+    "file": "14_замедленно_각__B-minimax28hd.mp3",
+    "engine": "B-minimax28hd",
+    "test": "14_",
+    "expect": "각",
+    "heard": "각",
+    "hit": true
+  },
+  {
+    "file": "14_замедленно_각__C-inworld-Minji.wav",
+    "engine": "C-inworld-Minji",
+    "test": "14_",
+    "expect": "각",
+    "heard": "컷",
+    "hit": false
+  },
+  {
+    "file": "14_замедленно_각__D-inworld-Yoona.wav",
+    "engine": "D-inworld-Yoona",
+    "test": "14_",
+    "expect": "각",
+    "heard": "",
+    "hit": false
+  },
+  {
+    "file": "14_замедленно_각__E-qwen3-Sohee.mp3",
+    "engine": "E-qwen3-Sohee",
+    "test": "14_",
+    "expect": "각",
+    "heard": "가! 치치수 그래요.",
+    "hit": false
+  },
+  {
+    "file": "14_замедленно_각__F-elevenlabs-v3-англоголос.mp3",
+    "engine": "F-elevenlabs-v3-англоголос",
+    "test": "14_",
+    "expect": "각",
+    "heard": "카",
+    "hit": false
+  },
+  {
+    "file": "15_повтор_각_дубль2__A-текущий-minimax02hd-1.2x.mp3",
+    "engine": "A-текущий-minimax02hd-1.2x",
+    "test": "15_",
+    "expect": "각",
+    "heard": "하",
+    "hit": false
+  },
+  {
+    "file": "15_повтор_각_дубль2__B-minimax28hd.mp3",
+    "engine": "B-minimax28hd",
+    "test": "15_",
+    "expect": "각",
+    "heard": "각",
+    "hit": true
+  },
+  {
+    "file": "15_повтор_각_дубль2__C-inworld-Minji.wav",
+    "engine": "C-inworld-Minji",
+    "test": "15_",
+    "expect": "각",
+    "heard": "갓",
+    "hit": false
+  },
+  {
+    "file": "15_повтор_각_дубль2__D-inworld-Yoona.wav",
+    "engine": "D-inworld-Yoona",
+    "test": "15_",
+    "expect": "각",
+    "heard": "",
+    "hit": false
+  },
+  {
+    "file": "15_повтор_각_дубль2__E-qwen3-Sohee.mp3",
+    "engine": "E-qwen3-Sohee",
+    "test": "15_",
+    "expect": "각",
+    "heard": "A",
+    "hit": false
+  },
+  {
+    "file": "15_повтор_각_дубль2__F-elevenlabs-v3-англоголос.mp3",
+    "engine": "F-elevenlabs-v3-англоголос",
+    "test": "15_",
+    "expect": "각",
+    "heard": "퀘스트",
+    "hit": false
+  },
+  {
+    "file": "16_фраза_안녕하세요-만나서-반가워요__A-текущий-minimax02hd-1.2x.mp3",
+    "engine": "A-текущий-minimax02hd-1.2x",
+    "test": "16_",
+    "expect": "안녕하세요 만나서 반가워요",
+    "heard": "안녕하세요 만나서 반가워요",
+    "hit": true
+  },
+  {
+    "file": "16_фраза_안녕하세요-만나서-반가워요__B-minimax28hd.mp3",
+    "engine": "B-minimax28hd",
+    "test": "16_",
+    "expect": "안녕하세요 만나서 반가워요",
+    "heard": "안녕하세요 만나서 반가워요.",
+    "hit": true
+  },
+  {
+    "file": "16_фраза_안녕하세요-만나서-반가워요__C-inworld-Minji.wav",
+    "engine": "C-inworld-Minji",
+    "test": "16_",
+    "expect": "안녕하세요 만나서 반가워요",
+    "heard": "안녕하세요 만나서 반가워요",
+    "hit": true
+  },
+  {
+    "file": "16_фраза_안녕하세요-만나서-반가워요__D-inworld-Yoona.wav",
+    "engine": "D-inworld-Yoona",
+    "test": "16_",
+    "expect": "안녕하세요 만나서 반가워요",
+    "heard": "안녕하세요, 만나서 반가워요.",
+    "hit": true
+  },
+  {
+    "file": "16_фраза_안녕하세요-만나서-반가워요__E-qwen3-Sohee.mp3",
+    "engine": "E-qwen3-Sohee",
+    "test": "16_",
+    "expect": "안녕하세요 만나서 반가워요",
+    "heard": "안녕하세요. 만나서 반가워요.",
+    "hit": true
+  },
+  {
+    "file": "16_фраза_안녕하세요-만나서-반가워요__F-elevenlabs-v3-англоголос.mp3",
+    "engine": "F-elevenlabs-v3-англоголос",
+    "test": "16_",
+    "expect": "안녕하세요 만나서 반가워요",
+    "heard": "안녕하세요. 만나서 반가워요.",
+    "hit": true
+  },
+  {
+    "file": "17_строка-песни__A-текущий-minimax02hd-1.2x.mp3",
+    "engine": "A-текущий-minimax02hd-1.2x",
+    "test": "17_",
+    "expect": "오늘 밤 우리 둘만의 별빛 아래에서",
+    "heard": "오늘 밤 우리 둘만의 별빛 아래에서",
+    "hit": true
+  },
+  {
+    "file": "17_строка-песни__B-minimax28hd.mp3",
+    "engine": "B-minimax28hd",
+    "test": "17_",
+    "expect": "오늘 밤 우리 둘만의 별빛 아래에서",
+    "heard": "오늘 밤 우리 둘만의 별빛 아래서",
+    "hit": false
+  },
+  {
+    "file": "17_строка-песни__C-inworld-Minji.wav",
+    "engine": "C-inworld-Minji",
+    "test": "17_",
+    "expect": "오늘 밤 우리 둘만의 별빛 아래에서",
+    "heard": "오늘 밤 우리 둘만의 별빛 아래에서.",
+    "hit": true
+  },
+  {
+    "file": "17_строка-песни__D-inworld-Yoona.wav",
+    "engine": "D-inworld-Yoona",
+    "test": "17_",
+    "expect": "오늘 밤 우리 둘만의 별빛 아래에서",
+    "heard": "오늘 밤 우리 둘만의 별빛 아래에서.",
+    "hit": true
+  },
+  {
+    "file": "17_строка-песни__E-qwen3-Sohee.mp3",
+    "engine": "E-qwen3-Sohee",
+    "test": "17_",
+    "expect": "오늘 밤 우리 둘만의 별빛 아래에서",
+    "heard": "오늘 밤 우리 둘만의 별빛 아래에서",
+    "hit": true
+  },
+  {
+    "file": "17_строка-песни__F-elevenlabs-v3-англоголос.mp3",
+    "engine": "F-elevenlabs-v3-англоголос",
+    "test": "17_",
+    "expect": "오늘 밤 우리 둘만의 별빛 아래에서",
+    "heard": "오늘 밤 우리 둘만의 별빛 아래에서",
+    "hit": true
+  }
+]
