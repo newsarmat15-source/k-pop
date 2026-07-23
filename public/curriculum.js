@@ -18,9 +18,21 @@
      batchim  —   не новые буквы, а позиция: сектор правил (7 финальных звуков)
 
    Блоки урока (type):
-     text | hangul{char,rom,ru,en} | example{kr,rom,ru,en} | tip |
+     text | hangul{char,rom,cyr,ru,en,ex} | example{kr,rom,cyr,ru,en} | tip |
      win{ru,en}         — «что ты теперь умеешь», ощутимый результат
      batchim{g,chars,ru,en} — группа финальных звуков
+
+   ТРАНСКРИПЦИЯ. rom — латиница, cyr — кириллица. Оба поля НЕ придуманы руками:
+   значения сняты с движка произношения lib/ko-g2p.js (transcribeLatin /
+   transcribeCyrillic) — того же, что размечает строки песен. Отличие одно,
+   косметическое: движок разделяет слоги «·», здесь «-» (так исторически
+   записаны примеры в курсе). Если правишь пример — прогоняй слово через
+   движок, а не пиши на слух, иначе урок и песня разойдутся.
+   cyr у буквы — звук в НАЧАЛЕ слога (как в CYR_CHO/CYR_JUNG движка);
+   позиционные оговорки («в конце слога — к») вынесены в пояснение ru.
+   ex{kr,rom,cyr,ru,en} — слово-пример на конкретную букву. В интервальное
+   повторение эти слова НЕ заводятся намеренно: 40 новых слов утопили бы
+   очередь распевки из 5 карточек. Учебные слова идут через vocab[].
    vocab[] — слова в Рабочую тетрадь при завершении.
    Проверочная генерируется автоматически по буквам/словам (см. buildQuiz).
 ========================================================================= */
@@ -34,17 +46,17 @@ window.CURRICULUM = {
           goal: { ru: 'Читать 8 базовых гласных', en: 'Read 8 basic vowels' },
           blocks: [
             { type: 'text', ru: 'Корейский пишется слогами-блоками: один блок = один слог. Начнём с гласных — сердца каждого слога.', en: 'Korean is written in syllable blocks: one block = one syllable. We start with vowels — the heart of every syllable.' },
-            { type: 'hangul', char: 'ㅏ', rom: 'a', ru: 'как «а»', en: 'like "a" in father' },
-            { type: 'hangul', char: 'ㅓ', rom: 'eo', ru: 'открытое «о»', en: 'open "o", like "u" in cup' },
-            { type: 'hangul', char: 'ㅗ', rom: 'o', ru: 'как «о»', en: 'like "o" in go' },
-            { type: 'hangul', char: 'ㅜ', rom: 'u', ru: 'как «у»', en: 'like "oo" in moon' },
-            { type: 'hangul', char: 'ㅡ', rom: 'eu', ru: 'как «ы»', en: 'like "eu", tight lips' },
-            { type: 'hangul', char: 'ㅣ', rom: 'i', ru: 'как «и»', en: 'like "ee" in see' },
-            { type: 'hangul', char: 'ㅐ', rom: 'ae', ru: 'как «э»', en: 'like "e" in bed' },
-            { type: 'hangul', char: 'ㅔ', rom: 'e', ru: 'тоже «э»', en: 'also "e"' },
+            { type: 'hangul', char: 'ㅏ', rom: 'a', cyr: 'а', ru: 'как «а»', en: 'like "a" in father', ex: { kr: '아이', rom: 'a-i', cyr: 'а-и', ru: 'ребёнок', en: 'child' } },
+            { type: 'hangul', char: 'ㅓ', rom: 'eo', cyr: 'о', ru: 'открытое «о»: рот шире, губы не округляй', en: 'open "o", like "u" in cup', ex: { kr: '어디', rom: 'eo-di', cyr: 'о-ди', ru: 'где', en: 'where' } },
+            { type: 'hangul', char: 'ㅗ', rom: 'o', cyr: 'о', ru: 'как «о», губы округлены', en: 'like "o" in go', ex: { kr: '오이', rom: 'o-i', cyr: 'о-и', ru: 'огурец', en: 'cucumber' } },
+            { type: 'hangul', char: 'ㅜ', rom: 'u', cyr: 'у', ru: 'как «у»', en: 'like "oo" in moon', ex: { kr: '우유', rom: 'u-yu', cyr: 'у-ю', ru: 'молоко', en: 'milk' } },
+            { type: 'hangul', char: 'ㅡ', rom: 'eu', cyr: 'ы', ru: 'как «ы», губы растянуты', en: 'like "eu", tight lips', ex: { kr: '그림', rom: 'geu-rim', cyr: 'гы-рим', ru: 'рисунок', en: 'picture' } },
+            { type: 'hangul', char: 'ㅣ', rom: 'i', cyr: 'и', ru: 'как «и»', en: 'like "ee" in see', ex: { kr: '이름', rom: 'i-reum', cyr: 'и-рым', ru: 'имя', en: 'name' } },
+            { type: 'hangul', char: 'ㅐ', rom: 'ae', cyr: 'э', ru: 'как «э» в «этот»', en: 'like "e" in bed', ex: { kr: '개', rom: 'gae', cyr: 'гэ', ru: 'собака', en: 'dog' } },
+            { type: 'hangul', char: 'ㅔ', rom: 'e', cyr: 'е', ru: 'тоже «э» — на слух от ㅐ не отличается', en: 'also "e"', ex: { kr: '네', rom: 'ne', cyr: 'не', ru: 'да', en: 'yes' } },
             { type: 'tip', ru: 'Гласная не пишется одна — впереди немой ㅇ: «а» → 아, «и» → 이.', en: 'A vowel never stands alone — a silent ㅇ goes in front: "a" → 아, "i" → 이.' },
-            { type: 'example', kr: '아이', rom: 'a-i', ru: 'ребёнок', en: 'child' },
-            { type: 'example', kr: '오이', rom: 'o-i', ru: 'огурец', en: 'cucumber' },
+            { type: 'example', kr: '아이', rom: 'a-i', cyr: 'а-и', ru: 'ребёнок', en: 'child' },
+            { type: 'example', kr: '오이', rom: 'o-i', cyr: 'о-и', ru: 'огурец', en: 'cucumber' },
             { type: 'win', ru: 'Половина любого корейского слога — гласная. Ты только что закрыл(а) эту половину для 8 самых частых звуков.', en: 'Half of every Korean syllable is a vowel. You just covered that half for the 8 most common sounds.' }
           ],
           vocab: [{ kr: '아이', rom: 'a-i', ru: 'ребёнок', en: 'child' }, { kr: '오이', rom: 'o-i', ru: 'огурец', en: 'cucumber' }]
@@ -54,19 +66,19 @@ window.CURRICULUM = {
           goal: { ru: 'Собирать слоги согласная + гласная', en: 'Build consonant + vowel syllables' },
           blocks: [
             { type: 'text', ru: 'Слог строится согласная + гласная: 나 = ㄴ(n) + ㅏ(a) = «на».', en: 'A syllable is consonant + vowel: 나 = ㄴ(n) + ㅏ(a) = "na".' },
-            { type: 'hangul', char: 'ㄱ', rom: 'g', ru: 'как «г»', en: 'like "g"' },
-            { type: 'hangul', char: 'ㄴ', rom: 'n', ru: 'как «н»', en: 'like "n"' },
-            { type: 'hangul', char: 'ㄷ', rom: 'd', ru: 'как «д»', en: 'like "d"' },
-            { type: 'hangul', char: 'ㄹ', rom: 'r', ru: 'между «р» и «л»', en: 'between "r" and "l"' },
-            { type: 'hangul', char: 'ㅁ', rom: 'm', ru: 'как «м»', en: 'like "m"' },
-            { type: 'hangul', char: 'ㅂ', rom: 'b', ru: 'как «б»', en: 'like "b"' },
-            { type: 'hangul', char: 'ㅅ', rom: 's', ru: 'как «с»', en: 'like "s"' },
-            { type: 'hangul', char: 'ㅇ', rom: 'ng', ru: 'немая в начале, «нг» внизу', en: 'silent on top, "ng" at the bottom' },
-            { type: 'hangul', char: 'ㅈ', rom: 'j', ru: 'как «дж»', en: 'like "j"' },
-            { type: 'hangul', char: 'ㅎ', rom: 'h', ru: 'как «х»', en: 'like "h"' },
-            { type: 'example', kr: '나', rom: 'na', ru: 'я', en: 'I' },
-            { type: 'example', kr: '하나', rom: 'ha-na', ru: 'один', en: 'one' },
-            { type: 'example', kr: '가방', rom: 'ga-bang', ru: 'сумка', en: 'bag' },
+            { type: 'hangul', char: 'ㄱ', rom: 'g', cyr: 'г', ru: 'как «г»; в конце слога — «к»', en: 'like "g"; "k" at the end of a syllable', ex: { kr: '가방', rom: 'ga-bang', cyr: 'га-бан', ru: 'сумка', en: 'bag' } },
+            { type: 'hangul', char: 'ㄴ', rom: 'n', cyr: 'н', ru: 'как «н»', en: 'like "n"', ex: { kr: '나', rom: 'na', cyr: 'на', ru: 'я', en: 'I' } },
+            { type: 'hangul', char: 'ㄷ', rom: 'd', cyr: 'д', ru: 'как «д»; в конце слога — «т»', en: 'like "d"; "t" at the end of a syllable', ex: { kr: '다리', rom: 'da-ri', cyr: 'да-ри', ru: 'нога / мост', en: 'leg / bridge' } },
+            { type: 'hangul', char: 'ㄹ', rom: 'r', cyr: 'р', ru: 'между «р» и «л»; в конце слога — мягкое «ль»', en: 'between "r" and "l"; soft "l" at the end', ex: { kr: '라면', rom: 'ra-myeon', cyr: 'ра-мён', ru: 'рамён (лапша)', en: 'ramyeon' } },
+            { type: 'hangul', char: 'ㅁ', rom: 'm', cyr: 'м', ru: 'как «м»', en: 'like "m"', ex: { kr: '물', rom: 'mul', cyr: 'муль', ru: 'вода', en: 'water' } },
+            { type: 'hangul', char: 'ㅂ', rom: 'b', cyr: 'б', ru: 'как «б»; в конце слога — «п»', en: 'like "b"; "p" at the end of a syllable', ex: { kr: '밥', rom: 'bap', cyr: 'бап', ru: 'рис / еда', en: 'rice / meal' } },
+            { type: 'hangul', char: 'ㅅ', rom: 's', cyr: 'с', ru: 'как «с»; перед «и» смягчается в «щ»', en: 'like "s"; softens to "sh" before "i"', ex: { kr: '사람', rom: 'sa-ram', cyr: 'са-рам', ru: 'человек', en: 'person' } },
+            { type: 'hangul', char: 'ㅇ', rom: 'ng', cyr: '—', ru: 'в начале слога не читается, внизу — носовое «н»', en: 'silent on top, "ng" at the bottom', ex: { kr: '사랑', rom: 'sa-rang', cyr: 'са-ран', ru: 'любовь', en: 'love' } },
+            { type: 'hangul', char: 'ㅈ', rom: 'j', cyr: 'дж', ru: 'как «дж»', en: 'like "j"', ex: { kr: '지금', rom: 'ji-geum', cyr: 'джи-гым', ru: 'сейчас', en: 'now' } },
+            { type: 'hangul', char: 'ㅎ', rom: 'h', cyr: 'х', ru: 'как «х», лёгкий выдох', en: 'like "h"', ex: { kr: '하나', rom: 'ha-na', cyr: 'ха-на', ru: 'один', en: 'one' } },
+            { type: 'example', kr: '나', rom: 'na', cyr: 'на', ru: 'я', en: 'I' },
+            { type: 'example', kr: '하나', rom: 'ha-na', cyr: 'ха-на', ru: 'один', en: 'one' },
+            { type: 'example', kr: '가방', rom: 'ga-bang', cyr: 'га-бан', ru: 'сумка', en: 'bag' },
             { type: 'win', ru: '10 согласных + 8 гласных = 80 слогов, которые ты уже можешь прочитать вслух.', en: '10 consonants x 8 vowels = 80 syllables you can already read out loud.' }
           ],
           vocab: [{ kr: '나', rom: 'na', ru: 'я (неформ.)', en: 'I (casual)' }, { kr: '하나', rom: 'ha-na', ru: 'один', en: 'one' }, { kr: '가방', rom: 'ga-bang', ru: 'сумка', en: 'bag' }]
@@ -76,15 +88,15 @@ window.CURRICULUM = {
           goal: { ru: 'Читать гласные со звуком «й»', en: 'Read the y-vowels' },
           blocks: [
             { type: 'text', ru: 'Добавь чёрточку — и к гласной добавляется звук «й». Ничего нового учить не надо: это те же 6 гласных с плюсом.', en: 'Add a stroke and the vowel gains a "y" sound. Nothing new to memorize: same vowels, one extra stroke.' },
-            { type: 'hangul', char: 'ㅑ', rom: 'ya', ru: 'я', en: 'ya' },
-            { type: 'hangul', char: 'ㅕ', rom: 'yeo', ru: 'йо (открытое)', en: 'yeo' },
-            { type: 'hangul', char: 'ㅛ', rom: 'yo', ru: 'йо', en: 'yo' },
-            { type: 'hangul', char: 'ㅠ', rom: 'yu', ru: 'ю', en: 'yu' },
-            { type: 'hangul', char: 'ㅒ', rom: 'yae', ru: 'йэ', en: 'yae' },
-            { type: 'hangul', char: 'ㅖ', rom: 'ye', ru: 'йе', en: 'ye' },
-            { type: 'example', kr: '야구', rom: 'ya-gu', ru: 'бейсбол', en: 'baseball' },
-            { type: 'example', kr: '여자', rom: 'yeo-ja', ru: 'женщина', en: 'woman' },
-            { type: 'example', kr: '우유', rom: 'u-yu', ru: 'молоко', en: 'milk' },
+            { type: 'hangul', char: 'ㅑ', rom: 'ya', cyr: 'я', ru: 'ㅏ с «й» — «я»', en: 'ya (ㅏ + y)', ex: { kr: '야구', rom: 'ya-gu', cyr: 'я-гу', ru: 'бейсбол', en: 'baseball' } },
+            { type: 'hangul', char: 'ㅕ', rom: 'yeo', cyr: 'ё', ru: 'ㅓ с «й» — «ё» на открытом «о»', en: 'yeo (ㅓ + y)', ex: { kr: '여자', rom: 'yeo-ja', cyr: 'ё-джа', ru: 'женщина', en: 'woman' } },
+            { type: 'hangul', char: 'ㅛ', rom: 'yo', cyr: 'ё', ru: 'ㅗ с «й» — «ё», губы округлены', en: 'yo (ㅗ + y)', ex: { kr: '교실', rom: 'gyo-sil', cyr: 'гё-щиль', ru: 'класс (аудитория)', en: 'classroom' } },
+            { type: 'hangul', char: 'ㅠ', rom: 'yu', cyr: 'ю', ru: 'ㅜ с «й» — «ю»', en: 'yu (ㅜ + y)', ex: { kr: '우유', rom: 'u-yu', cyr: 'у-ю', ru: 'молоко', en: 'milk' } },
+            { type: 'hangul', char: 'ㅒ', rom: 'yae', cyr: 'е', ru: 'ㅐ с «й» — в речи звучит как «е»', en: 'yae (ㅐ + y)', ex: { kr: '얘기', rom: 'yae-gi', cyr: 'е-ги', ru: 'разговор, болтовня', en: 'talk, chat' } },
+            { type: 'hangul', char: 'ㅖ', rom: 'ye', cyr: 'е', ru: 'ㅔ с «й» — от ㅒ на слух не отличается', en: 'ye (ㅔ + y)', ex: { kr: '시계', rom: 'si-gye', cyr: 'щи-ге', ru: 'часы', en: 'clock, watch' } },
+            { type: 'example', kr: '야구', rom: 'ya-gu', cyr: 'я-гу', ru: 'бейсбол', en: 'baseball' },
+            { type: 'example', kr: '여자', rom: 'yeo-ja', cyr: 'ё-джа', ru: 'женщина', en: 'woman' },
+            { type: 'example', kr: '우유', rom: 'u-yu', cyr: 'у-ю', ru: 'молоко', en: 'milk' },
             { type: 'win', ru: 'Все 14 гласных-одиночек закрыты. Осталась одна гласная группа — сложные, из двух частей.', en: 'All 14 single vowels are done. One vowel group left — the compound ones.' }
           ],
           vocab: [{ kr: '여자', rom: 'yeo-ja', ru: 'женщина', en: 'woman' }, { kr: '우유', rom: 'u-yu', ru: 'молоко', en: 'milk' }, { kr: '야구', rom: 'ya-gu', ru: 'бейсбол', en: 'baseball' }]
@@ -94,14 +106,14 @@ window.CURRICULUM = {
           goal: { ru: 'Читать согласные с выдохом', en: 'Read the breathy consonants' },
           blocks: [
             { type: 'text', ru: 'Добавь к согласной лишнюю чёрточку — и появляется выдох. Поднеси ладонь ко рту: на ㅋ воздух чувствуется, на ㄱ — нет.', en: 'Add one stroke to a consonant and you get a puff of air. Hold your palm to your mouth: ㅋ pushes air, ㄱ does not.' },
-            { type: 'hangul', char: 'ㅋ', rom: 'k', ru: '«к» с выдохом (ㄱ + черта)', en: 'aspirated k (ㄱ + stroke)' },
-            { type: 'hangul', char: 'ㅌ', rom: 't', ru: '«т» с выдохом (ㄷ + черта)', en: 'aspirated t (ㄷ + stroke)' },
-            { type: 'hangul', char: 'ㅍ', rom: 'p', ru: '«п» с выдохом (ㅂ + черта)', en: 'aspirated p (ㅂ + stroke)' },
-            { type: 'hangul', char: 'ㅊ', rom: 'ch', ru: '«ч» с выдохом (ㅈ + черта)', en: 'aspirated ch (ㅈ + stroke)' },
-            { type: 'example', kr: '커피', rom: 'keo-pi', ru: 'кофе', en: 'coffee' },
-            { type: 'example', kr: '치마', rom: 'chi-ma', ru: 'юбка', en: 'skirt' },
-            { type: 'example', kr: '포도', rom: 'po-do', ru: 'виноград', en: 'grapes' },
-            { type: 'example', kr: '토마토', rom: 'to-ma-to', ru: 'помидор', en: 'tomato' },
+            { type: 'hangul', char: 'ㅋ', rom: 'k', cyr: 'к', ru: '«к» с выдохом (ㄱ + черта)', en: 'aspirated k (ㄱ + stroke)', ex: { kr: '커피', rom: 'keo-pi', cyr: 'ко-пи', ru: 'кофе', en: 'coffee' } },
+            { type: 'hangul', char: 'ㅌ', rom: 't', cyr: 'т', ru: '«т» с выдохом (ㄷ + черта)', en: 'aspirated t (ㄷ + stroke)', ex: { kr: '토마토', rom: 'to-ma-to', cyr: 'то-ма-то', ru: 'помидор', en: 'tomato' } },
+            { type: 'hangul', char: 'ㅍ', rom: 'p', cyr: 'п', ru: '«п» с выдохом (ㅂ + черта)', en: 'aspirated p (ㅂ + stroke)', ex: { kr: '포도', rom: 'po-do', cyr: 'по-до', ru: 'виноград', en: 'grapes' } },
+            { type: 'hangul', char: 'ㅊ', rom: 'ch', cyr: 'ч', ru: '«ч» с выдохом (ㅈ + черта)', en: 'aspirated ch (ㅈ + stroke)', ex: { kr: '친구', rom: 'chin-gu', cyr: 'чин-гу', ru: 'друг', en: 'friend' } },
+            { type: 'example', kr: '커피', rom: 'keo-pi', cyr: 'ко-пи', ru: 'кофе', en: 'coffee' },
+            { type: 'example', kr: '치마', rom: 'chi-ma', cyr: 'чи-ма', ru: 'юбка', en: 'skirt' },
+            { type: 'example', kr: '포도', rom: 'po-do', cyr: 'по-до', ru: 'виноград', en: 'grapes' },
+            { type: 'example', kr: '토마토', rom: 'to-ma-to', cyr: 'то-ма-то', ru: 'помидор', en: 'tomato' },
             { type: 'tip', ru: 'Пара ㄱ/ㅋ, ㄷ/ㅌ, ㅂ/ㅍ, ㅈ/ㅊ отличается только выдохом. Перепутаешь — тебя поймут, но акцент будет слышен.', en: 'The pairs ㄱ/ㅋ, ㄷ/ㅌ, ㅂ/ㅍ, ㅈ/ㅊ differ only by the puff of air. Mix them up and you will still be understood, but with an accent.' },
             { type: 'win', ru: 'Ты закрыл(а) 14 из 19 согласных. Осталась одна группа — напряжённые.', en: 'You have 14 of 19 consonants. One group left — the tense ones.' }
           ],
@@ -112,14 +124,14 @@ window.CURRICULUM = {
           goal: { ru: 'Читать напряжённые согласные', en: 'Read the tense consonants' },
           blocks: [
             { type: 'text', ru: 'Двойная буква = напряжённый, резкий звук. Ни выдоха, ни мягкости — горло сжато.', en: 'A doubled letter = a tense, sharp sound. No breath, no softness — the throat is tight.' },
-            { type: 'hangul', char: 'ㄲ', rom: 'kk', ru: 'напряжённое «к»', en: 'tense k' },
-            { type: 'hangul', char: 'ㄸ', rom: 'tt', ru: 'напряжённое «т»', en: 'tense t' },
-            { type: 'hangul', char: 'ㅃ', rom: 'pp', ru: 'напряжённое «п»', en: 'tense p' },
-            { type: 'hangul', char: 'ㅆ', rom: 'ss', ru: 'напряжённое «с»', en: 'tense s' },
-            { type: 'hangul', char: 'ㅉ', rom: 'jj', ru: 'напряжённое «чж»', en: 'tense j' },
-            { type: 'example', kr: '오빠', rom: 'o-ppa', ru: 'старший брат (для девушки)', en: 'older brother (girl→boy)' },
-            { type: 'example', kr: '아빠', rom: 'a-ppa', ru: 'папа', en: 'dad' },
-            { type: 'example', kr: '꿈', rom: 'kkum', ru: 'мечта / сон', en: 'dream' },
+            { type: 'hangul', char: 'ㄲ', rom: 'kk', cyr: 'кк', ru: 'напряжённое «к», без выдоха', en: 'tense k', ex: { kr: '꿈', rom: 'kkum', cyr: 'ккум', ru: 'мечта / сон', en: 'dream' } },
+            { type: 'hangul', char: 'ㄸ', rom: 'tt', cyr: 'тт', ru: 'напряжённое «т», без выдоха', en: 'tense t', ex: { kr: '딸기', rom: 'ttal-gi', cyr: 'тталь-ги', ru: 'клубника', en: 'strawberry' } },
+            { type: 'hangul', char: 'ㅃ', rom: 'pp', cyr: 'пп', ru: 'напряжённое «п», без выдоха', en: 'tense p', ex: { kr: '오빠', rom: 'o-ppa', cyr: 'о-ппа', ru: 'старший брат (для девушки)', en: 'older brother (girl→boy)' } },
+            { type: 'hangul', char: 'ㅆ', rom: 'ss', cyr: 'сс', ru: 'напряжённое «с»', en: 'tense s', ex: { kr: '싸다', rom: 'ssa-da', cyr: 'сса-да', ru: 'дешёвый', en: 'cheap' } },
+            { type: 'hangul', char: 'ㅉ', rom: 'jj', cyr: 'чч', ru: 'напряжённое «ч» без выдоха', en: 'tense j', ex: { kr: '짜다', rom: 'jja-da', cyr: 'чча-да', ru: 'солёный', en: 'salty' } },
+            { type: 'example', kr: '오빠', rom: 'o-ppa', cyr: 'о-ппа', ru: 'старший брат (для девушки)', en: 'older brother (girl→boy)' },
+            { type: 'example', kr: '아빠', rom: 'a-ppa', cyr: 'а-ппа', ru: 'папа', en: 'dad' },
+            { type: 'example', kr: '꿈', rom: 'kkum', cyr: 'ккум', ru: 'мечта / сон', en: 'dream' },
             { type: 'win', ru: 'Все 19 согласных твои. 오빠 ты теперь читаешь не по картинке, а по буквам.', en: 'All 19 consonants are yours. You now read 오빠 letter by letter, not as a picture.' }
           ],
           vocab: [{ kr: '오빠', rom: 'o-ppa', ru: 'старший брат (девушке)', en: 'older brother (to a girl)' }, { kr: '아빠', rom: 'a-ppa', ru: 'папа', en: 'dad' }, { kr: '꿈', rom: 'kkum', ru: 'мечта / сон', en: 'dream' }]
@@ -128,19 +140,19 @@ window.CURRICULUM = {
           id: 'l6b', sector: 'v-diph', title: { ru: 'Дифтонги', en: 'Diphthongs' },
           goal: { ru: 'Читать сложные гласные из двух частей', en: 'Read the compound vowels' },
           blocks: [
-            { type: 'text', ru: 'Сложная гласная = две простые в одном блоке. Читай слева направо и сливай: ㅗ + ㅏ = ㅘ «уа».', en: 'A compound vowel = two simple ones in one block. Read left to right and blend: ㅗ + ㅏ = ㅘ "wa".' },
-            { type: 'hangul', char: 'ㅘ', rom: 'wa', ru: 'уа (ㅗ+ㅏ)', en: 'wa (ㅗ+ㅏ)' },
-            { type: 'hangul', char: 'ㅙ', rom: 'wae', ru: 'уэ (ㅗ+ㅐ)', en: 'wae (ㅗ+ㅐ)' },
-            { type: 'hangul', char: 'ㅚ', rom: 'oe', ru: 'уэ (ㅗ+ㅣ)', en: 'oe (ㅗ+ㅣ)' },
-            { type: 'hangul', char: 'ㅝ', rom: 'wo', ru: 'уо (ㅜ+ㅓ)', en: 'wo (ㅜ+ㅓ)' },
-            { type: 'hangul', char: 'ㅞ', rom: 'we', ru: 'уэ (ㅜ+ㅔ)', en: 'we (ㅜ+ㅔ)' },
-            { type: 'hangul', char: 'ㅟ', rom: 'wi', ru: 'уи (ㅜ+ㅣ)', en: 'wi (ㅜ+ㅣ)' },
-            { type: 'hangul', char: 'ㅢ', rom: 'ui', ru: 'ый (ㅡ+ㅣ)', en: 'ui (ㅡ+ㅣ)' },
-            { type: 'example', kr: '뭐', rom: 'mwo', ru: 'что', en: 'what' },
-            { type: 'example', kr: '왜', rom: 'wae', ru: 'почему', en: 'why' },
-            { type: 'example', kr: '사과', rom: 'sa-gwa', ru: 'яблоко', en: 'apple' },
-            { type: 'example', kr: '의자', rom: 'ui-ja', ru: 'стул', en: 'chair' },
-            { type: 'tip', ru: 'ㅙ, ㅚ, ㅞ в живой речи звучат почти одинаково — «уэ». Различай их на письме, не на слух.', en: 'ㅙ, ㅚ and ㅞ sound nearly identical in speech — "we". Tell them apart in writing, not by ear.' },
+            { type: 'text', ru: 'Сложная гласная = две простые в одном блоке. Читай слева направо и сливай: ㅗ + ㅏ = ㅘ «ва».', en: 'A compound vowel = two simple ones in one block. Read left to right and blend: ㅗ + ㅏ = ㅘ "wa".' },
+            { type: 'hangul', char: 'ㅘ', rom: 'wa', cyr: 'ва', ru: 'ㅗ+ㅏ, слитно «ва» (звук «в» губной, лёгкий)', en: 'wa (ㅗ+ㅏ)', ex: { kr: '사과', rom: 'sa-gwa', cyr: 'са-гва', ru: 'яблоко', en: 'apple' } },
+            { type: 'hangul', char: 'ㅙ', rom: 'wae', cyr: 'вэ', ru: 'ㅗ+ㅐ, слитно «вэ»', en: 'wae (ㅗ+ㅐ)', ex: { kr: '왜', rom: 'wae', cyr: 'вэ', ru: 'почему', en: 'why' } },
+            { type: 'hangul', char: 'ㅚ', rom: 'oe', cyr: 'ве', ru: 'ㅗ+ㅣ, но звучит «ве»', en: 'oe (ㅗ+ㅣ)', ex: { kr: '회사', rom: 'hoe-sa', cyr: 'хве-са', ru: 'фирма, компания', en: 'company' } },
+            { type: 'hangul', char: 'ㅝ', rom: 'wo', cyr: 'во', ru: 'ㅜ+ㅓ, слитно «во» на открытом «о»', en: 'wo (ㅜ+ㅓ)', ex: { kr: '뭐', rom: 'mwo', cyr: 'мво', ru: 'что', en: 'what' } },
+            { type: 'hangul', char: 'ㅞ', rom: 'we', cyr: 'ве', ru: 'ㅜ+ㅔ, слитно «ве»', en: 'we (ㅜ+ㅔ)', ex: { kr: '스웨터', rom: 'seu-we-teo', cyr: 'сы-ве-то', ru: 'свитер', en: 'sweater' } },
+            { type: 'hangul', char: 'ㅟ', rom: 'wi', cyr: 'ви', ru: 'ㅜ+ㅣ, слитно «ви»', en: 'wi (ㅜ+ㅣ)', ex: { kr: '귀', rom: 'gwi', cyr: 'гви', ru: 'ухо', en: 'ear' } },
+            { type: 'hangul', char: 'ㅢ', rom: 'ui', cyr: 'ый', ru: 'ㅡ+ㅣ, «ый» одним движением', en: 'ui (ㅡ+ㅣ)', ex: { kr: '의자', rom: 'ui-ja', cyr: 'ый-джа', ru: 'стул', en: 'chair' } },
+            { type: 'example', kr: '뭐', rom: 'mwo', cyr: 'мво', ru: 'что', en: 'what' },
+            { type: 'example', kr: '왜', rom: 'wae', cyr: 'вэ', ru: 'почему', en: 'why' },
+            { type: 'example', kr: '사과', rom: 'sa-gwa', cyr: 'са-гва', ru: 'яблоко', en: 'apple' },
+            { type: 'example', kr: '의자', rom: 'ui-ja', cyr: 'ый-джа', ru: 'стул', en: 'chair' },
+            { type: 'tip', ru: 'ㅙ, ㅚ, ㅞ в живой речи звучат почти одинаково — «ве». Различай их на письме, не на слух.', en: 'ㅙ, ㅚ and ㅞ sound nearly identical in speech — "we". Tell them apart in writing, not by ear.' },
             { type: 'win', ru: 'Все 40 букв хангыля пройдены. Осталось одно правило — как читать букву внизу блока.', en: 'All 40 Hangul letters are done. One rule left — how to read the letter at the bottom of the block.' }
           ],
           vocab: [{ kr: '뭐', rom: 'mwo', ru: 'что', en: 'what' }, { kr: '왜', rom: 'wae', ru: 'почему', en: 'why' }, { kr: '사과', rom: 'sa-gwa', ru: 'яблоко', en: 'apple' }, { kr: '의자', rom: 'ui-ja', ru: 'стул', en: 'chair' }]
@@ -158,11 +170,11 @@ window.CURRICULUM = {
             { type: 'batchim', g: 'ㅁ', chars: 'ㅁ', ru: 'звучит как «м»', en: 'sounds like "m"' },
             { type: 'batchim', g: 'ㅂ', chars: 'ㅂ ㅍ', ru: 'звучит как «п»', en: 'sounds like "p"' },
             { type: 'batchim', g: 'ㅇ', chars: 'ㅇ', ru: 'звучит как «нг»', en: 'sounds like "ng"' },
-            { type: 'example', kr: '밥', rom: 'bap', ru: 'рис / еда', en: 'rice / meal' },
-            { type: 'example', kr: '책', rom: 'chaek', ru: 'книга', en: 'book' },
-            { type: 'example', kr: '집', rom: 'jip', ru: 'дом', en: 'house' },
-            { type: 'example', kr: '문', rom: 'mun', ru: 'дверь', en: 'door' },
-            { type: 'example', kr: '사랑', rom: 'sa-rang', ru: 'любовь', en: 'love' },
+            { type: 'example', kr: '밥', rom: 'bap', cyr: 'бап', ru: 'рис / еда', en: 'rice / meal' },
+            { type: 'example', kr: '책', rom: 'chaek', cyr: 'чэк', ru: 'книга', en: 'book' },
+            { type: 'example', kr: '집', rom: 'jip', cyr: 'джип', ru: 'дом', en: 'house' },
+            { type: 'example', kr: '문', rom: 'mun', cyr: 'мун', ru: 'дверь', en: 'door' },
+            { type: 'example', kr: '사랑', rom: 'sa-rang', cyr: 'са-ран', ru: 'любовь', en: 'love' },
             { type: 'tip', ru: 'Если следом идёт слог с немой ㅇ — патчхим «перепрыгивает» в него: 한국어 читается «хангуго», а не «хангук-о».', en: 'If the next block starts with the silent ㅇ, the batchim jumps into it: 한국어 is read "han-gu-geo", not "han-guk-eo".' },
             { type: 'win', ru: 'Хангыль закрыт полностью — 40 букв и все позиции. Теперь ты читаешь любое корейское слово, даже незнакомое.', en: 'Hangul is fully covered — 40 letters, every position. You can now read any Korean word, even one you have never seen.' }
           ],
@@ -340,28 +352,31 @@ window.CURRICULUM = {
    Секторы собираются ИЗ уроков (один источник правды): каждый урок с полем
    sector отдаёт свои буквы. Патчхим — сектор-правило, букв не добавляет. */
 window.HANGUL_SECTORS = (function () {
+  // kind — гласная/согласная/правило. Нужен, чтобы на карте было видно, что
+  // алфавит закрыт целиком, а не только гласные: сектор подписан своим типом.
   const META = {
-    'v-basic': { icon: 'ㅏ', ru: 'Простые гласные', en: 'Basic vowels' },
-    'c-plain': { icon: 'ㄴ', ru: 'Простые согласные', en: 'Plain consonants' },
-    'v-y': { icon: 'ㅑ', ru: 'Йотированные', en: 'Y-vowels' },
-    'c-asp': { icon: 'ㅋ', ru: 'Придыхательные', en: 'Aspirated' },
-    'c-tense': { icon: 'ㄲ', ru: 'Напряжённые', en: 'Tense' },
-    'v-diph': { icon: 'ㅘ', ru: 'Дифтонги', en: 'Diphthongs' },
-    'batchim': { icon: '받', ru: 'Патчхим', en: 'Batchim' }
+    'v-basic': { icon: 'ㅏ', kind: 'v', ru: 'Простые гласные', en: 'Basic vowels' },
+    'c-plain': { icon: 'ㄴ', kind: 'c', ru: 'Простые согласные', en: 'Plain consonants' },
+    'v-y': { icon: 'ㅑ', kind: 'v', ru: 'Йотированные', en: 'Y-vowels' },
+    'c-asp': { icon: 'ㅋ', kind: 'c', ru: 'Придыхательные', en: 'Aspirated' },
+    'c-tense': { icon: 'ㄲ', kind: 'c', ru: 'Напряжённые', en: 'Tense' },
+    'v-diph': { icon: 'ㅘ', kind: 'v', ru: 'Дифтонги', en: 'Diphthongs' },
+    'batchim': { icon: '받', kind: 'r', ru: 'Патчхим', en: 'Batchim' }
   };
   const order = ['v-basic', 'c-plain', 'v-y', 'c-asp', 'c-tense', 'v-diph', 'batchim'];
   const byId = {};
   window.CURRICULUM.units.forEach(function (u) {
     u.lessons.forEach(function (l) {
-      if (!l.sector) return;
+      if (!l.sector || !META[l.sector]) return;
       byId[l.sector] = {
         id: l.sector,
         lessonId: l.id,
         icon: META[l.sector].icon,
+        kind: META[l.sector].kind,
         title: { ru: META[l.sector].ru, en: META[l.sector].en },
         rule: l.sector === 'batchim',
         letters: l.blocks.filter(function (b) { return b.type === 'hangul'; })
-          .map(function (b) { return { char: b.char, rom: b.rom, ru: b.ru, en: b.en }; }),
+          .map(function (b) { return { char: b.char, rom: b.rom, cyr: b.cyr || '', ru: b.ru, en: b.en, ex: b.ex || null }; }),
         groups: l.blocks.filter(function (b) { return b.type === 'batchim'; })
           .map(function (b) { return { g: b.g, chars: b.chars, ru: b.ru, en: b.en }; })
       };
@@ -374,6 +389,27 @@ window.HANGUL_SECTORS = (function () {
 window.HANGUL_LETTERS = window.HANGUL_SECTORS.reduce(function (acc, s) {
   return acc.concat(s.letters);
 }, []);
+
+/* Сторож комплектности. Ловит ровно ту поломку, ради которой сектора и вводили:
+   букву забыли, продублировали или оставили без транскрипции — и «полный
+   алфавит» тихо превращается в неполный. Только console.warn: падать в
+   продакшене из-за учебных данных нельзя, но и молчать нельзя. */
+(function () {
+  var L = window.HANGUL_LETTERS, seen = {}, dup = [], noCyr = [], noEx = [];
+  L.forEach(function (x) {
+    if (seen[x.char]) dup.push(x.char); else seen[x.char] = 1;
+    if (!x.cyr) noCyr.push(x.char);
+    if (!x.ex || !x.ex.kr) noEx.push(x.char);
+  });
+  if (L.length !== 40 || dup.length || noCyr.length || noEx.length) {
+    try {
+      console.warn('[hangul] букв: ' + L.length + '/40'
+        + (dup.length ? ', дубли: ' + dup.join(' ') : '')
+        + (noCyr.length ? ', без кириллицы: ' + noCyr.join(' ') : '')
+        + (noEx.length ? ', без примера: ' + noEx.join(' ') : ''));
+    } catch (e) { /* console может отсутствовать — не роняем загрузку */ }
+  }
+})();
 
 /* ===================== ИМЯ ХАНГЫЛЕМ =====================
    Первая минута продукта: человек вводит своё имя и СРАЗУ видит его хангылем,

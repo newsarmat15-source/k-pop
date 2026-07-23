@@ -329,12 +329,18 @@ function renderCabinet(chartEntry,readOnly){
   document.querySelectorAll('.navtab').forEach(t=>t.classList.toggle('on',t.dataset.view==='cabinet-own'&&!isOther));
 
   if(!idol){
-    // Нет своего айдола — короткий призыв уйти на вкладку «Айдолы» (сама витрина живёт там).
+    // Первый экран продукта. Не описание и не ролик, а сам разбор в работе: строка поётся,
+    // слова заливаются, снизу синхронно заливается смысл, в конце вскрывается компоновка —
+    // «слово А + слово Б = третий смысл». Человек видит товар, а не обещание товара.
     body.innerHTML=`<div class="cab-empty">
-      <h2 class="pick-h">${t('no_idol_h')}</h2>
-      <p>${t('no_idol_sub')}</p>
+      <div class="hd-eyebrow">${t('hd_eyebrow')}</div>
+      <h2 class="pick-h">${t('hd_h')}</h2>
+      <p class="hd-sub">${t('hd_sub')}</p>
+      <div class="hd" id="heroDemo"></div>
       <button class="btn accent no-idol-btn" onclick="showView('roster')">${t('no_idol_btn')}</button>
+      <p class="hd-foot">${t('hd_foot')}</p>
     </div>`;
+    startHeroDemo();
     return;
   }
   const idolCreatedAt=isOther?viewedIdol.idol.created_at:myIdol.created_at;
@@ -372,10 +378,20 @@ function renderCabinet(chartEntry,readOnly){
         <div class="idol-meta">
           <div class="idol-name">${idol.name} ${AI_BADGE}</div>
           <div class="idol-concept">${idol.concept} ${t('concept_suffix')}</div>
-          <div class="lvl">
-            <div class="lvl-top"><span>${t('your_korean')}</span><b>${t('level')} ${lvl} · ${langPct}%</b></div>
-            <div class="bar"><i style="width:${langPct}%"></i></div>
-          </div>
+          ${(()=>{
+            // Полоса прогресса меряет не абстрактные проценты курса, а понятое в КОНКРЕТНОЙ
+            // песне. Процент курса стоял на нуле после первого урока — это убивало мотивацию;
+            // покрытие песни сдвигается с первого же разобранного слова.
+            const c=songCoverage();
+            if(!c)return `<div class="lvl">
+              <div class="lvl-top"><span>${t('your_korean')}</span><b>${t('level')} ${lvl} · ${langPct}%</b></div>
+              <div class="bar"><i style="width:${langPct}%"></i></div></div>`;
+            return `<button class="lvl lvl-song" onclick="openSongs()">
+              <div class="lvl-top"><span>${escapeHtml(c.title)}</span><b>${c.known}/${c.total}</b></div>
+              <div class="bar"><i style="width:${c.pct}%"></i></div>
+              <div class="lvl-note">${t('cov_note')(c.known,c.total)}</div>
+            </button>`;
+          })()}
           <div class="streak-row">
             <span class="streak-chip">${studyStreak>0?`🔥 ${studyStreak} ${t('streak_days')}`:`🔥 ${t('streak_start')}`}</span>
             <span class="streak-chip alt">🗓 ${streak} ${t('days_together')}</span>
@@ -383,15 +399,17 @@ function renderCabinet(chartEntry,readOnly){
         </div>
       </div>
 
-      <button class="lesson-cta" onclick="openLessons()">
-        <span class="lc-emoji">🇰🇷</span>
-        <span class="lc-text"><b>${t('lesson_start')}</b><small>${t('lesson_sub')(idol.name)}</small></span>
+      <!-- Вход в продукт — песня, а не алфавит: человек приходит понять, о чём поют,
+           а хангыль обслуживает это желание. Урок ушёл в плитки под кнопкой. -->
+      <button class="lesson-cta" onclick="openSongs()">
+        <span class="lc-emoji">🎵</span>
+        <span class="lc-text"><b>${t('song_cta')}</b><small>${t('song_cta_sub')}</small></span>
         <span class="lc-arrow">→</span>
       </button>
 
       <div class="tiles">
+        <button class="tile" onclick="openLessons()"><span class="t-emoji">🇰🇷</span><b>${t('tile_lesson')}</b><small>${t('tile_lesson_sub')(idol.name)}</small></button>
         <button class="tile" onclick="openWorkbook()"><span class="t-emoji">📓</span><b>${t('tile_wb')}</b><small>${t('tile_wb_sub')}</small></button>
-        <button class="tile" onclick="openSongs()"><span class="t-emoji">🎵</span><b>${t('tile_song')}</b><small>${t('tile_song_sub')}</small></button>
         <button class="tile" onclick="openChat()"><span class="t-emoji">💬</span><b>${t('tile_phrase')}</b><small>${t('tile_phrase_sub')}</small></button>
       </div>
 
@@ -415,6 +433,102 @@ function renderCabinet(chartEntry,readOnly){
     </div>
   `;
   if(!isOther)maybeOnboard();
+}
+/* Покрытие песни: сколько её слов человек уже разобрал в тетрадь. Берём последнюю
+   открытую песню; если ни одной ещё не открывал — первую из каталога, чтобы полоса
+   с самого начала показывала конкретную цель, а не пустой процент. */
+function songCoverage(){
+  try{
+    const st=(typeof studiedSongs==='function')?(studiedSongs()||[]):[];
+    let title='',words=[];
+    if(st.length&&st[0].verses){
+      title=st[0].title||'';
+      st[0].verses.forEach(v=>(v.words||[]).forEach(w=>words.push(w.kr)));
+    }else{
+      const S=(window.SONGS||[])[0];if(!S)return null;
+      title=S.title||'';
+      songWordsByVerse(S).forEach(g=>g.words.forEach(w=>words.push(w.kr)));
+    }
+    const uniq=[...new Set(words.filter(Boolean))];
+    if(!uniq.length)return null;
+    const have={};lsnVocab().forEach(v=>{if(v&&v.kr)have[v.kr]=1});
+    const known=uniq.filter(k=>have[k]).length;
+    return {title,known,total:uniq.length,pct:Math.round(known/uniq.length*100)};
+  }catch(e){return null}
+}
+
+/* ===== Живое демо разбора на первом экране =====
+   Берём настоящие строки из каталога (не выдуманный макет): если разбор изменится,
+   демо изменится вместе с ним и врать не начнёт. Ни YouTube, ни звука, ни генерации —
+   строка «поётся» по таймеру, поэтому экран открывается мгновенно и работает офлайн.
+   Вторая строка выбрана намеренно: 설국열차 — самый наглядный случай, когда сумма слов
+   не равна смыслу («снежная страна» + «поезд» = название фильма «Сквозь снег»).      */
+const HD_PICK=[[0,0],[1,1]];   // [куплет, строка]
+const HD_HOLD=2600;            // сколько держим строку с раскрытой компоновкой, мс
+function heroDemoLines(){
+  const S=(window.SONGS||[])[0];if(!S||!S.verses)return[];
+  const L=getLang();
+  return HD_PICK.map(([vi,li])=>{
+    const v=S.verses[vi],ln=v&&v.lines&&v.lines[li];
+    if(!ln||!ln.w||!ln.w.length)return null;
+    return {title:S.title,artist:S.artist,
+      w:ln.w.map(w=>({k:w.k||'',r:(L==='ru'&&w.rr)?w.rr:(w.r||w.rom||''),m:w[L]||w.ru||w.en||''})),
+      s:(ln.s&&(ln.s[L]||ln.s.en||ln.s.ru))||'',
+      c:(ln.c&&(ln.c[L]||ln.c.en||ln.c.ru))||''};
+  }).filter(Boolean);
+}
+function startHeroDemo(){
+  const host=document.getElementById('heroDemo');if(!host)return;
+  const lines=heroDemoLines();
+  if(!lines.length){host.style.display='none';return}
+  const token=(window._hdToken=(window._hdToken|0)+1);   // старый цикл сам себя погасит
+  let idx=0;
+  const play=()=>{
+    if(token!==window._hdToken||!document.getElementById('heroDemo'))return;
+    const d=lines[idx];
+    // слово тем дольше, чем длиннее — иначе короткие частицы «проглатываются»
+    const dur=d.w.map(w=>320+90*Math.max(1,w.k.replace(/\s/g,'').length));
+    const total=dur.reduce((a,b)=>a+b,0);
+    const sw=d.s?d.s.split(/\s+/).filter(Boolean):[];
+    host.innerHTML=`
+      <div class="hd-src">${escapeHtml(d.title)} · ${escapeHtml(d.artist)}</div>
+      <div class="kline hd-line">${d.w.map(w=>
+        `<span class="tok"><span class="tok-k" data-txt="${attrEsc(w.k)}">${escapeHtml(w.k)}</span>`+
+        `<span class="tok-r" data-txt="${attrEsc(w.r)}">${escapeHtml(w.r)}</span>`+
+        `<span class="tok-m">${escapeHtml(w.m)}</span></span>`).join('')}</div>
+      ${d.s?`<div class="ksl hd-s"><div class="ksl-row"><span class="ksl-t">${
+        sw.map(x=>`<span class="ksw" data-txt="${attrEsc(x)}">${escapeHtml(x)}</span>`).join(' ')}</span></div></div>`:''}
+      ${d.c?`<p class="hd-c" id="hdCombo">🔗 ${escapeHtml(d.c)}</p>`:''}`;
+    const toks=host.querySelectorAll('.tok'),sws=host.querySelectorAll('.ksw');
+    const swSeg=[];let acc=0;
+    sws.forEach(e=>{const wt=(e.textContent||'').length+1;swSeg.push([acc,acc+wt]);acc+=wt;});
+    const swTotal=acc||1;
+    const t0=(window.performance&&performance.now)?performance.now():Date.now();
+    const step=()=>{
+      if(token!==window._hdToken||!document.getElementById('heroDemo'))return;
+      const now=(window.performance&&performance.now)?performance.now():Date.now();
+      const el=now-t0;
+      let a=0;
+      for(let i=0;i<toks.length;i++){
+        const f=el<=a?0:el>=a+dur[i]?100:((el-a)/dur[i])*100;
+        toks[i].style.setProperty('--fill',f+'%');
+        toks[i].classList.toggle('on',f>0&&f<100);
+        toks[i].classList.toggle('done',f>=100);
+        a+=dur[i];
+      }
+      const cut=Math.min(1,el/total)*swTotal;
+      for(let i=0;i<sws.length;i++){
+        const [s,e]=swSeg[i];
+        sws[i].style.setProperty('--fill',(cut<=s?0:cut>=e?100:((cut-s)/(e-s))*100)+'%');
+      }
+      const box=host.querySelector('.hd-s');if(box)box.classList.toggle('on',el<total);
+      if(el<total){requestAnimationFrame(step);return}
+      const c=document.getElementById('hdCombo');if(c)c.classList.add('on');
+      setTimeout(()=>{idx=(idx+1)%lines.length;play()},HD_HOLD);
+    };
+    requestAnimationFrame(step);
+  };
+  play();
 }
 function renderRoster(){
   const body=document.getElementById('cabBody');
@@ -902,22 +1016,33 @@ function openHangulMap(){
          </div>`).join('')
       : s.letters.map(l=>{
           const tier=srsLetterTier(l.char);
-          return `<button class="hm-tile t${tier}" onclick="lsnSay(${JSON.stringify(l.char).replace(/"/g,'&quot;')})" title="${escapeHtml(l[L]||'')}">
-            <span class="hm-ch">${l.char}</span><span class="hm-rom">${escapeHtml(l.rom)}</span>
+          const hint=[l.rom,L==='ru'?l.cyr:''].filter(Boolean).join(' · ')+(l[L]?' — '+l[L]:'');
+          return `<button class="hm-tile t${tier}" onclick="lsnSay(${JSON.stringify(l.char).replace(/"/g,'&quot;')})" title="${escapeHtml(hint)}">
+            <span class="hm-ch">${l.char}</span><span class="hm-rom">${escapeHtml(l.rom)}</span>${L==='ru'&&l.cyr?`<span class="hm-cyr">${escapeHtml(l.cyr)}</span>`:''}
           </button>`}).join('');
+    // Подпись типа сектора: видно, что закрыты и гласные, и согласные, —
+    // из одних только названий («Йотированные», «Напряжённые») это неочевидно.
+    const kind=s.kind==='v'?t('lsn_map_kv'):s.kind==='c'?t('lsn_map_kc'):t('lsn_map_kr');
     return `<div class="hm-sec">
       <div class="hm-h"><span class="hm-icon">${s.icon}</span>
         <b>${s.title[L]}</b>
+        <span class="hm-kind k-${s.kind}">${kind}</span>
         <span class="hm-count">${s.rule?(isDone?'✓':'—'):known+'/'+s.letters.length}</span></div>
       <div class="hm-grid">${tiles}</div>
       <button class="hm-go" onclick="openLesson('${s.lessonId}')">${isDone?t('lsn_map_repeat'):t('lsn_map_learn')}</button>
     </div>`;
   }).join('');
+  // Шапка карты: сколько букв всего и сколько из них гласных/согласных.
+  // Считаем по данным, а не хардкодом «40» — если сектор выпадет, это будет видно.
+  const secs=(window.HANGUL_SECTORS||[]);
+  const nV=secs.filter(s=>s.kind==='v').reduce((n,s)=>n+s.letters.length,0);
+  const nC=secs.filter(s=>s.kind==='c').reduce((n,s)=>n+s.letters.length,0);
   document.getElementById('lessonBody').innerHTML=
-    `<div class="hm-legend"><span class="hm-dot t0"></span>${t('lsn_map_l0')}
+    `<div class="hm-sum">${t('lsn_map_sum')(nV+nC,nV,nC)}</div>
+     <div class="hm-legend"><span class="hm-dot t0"></span>${t('lsn_map_l0')}
       <span class="hm-dot t1"></span>${t('lsn_map_l1')}
       <span class="hm-dot t2"></span>${t('lsn_map_l2')}
-      <span class="hm-dot t3"></span>${t('lsn_map_l3')}</div>${sectors}`;
+      <span class="hm-dot t3"></span>${t('lsn_map_l3')}</div>${sectors||`<div class="hm-empty">${t('lsn_map_none')}</div>`}`;
   document.getElementById('lessonBody').scrollTop=0;
 }
 
@@ -1095,10 +1220,34 @@ function syncCabinet(){
   try{if(typeof renderCabinet==='function'&&typeof myIdol!=='undefined'&&myIdol&&document.getElementById('cabBody'))renderCabinet(null)}catch(e){}
 }
 
+// Кириллица показывается только русскому интерфейсу: англоязычному она шум.
+// Источник значений — lib/ko-g2p.js, см. шапку curriculum.js.
+// Точка-разделитель обязательна: «a» и «а» на глаз неразличимы, без неё
+// латиница и кириллица читаются как повтор одной буквы.
+function lsnCyr(b){return (getLang()==='ru'&&b&&b.cyr)?`<span class="lb-cyr"><i>·</i>${escapeHtml(b.cyr)}</span>`:''}
 function renderBlock(b){
   const L=getLang();
-  if(b.type==='hangul')return `<div class="lb-hangul"><span class="lb-char">${b.char}</span><span class="lb-rom">${b.rom}</span><span class="lb-mean">${b[L]}</span>${lsnSayBtn(b.char)}</div>`;
-  if(b.type==='example')return `<div class="lb-ex"><span class="lb-kr">${b.kr}</span><span class="lb-rom">${b.rom}</span><span class="lb-mean">${b[L]}</span>${lsnSayBtn(b.kr)}</div>`;
+  if(b.type==='hangul'){
+    // Буква = знак + обе транскрипции + пояснение звука + слово-пример.
+    // Колонкой, а не в одну строку: на 320px пять полей в ряд не помещаются.
+    const ex=b.ex&&b.ex.kr
+      ? `<button class="lb-hex" onclick="lsnSay(${JSON.stringify(b.ex.kr).replace(/"/g,'&quot;')})">
+           <span class="lb-hex-kr">${escapeHtml(b.ex.kr)}</span>
+           <span class="lb-hex-rom">${escapeHtml(b.ex.rom||'')}${L==='ru'&&b.ex.cyr?' · '+escapeHtml(b.ex.cyr):''}</span>
+           <span class="lb-hex-mean">${escapeHtml(b.ex[L]||b.ex.ru||'')}</span>
+           <span class="lb-hex-say">🔊</span>
+         </button>`
+      : '';
+    return `<div class="lb-hangul">
+      <span class="lb-char">${b.char}</span>
+      <div class="lb-hbody">
+        <div class="lb-hline"><span class="lb-rom">${escapeHtml(b.rom)}</span>${lsnCyr(b)}${lsnSayBtn(b.char)}</div>
+        <span class="lb-mean">${b[L]}</span>
+        ${ex}
+      </div>
+    </div>`;
+  }
+  if(b.type==='example')return `<div class="lb-ex"><span class="lb-kr">${b.kr}</span><span class="lb-rom">${b.rom}</span>${lsnCyr(b)}<span class="lb-mean">${b[L]}</span>${lsnSayBtn(b.kr)}</div>`;
   if(b.type==='tip')return `<div class="lb-tip">💡 ${b[L]}</div>`;
   // Патчхим — сектор правил: 19 букв внизу дают 7 звуков, показываем группами.
   if(b.type==='batchim')return `<div class="lb-batchim"><span class="lb-bg">${b.g}</span><span class="lb-bc">${b.chars}</span><span class="lb-mean">${b[L]}</span></div>`;
@@ -1125,10 +1274,12 @@ function openLesson(id){
   document.getElementById('lsnBack').style.visibility='visible';
   document.getElementById('lessonTitle').textContent=lesson.title[getLang()];
   const blocks=lesson.blocks.map(renderBlock).join('');
-  const sec=(window.HANGUL_SECTORS||[]).find(s=>s.lessonId===lesson.id);
+  const secs=(window.HANGUL_SECTORS||[]);
+  const secI=secs.findIndex(s=>s.lessonId===lesson.id);
+  const sec=secI>=0?secs[secI]:null;
   document.getElementById('lessonBody').innerHTML=`
     <div class="lsn-goal">🎯 ${(lesson.goal&&lesson.goal[getLang()])||''}</div>
-    ${sec?`<button class="lsn-secline" onclick="openHangulMap()">${t('lsn_sec_of')(sec.title[getLang()],(window.HANGUL_SECTORS||[]).length)}</button>`:''}
+    ${sec?`<button class="lsn-secline" onclick="openHangulMap()">${t('lsn_sec_of')(sec.title[getLang()],secI+1,secs.length)}</button>`:''}
     <div class="lsn-teacher">${blocks}</div>
     <div class="lsn-vocab-note">${t('lsn_vocab_note')(lesson.vocab.length)}</div>
     <button class="btn accent lsn-finish" onclick="openLessonQuiz('${lesson.id}')">${t('lsn_next_quiz')}</button>
@@ -1522,6 +1673,29 @@ function wbSongTitle(id){
 function wbOpenSong(id){if(typeof openSong==='function'){closeWorkbook();openSong(id)}}
 function wbFilterSong(id){window._wbSongFilter=id;window._wbTab='words';renderWorkbook()}
 function wbClearFilter(){window._wbSongFilter=null;renderWorkbook()}
+function wbToggleAnalysis(id){window._wbOpenSong=(window._wbOpenSong===id?null:id);renderWorkbook();}
+/* Разбор песни в тетради (правка Сармата 23.07): песня закрыта, клип не играет —
+   а объяснить, почему сумма слов не равна смыслу фразы, можно только здесь, спокойно.
+   Во время проигрывания на это нет времени: там объяснение спрятано под 🔗. */
+function wbSongAnalysis(s){
+  const L=getLang();
+  const vs=(s.verses||[]).filter(v=>v&&((v.tr&&(v.tr[L]||v.tr.ru||v.tr.en))||v.sense||v.why||v.lit));
+  if(!vs.length)return `<div class="wb-an"><p class="wb-an-none">${t('wb_an_none')}</p></div>`;
+  const pick=o=>(o&&(o[L]||o.en||o.ru))||'';
+  return `<div class="wb-an">`+vs.map(v=>{
+    const combos=(v.sense||[]).filter(x=>x.c);
+    return `<section class="wb-anv">
+      <div class="wb-anv-h">${t('kara_verse')} ${v.i+1}</div>
+      ${pick(v.tr)?`<p class="wb-an-tr">${escapeHtml(pick(v.tr))}</p>`:''}
+      ${combos.map(x=>`<div class="wb-an-c">
+        ${pick(x.s)?`<div class="wb-an-cs">${escapeHtml(pick(x.s))}</div>`:''}
+        <p class="wb-an-cb">🔗 ${escapeHtml(pick(x.c))}</p>
+      </div>`).join('')}
+      ${pick(v.lit)?`<p class="wb-an-lit"><span class="kp-tag">${t('kara_lit')}</span>${escapeHtml(pick(v.lit))}</p>`:''}
+      ${pick(v.why)?`<p class="wb-an-why"><span class="kp-tag">${t('kara_why')}</span>${escapeHtml(pick(v.why))}</p>`:''}
+    </section>`;
+  }).join('')+`</div>`;
+}
 function renderWbSongs(songs){
   const body=document.getElementById('wbBody');
   if(!songs.length){
@@ -1532,14 +1706,17 @@ function renderWbSongs(songs){
   body.innerHTML=`<div class="wb-hint">${t('wb_hint_songs')}</div><div class="wb-list">`+songs.map(s=>{
     const tot=s.wordsTotal|0,sav=s.wordsSaved|0;
     const pct=tot?Math.round(Math.min(sav/tot,1)*100):0;
+    const open=window._wbOpenSong===s.id;
     return `<div class="wb-song">
       <div class="wb-song-t"><b>${escapeHtml(s.title||'')}</b><small>${escapeHtml(s.artist||'')}${s.done?' · ✓':''}</small></div>
       <div class="wb-bar sm"><i style="transform:scaleX(${pct/100})"></i></div>
       <div class="wb-song-n">${t('wb_song_words')(sav,tot)}</div>
       <div class="wb-song-btns">
+        <button class="${open?'on':''}" aria-expanded="${open?'true':'false'}" onclick="wbToggleAnalysis(${wbAttr(s.id)})">${open?'▾':'▸'} ${t('wb_song_analysis')}</button>
         <button onclick="wbOpenSong(${wbAttr(s.id)})">${t('wb_song_open')}</button>
         <button onclick="wbFilterSong(${wbAttr(s.id)})" ${sav?'':'disabled'}>${t('wb_song_filter_btn')}</button>
       </div>
+      ${open?wbSongAnalysis(s):''}
     </div>`;
   }).join('')+`</div>`;
 }
@@ -1712,6 +1889,10 @@ function songWordsByVerse(song){
     }));
     const g={i,tr:v.tr||{ru:'',en:''},words};
     if(v.lit)g.lit=v.lit;if(v.why)g.why=v.why;
+    // Построчный смысл и объяснение компоновок — чтобы вкладка «Разбор песен» в тетради
+    // жила без каталога: человек открывает её и через неделю, когда песня уже закрыта.
+    const sense=(v.lines||[]).map(ln=>({s:ln.s||null,c:ln.c||null})).filter(x=>x.s||x.c);
+    if(sense.length)g.sense=sense;
     return g;
   });
 }
@@ -1944,8 +2125,9 @@ function karaFrame(){
 function karaApply(t){
   const K=window._kara;if(!K)return;
   const f=karaFocus(K,t);
-  if(f.vi!==K.vIdx){K.vIdx=f.vi;renderKaraVerse();}
+  if(f.vi!==K.vIdx){K.vIdx=f.vi;K.comboOpen=null;renderKaraVerse();}
   updateKaraWords(t,f);
+  updateKaraSense(t);
   // Песня кончилась → сразу набор всех слов по куплетам. Это и есть момент,
   // ради которого мы держали человека: он только что всё услышал и понял.
   const last=K.lines[K.lines.length-1];
@@ -2015,6 +2197,11 @@ function updateKaraWords(t,f){
 // значит на самом деле, плюс раскрывающееся «дословно ≠ по смыслу» с объяснением,
 // почему они расходятся. Отдельные слова во время проигрывания читать некогда —
 // их набор ждёт в конце песни (openSongRecap).
+//
+// Правка 23.07: смысловой перевод теперь тоже ЗАЛИВАЕТСЯ по ходу песни, строка за
+// строкой. Сверху человек видит, какие слова поют; снизу — что эти слова значат
+// вместе, в тот же момент. Если у строки есть 🔗 — там объяснение, почему именно
+// такая компоновка слов даёт такой смысл (раскрывается по тапу, чтобы не мешать).
 function renderVersePanel(){
   const K=window._kara;if(!K)return;
   const p=document.getElementById('karaPause');if(!p)return;
@@ -2024,22 +2211,78 @@ function renderVersePanel(){
   const why=(v.why&&(v.why[L]||v.why.en||v.why.ru))||'';
   const note=(v.note&&(v.note[L]||v.note.en||v.note.ru))||'';
   const open=!!K.senseOpen;
+  // Построчный смысл есть — показываем его синхронно с пением; иначе старый цельный абзац.
+  const sl=(v.lines||[]).map((ln,li)=>({li,txt:(ln.s&&(ln.s[L]||ln.s.en||ln.s.ru))||'',
+    combo:(ln.c&&(ln.c[L]||ln.c.en||ln.c.ru))||''}));
+  const synced=sl.some(x=>x.txt);
+  K.sense=null;
   p.style.display='block';
   p.innerHTML=`
     <div class="kp-h">${t('kara_verse')} ${K.vIdx+1}/${K.verses.length}</div>
-    ${tr?`<div class="kp-tr">${escapeHtml(tr)}</div>`:`<div class="kp-tr kp-dim">${t('kara_tr_none')}</div>`}
+    ${synced
+      ? `<div class="kp-slines" id="kpSlines">${sl.map(x=>{
+          if(!x.txt)return '';
+          const words=String(x.txt).split(/\s+/).filter(Boolean);
+          const co=K.comboOpen===x.li;
+          return `<div class="ksl" data-li="${x.li}">
+            <div class="ksl-row">
+              <span class="ksl-t">${words.map(w=>`<span class="ksw" data-txt="${attrEsc(w)}">${escapeHtml(w)}</span>`).join(' ')}</span>
+              ${x.combo?`<button class="ksl-c${co?' on':''}" type="button" aria-expanded="${co?'true':'false'}" aria-label="${t('kara_combo_a')}" onclick="karaToggleCombo(${x.li})">🔗</button>`:''}
+            </div>
+            ${(x.combo&&co)?`<p class="ksl-cb">${escapeHtml(x.combo)}</p>`:''}
+          </div>`;
+        }).join('')}</div>`
+      : (tr?`<div class="kp-tr">${escapeHtml(tr)}</div>`:`<div class="kp-tr kp-dim">${t('kara_tr_none')}</div>`)}
     ${(lit||why)?`<div class="kp-sense">
       <button class="kp-sense-t" type="button" aria-expanded="${open?'true':'false'}" onclick="karaToggleSense()">
         <span class="kp-caret">${open?'▾':'▸'}</span>${t('kara_sense_h')}</button>
       ${open?`<div class="kp-sense-b">
+        ${synced&&tr?`<p class="kp-lit"><span class="kp-tag">${t('kara_whole')}</span>${escapeHtml(tr)}</p>`:''}
         ${lit?`<p class="kp-lit"><span class="kp-tag">${t('kara_lit')}</span>${escapeHtml(lit)}</p>`:''}
         ${why?`<p class="kp-why"><span class="kp-tag">${t('kara_why')}</span>${escapeHtml(why)}</p>`:''}
       </div>`:''}
     </div>`:''}
     ${note?`<p class="kp-note">💡 ${escapeHtml(note)}</p>`:''}
     <button class="kp-allwords" type="button" onclick="openSongRecap()">🗂 ${t('kara_allwords')}</button>`;
+  if(synced)buildSenseFill(K,v);
+}
+// Готовим заливку смысловых строк: каждой строке — её окно времени (от первого до
+// последнего слова куплета) и веса слов перевода, чтобы длинные слова заливались
+// дольше коротких. Считаем один раз на куплет, в кадре только пишем --fill.
+function buildSenseFill(K,v){
+  const box=document.getElementById('kpSlines');if(!box)return;
+  const rows=[];
+  box.querySelectorAll('.ksl').forEach(el=>{
+    const li=+el.getAttribute('data-li');
+    const ws=(v.lines[li]&&v.lines[li].words)||[];
+    if(!ws.length)return;
+    const t0=ws[0].t0,t1=Math.max(...ws.map(w=>(w.t1!=null?w.t1:w.t0)));
+    const els=el.querySelectorAll('.ksw');if(!els.length)return;
+    let acc=0;const seg=[];
+    els.forEach(e=>{const wt=(e.textContent||'').length+1;seg.push({a:acc,b:acc+wt,f:-1});acc+=wt;});
+    rows.push({box:el,els,seg,total:acc||1,t0,t1:(t1>t0?t1:t0+0.5),p:-1});
+  });
+  K.sense=rows.length?rows:null;
+}
+function updateKaraSense(tm){
+  const K=window._kara;const S=K&&K.sense;if(!S)return;
+  for(let i=0;i<S.length;i++){
+    const ln=S[i];
+    const p=tm>=ln.t1?1:(tm<=ln.t0?0:(tm-ln.t0)/(ln.t1-ln.t0));
+    if(Math.abs(p-ln.p)<0.002)continue;
+    ln.p=p;
+    const cut=p*ln.total;
+    for(let j=0;j<ln.seg.length;j++){
+      const s=ln.seg[j];
+      const f=Math.round((cut<=s.a?0:cut>=s.b?100:((cut-s.a)/(s.b-s.a))*100)*10)/10;
+      if(f!==s.f){ln.els[j].style.setProperty('--fill',f+'%');s.f=f;}
+    }
+    ln.box.classList.toggle('on',p>0&&p<1);
+    ln.box.classList.toggle('done',p>=1);
+  }
 }
 function karaToggleSense(){const K=window._kara;if(!K)return;K.senseOpen=!K.senseOpen;renderVersePanel();}
+function karaToggleCombo(li){const K=window._kara;if(!K)return;K.comboOpen=(K.comboOpen===li?null:li);renderVersePanel();}
 
 /* ---- Конец песни: все слова по куплетам + добавление в тетрадь ---- */
 function songVocabEntry(song,vi,w){
@@ -2050,7 +2293,7 @@ function openSongRecap(){
   const K=window._kara;if(!K)return;
   // Клип НЕ останавливаем: музыка продолжает играть, пока человек разбирает слова —
   // так набор слов ощущается частью песни, а не экзаменом после неё.
-  K.recap=true;K.lastLine=null;K.tokEls=null;K.lineEls=null;
+  K.recap=true;K.lastLine=null;K.tokEls=null;K.lineEls=null;K.sense=null;
   renderSongRecap();
   const b=document.getElementById('songBody');if(b)b.scrollTop=0;
 }
@@ -2091,9 +2334,10 @@ function renderSongRecap(){
       <div class="rcp-sub">${t('song_recap_sub')(got,total)}</div>
     </div>
     ${body||`<div class="rcp-none">${t('song_recap_none')}</div>`}
+    <button class="btn accent rcp-quiz" type="button" onclick="openSongQuiz()">🎯 ${t('sq_cta')}</button>
     <div class="rcp-foot">
       <button class="rcp-back" type="button" onclick="closeSongRecap()">${t('song_recap_back')}</button>
-      <button class="btn accent rcp-done" type="button" onclick="songComplete()">${t('song_finish')}</button>
+      <button class="rcp-done" type="button" onclick="songComplete()">${t('song_finish')}</button>
     </div>
   </div>`;
 }
@@ -2125,6 +2369,142 @@ function songComplete(){
   songStudyTouch(K.song,true);
   toast(t('song_done_toast'));
   openSongs();
+}
+
+/* ===================== «ЗАЛАТАЙ СТРОКУ» — песня как задание =====================
+   Причина правки — фраза Сармата «я прям не хочу учить корейский по этой вкладке».
+   Разбор был текстом для чтения: ноль вопросов, ноль ответов, ноль следа в памяти.
+   Здесь строка песни превращается в задание с пропуском.
+
+   Чем это не LyricsTraining: там слова затираются случайно, по проценту сложности.
+   Мы затираем ПРЕЖДЕ ВСЕГО те, что человек уже сохранил в тетрадь — то есть каждый
+   прогон песни автоматически становится повторением, а не отдельной игрой.
+
+   Клип на паузе: подпевать в момент ответа не просим. Пение помогает на ВХОДЕ, но
+   мешает на выходе — текст и мелодия хранятся раздельно, воспроизведение пением
+   даёт хуже вспоминание [Racette & Peretz, Memory & Cognition, 2007].            */
+const SQ_MAX=8;      // длина сессии: около 90 секунд, не больше
+function sqPause(){try{const K=window._kara;if(K&&K.player&&K.player.pauseVideo)K.player.pauseVideo()}catch(e){}}
+function songQuizBuild(song){
+  const L=getLang();
+  const pool=[];   // все слова песни — из них берём и ответы, и отвлекающие
+  const lines=[];
+  ((song&&song.verses)||[]).forEach((v,vi)=>{
+    (v.lines||[]).forEach(ln=>{
+      const w=(ln.w||[]).filter(x=>x&&x.k&&/[가-힣]/.test(x.k));
+      if(w.length<2)return;
+      w.forEach(x=>pool.push(x));
+      lines.push({vi,w,s:(ln.s&&(ln.s[L]||ln.s.en||ln.s.ru))||'',
+        tr:(v.tr&&(v.tr[L]||v.tr.en||v.tr.ru))||''});
+    });
+  });
+  if(!lines.length)return[];
+  const uniq={};pool.forEach(w=>{if(!uniq[w.k])uniq[w.k]=w});
+  const all=Object.values(uniq);
+  if(all.length<4)return[];
+  const saved={};lsnVocab().forEach(v=>{if(v&&v.kr)saved[v.kr]=1});
+  const items=shuffle(lines).slice(0,SQ_MAX).map(ln=>{
+    // Затираем в первую очередь уже сохранённое слово — это и есть повторение.
+    const known=ln.w.filter(x=>saved[x.k]);
+    const pick=(known.length?known:ln.w.filter(x=>x.k.replace(/\s/g,'').length>1))[0]
+      ||ln.w[Math.floor(Math.random()*ln.w.length)];
+    const gi=ln.w.indexOf(pick);
+    const wrong=shuffle(all.filter(x=>x.k!==pick.k)).slice(0,3);
+    const opts=shuffle([pick,...wrong]);
+    return {w:ln.w,gi,s:ln.s||ln.tr,opts,answer:opts.findIndex(o=>o.k===pick.k),word:pick};
+  });
+  return items;
+}
+function openSongQuiz(){
+  const K=window._kara;if(!K)return;
+  const items=songQuizBuild(K.song);
+  if(!items.length){toast(t('sq_none'));return}
+  sqPause();
+  window._sq={items,i:0,ok:0,wrong:[],lock:0,fix:false};
+  renderSongQuiz();
+}
+function exitSongQuiz(){window._sq=null;renderSongRecap();}
+function sqLineHtml(q,reveal){
+  const L=getLang();
+  return `<div class="kline sq-line">${q.w.map((w,wi)=>{
+    const gap=wi===q.gi;
+    const rom=(L==='ru'&&w.rr)?w.rr:(w.r||w.rom||'');
+    if(gap&&!reveal)return `<span class="tok sq-gap"><span class="tok-k">▁▁▁</span><span class="tok-r">?</span><span class="tok-m"></span></span>`;
+    return `<span class="tok${gap?' sq-was':''}"><span class="tok-k">${escapeHtml(w.k)}</span>`+
+      `<span class="tok-r">${escapeHtml(rom)}</span><span class="tok-m">${escapeHtml(w[L]||w.ru||w.en||'')}</span></span>`;
+  }).join('')}</div>`;
+}
+function renderSongQuiz(){
+  const S=window._sq;if(!S)return;
+  const b=document.getElementById('songBody');if(!b)return;
+  if(S.i>=S.items.length){finishSongQuiz();return}
+  const q=S.items[S.i];
+  const say=q.w.map(w=>w.k).join(' ');
+  b.innerHTML=`<div class="sq">
+    <div class="dr-top"><div class="lsn-pbar"><i style="width:${Math.round(S.i/S.items.length*100)}%"></i></div><span>${S.i+1}/${S.items.length}</span></div>
+    <div class="sq-h">${S.fix?t('sq_fix_h'):t('sq_h')} ${lsnSayBtn(say,'sq-say')}</div>
+    ${sqLineHtml(q,false)}
+    ${q.s?`<p class="sq-s">${escapeHtml(q.s)}</p>`:''}
+    <div class="lq-opts" id="sqOpts">${q.opts.map((o,oi)=>
+      `<button class="lq-opt dr-opt sq-opt" onclick="pickSongQuiz(${oi})">${escapeHtml(o.k)}</button>`).join('')}</div>
+    <div class="dr-react" id="sqReact"></div>
+    <button class="lsn-toinfo" onclick="exitSongQuiz()">← ${t('sq_back')}</button>
+  </div>`;
+  b.scrollTop=0;
+}
+function pickSongQuiz(oi){
+  const S=window._sq;if(!S||S.lock)return;
+  const q=S.items[S.i];if(!q)return;
+  S.lock=1;
+  const ok=oi===q.answer;
+  document.querySelectorAll('#sqOpts .sq-opt').forEach((el,ei)=>{
+    el.disabled=true;
+    if(ei===q.answer)el.classList.add('correct');
+    if(ei===oi&&!ok)el.classList.add('wrong');
+  });
+  if(ok)S.ok++;else if(!S.fix)S.wrong.push(q);
+  // Промах учит, а не просто краснеет: строка сразу показывается целиком, со словом
+  // на месте и его переводом — иначе человек уходит с вопросом и без ответа.
+  const L=getLang();
+  const r=document.getElementById('sqReact');
+  if(r)r.innerHTML=(ok?'':`<div class="sq-fix">${sqLineHtml(q,true)}
+    <p class="sq-mean"><b>${escapeHtml(q.word.k)}</b> — ${escapeHtml(q.word[L]||q.word.ru||q.word.en||'')}</p></div>`)
+    +lsnIdolLine(ok?'ok':'miss');
+  lsnSay(q.w.map(w=>w.k).join(' '));
+  clearTimeout(S.t);
+  S.t=setTimeout(()=>{S.lock=0;S.i++;renderSongQuiz()},ok?900:2200);
+}
+function startSongFix(){
+  const S=window._sq;if(!S||!S.wrong.length)return;
+  window._sq={items:S.wrong,i:0,ok:0,wrong:[],lock:0,fix:true,base:S};
+  renderSongQuiz();
+}
+function finishSongQuiz(){
+  const S=window._sq;if(!S)return;
+  const b=document.getElementById('songBody');if(!b)return;
+  const K=window._kara;
+  const total=S.items.length;
+  // Разбор ошибок бесплатный: он не считается новой сессией и не даёт опыта повторно.
+  let xp=0,st=null;
+  if(!S.fix){
+    xp=6*S.ok+(S.wrong.length?0:8);
+    st=lsnTouchDay();if(st.fresh)xp+=10;
+    lsnAddXp(xp);
+    if(K)songStudyTouch(K.song);
+    syncCabinet();
+  }
+  b.innerHTML=`<div class="dr-done">
+    <div class="dd-flame">${S.wrong.length?'🎧':'🎉'}</div>
+    <div class="dd-cap">${S.fix?t('sq_fix_done'):t('sq_done')}</div>
+    <div class="dd-row"><span>${t('lsn_dr_right')}</span><b>${S.ok}/${total}</b></div>
+    ${xp?`<div class="dd-row"><span>${t('lsn_st_xp')}</span><b>+${xp}</b></div>`:''}
+    ${st&&st.fresh?`<div class="dd-froze">🔥 ${t('lsn_streak_days')(st.n)}</div>`:''}
+    ${lsnIdolLine('done')}
+    ${S.wrong.length?`<button class="btn accent lsn-finish" onclick="startSongFix()">${t('sq_fix_btn')(S.wrong.length)}</button>`:''}
+    <button class="${S.wrong.length?'lsn-ask':'btn accent lsn-finish'}" onclick="songComplete()">${t('song_finish')}</button>
+    <button class="lsn-ask" onclick="exitSongQuiz()">${t('sq_back')}</button>
+  </div>`;
+  b.scrollTop=0;
 }
 
 /* ===================== ОНБОРДИНГ (памятка + гид-подсветка) ===================== */
@@ -2755,7 +3135,9 @@ function getLang(){return localStorage.getItem('s1_lang')||'en'}
 function setLang(v){localStorage.setItem('s1_lang',v);location.reload()}
 const T={
   en:{
-    nav_home:"Backstage", nav_idols:"Idols", no_idol_h:"You don’t have an idol yet", no_idol_sub:"Pick an idol — he becomes your tutor and friend.", no_idol_btn:"Pick an idol →", footer:"Idolingo · learn Korean with an AI idol you pick · your friend and tutor in one", lang_cap:"learning language",
+    nav_home:"Backstage", nav_idols:"Idols", no_idol_h:"Find out what your idol is really singing", no_idol_sub:"Every line twice: word by word, and what those words actually mean together. Any K-pop song, right now.", no_idol_btn:"Pick an idol →",
+    hd_eyebrow:"WORD BY WORD · AND WHAT IT REALLY MEANS", hd_sub:"Every line twice: word by word, and what those words actually mean together. Any K-pop song, right now.",
+    hd_h:"Find out what your idol is really singing", hd_foot:"Your idol explains it — and then talks to you in Korean.", footer:"Idolingo · learn Korean with an AI idol you pick · your friend and tutor in one", lang_cap:"learning language",
     pick_h:"Pick an idol — they become your friend and teach you Korean 🇰🇷", pick_sub:"One idol free, yours forever. Chat every day and learn Korean the fun way.",
     tab_girls:"Girls", tab_boys:"Boys",
     concept_suffix:"· your idol tutor", your_korean:"Your Korean", level:"level", days_together:"days together", streak_days:"day streak", streak_start:"Start your streak — study today",
@@ -2772,7 +3154,10 @@ const T={
     lsn_name_ask:nm=>`Ask ${nm} if it looks right`, lsn_name_seed:(raw,kr)=>`My name is ${raw}. Would ${kr} be right in Hangul, or would you spell it differently?`,
     lsn_map_h:"Hangul map", lsn_map_sub:(k,n)=>`${k} of ${n} letters — vowels, consonants, diphthongs, batchim`, lsn_map_learn:"Learn this sector →", lsn_map_repeat:"Go through it again →",
     lsn_map_l0:"new", lsn_map_l1:"learning", lsn_map_l2:"known", lsn_map_l3:"solid",
-    lsn_sec_of:(nm,n)=>`Sector "${nm}" · 1 of ${n} on the Hangul map →`,
+    lsn_map_kv:"vowels", lsn_map_kc:"consonants", lsn_map_kr:"rule",
+    lsn_map_sum:(n,v,c)=>`${n} letters in the alphabet — ${v} vowels and ${c} consonants, plus the batchim rule`,
+    lsn_map_none:"The alphabet is still loading. Reopen this screen.",
+    lsn_sec_of:(nm,i,n)=>`Sector "${nm}" · ${i} of ${n} on the Hangul map →`,
     lsn_q_read:ch=>`How is ${ch} read?`, lsn_q_mean:w=>`What does ${w} mean?`, lsn_q_which:r=>`Which letter is "${r}"?`, lsn_q_how:m=>`How do you say "${m}"?`,
     lsn_dr_right:"Correct", lsn_dr_words:"Words to the Workbook", lsn_dr_back:"Back to lessons",
     lsn_streak_days:n=>`${n} ${n===1?'day':'days'} in a row`, lsn_froze:"❄ A freeze covered your missed day — the streak holds.",
@@ -2793,13 +3178,21 @@ const T={
     wb_empty_filter:"No words from this song in your workbook yet.", wb_filter_on:ttl=>`Words from “${ttl}”`,
     wb_empty_songs:"No songs broken down yet. Each one leaves its words here — and they come back to you on a schedule.",
     wb_empty_songs_btn:"Break your first song →",
-    wb_song_words:(s,tot)=>`${s} of ${tot} words in your workbook`, wb_song_open:"Open the breakdown", wb_song_filter_btn:"Its words",
+    wb_song_words:(s,tot)=>`${s} of ${tot} words in your workbook`, wb_song_open:"Play it again", wb_song_filter_btn:"Its words",
+    wb_song_analysis:"Breakdown", wb_an_none:"No breakdown saved for this song yet — open it once and it lands here.",
     songs_h:"Break a song", songs_intro:"Pick a song — your idol walks you through it line by line.", songs_empty:"No songs yet.", songs_done_h:"Songs you’ve done", song_search:"e.g. BLACKPINK DDU-DU or Ditto", song_search_hint:"Type the title/artist in English or Korean — not transliterated.", song_none:q=>`“${q}” isn’t here yet. Soon you’ll add any song — we’ll pull lyrics, translation and sync automatically.`, song_botnote:"Asks to sign in? That’s YouTube’s bot-check (worse on VPN) →", song_fail:"The clip couldn’t load — open it on YouTube below 👇 (the breakdown still works)", song_online_h:"Add from search", song_searching:"Searching the database…", song_search_empty:"Nothing with synced lyrics — try another spelling (English or Korean).", song_need_login:"Log in to search and add songs.", song_building:"Building the breakdown… (~30 sec)", song_build_fail:"Couldn’t build this one — try another song", song_added:"Added 🎉", song_net:"Network unavailable", song_guide:"Play the video, then step through the lyrics line by line below.", song_next:"Next line", song_finish:"Finish song ✓", song_save:tab=>`+ ${tab}`, song_saved:"Saved ✓", song_save_toast:"Saved to your Workbook", song_done_toast:"Song complete 🎉", song_open_yt:"Open on YouTube", song_reload:"Reload video",
     kara_hint:"Press play — words light up in time. At each verse end it pauses for the breakdown. If the highlight drifts from the clip, tap “Sync” exactly when you hear the verse’s first word.", kara_synctap:"Sync", kara_syncdone:"Synced to the clip ✓", kara_cont:"Don’t stop", kara_verse:"Verse", kara_repeat:"Repeat verse", kara_nextv:"Next verse",
     kara_sense_h:"Word-for-word ≠ what it means", kara_lit:"word-for-word", kara_why:"why they differ", kara_allwords:"All the words in this song", kara_tr_none:"No translation for this verse yet.",
+    kara_whole:"the whole verse", kara_combo_a:"why these words mean this together",
     song_recap_h:"Every word, verse by verse", song_recap_sub:(a,b)=>`${a} of ${b} already in your workbook`, song_add_verse:"+ whole verse", song_added_n:n=>`${n} words added to the workbook`, song_recap_back:"← back to the lyrics", song_recap_none:"No words in this verse yet.",
     onb_title:"How it all works", onb_help_chip:"How it works", onb_tour:"Show me around →", onb_ok:"Got it", onb_next:"Next", onb_done:"Done",
     topik_note:"Built to the <b>TOPIK I</b> standard, modeled on the King Sejong Institute — steps you toward the official TOPIK proficiency exam.",
+    song_cta:"Understand a song", song_cta_sub:"line by line — word for word and what it really means",
+    cov_note:(k,tot)=>k?`You understand ${k} of ${tot} words in it`:`Not a single word of it yet — start with one line`,
+    sq_cta:"Now patch the lines", sq_h:"Which word is missing?", sq_fix_h:"Once more — the ones you missed",
+    sq_s:"", sq_back:"back to the words", sq_none:"This song has too few words for a drill yet.",
+    sq_done:"Song cracked 🎉", sq_fix_done:"Now they are yours", sq_fix_btn:n=>`Go over ${n} missed →`,
+    tile_lesson:"Hangul", tile_lesson_sub:nm=>`${nm} teaches you to read`,
     tile_song:"Break a song", tile_song_sub:"line by line", tile_slang:"Song slang", tile_slang_sub:"real Korean", tile_phrase:"Chat with your idol", tile_phrase_sub:"just talk, in Korean",
     seed_song:"Break down this song: ", seed_slang:"Teach me some Korean slang from songs 🙂", seed_phrase:"How do you say in Korean: ",
     coll_h:"Photocards", coll_note:n=>`New ${n} cards unlock as you finish lessons and quizzes — keep going to reveal them all.`,
@@ -2819,7 +3212,9 @@ const T={
     forgot_link:"Forgot password?", forgot_h:"Reset password", forgot_send:"Send reset link", forgot_sent:"If that email exists, we sent a reset link. Check your inbox.", back_login:"← Back to log in",
   },
   ru:{
-    nav_home:"Гримёрка", nav_idols:"Айдолы", no_idol_h:"У тебя ещё нет айдола", no_idol_sub:"Выбери айдола — он станет твоим учителем и другом.", no_idol_btn:"Выбрать айдола →", footer:"Idolingo · учи корейский с AI-айдолом, которого выбрал сам · твой друг и преподаватель в одном лице", lang_cap:"язык обучения",
+    hd_eyebrow:"ДОСЛОВНО · И ЧТО ЭТО ЗНАЧИТ НА САМОМ ДЕЛЕ", hd_sub:"Каждая строчка дважды: слово за словом — и что эти слова значат вместе. Любая песня, прямо сейчас.",
+    hd_h:"Пойми, о чём на самом деле поёт твой айдол", hd_foot:"Объясняет твой айдол — а потом сам заговорит с тобой по-корейски.",
+    nav_home:"Гримёрка", nav_idols:"Айдолы", no_idol_h:"Пойми, о чём на самом деле поёт твой айдол", no_idol_sub:"Каждая строчка дважды: слово за словом — и что эти слова значат вместе.", no_idol_btn:"Выбрать айдола →", footer:"Idolingo · учи корейский с AI-айдолом, которого выбрал сам · твой друг и преподаватель в одном лице", lang_cap:"язык обучения",
     pick_h:"Выбери айдола — он станет твоим другом и научит тебя корейскому 🇰🇷", pick_sub:"Один айдол бесплатно и навсегда твой. Общайся каждый день — учи корейский играючи.",
     tab_girls:"Девушки", tab_boys:"Парни",
     concept_suffix:"· твой айдол-учитель", your_korean:"Твой корейский", level:"уровень", days_together:"дней вместе", streak_days:"дней подряд", streak_start:"Начни стрик — позанимайся сегодня",
@@ -2836,7 +3231,12 @@ const T={
     lsn_name_ask:nm=>`Спросить у ${nm}, верно ли`, lsn_name_seed:(raw,kr)=>`Меня зовут ${raw}. Хангылем это будет ${kr} или ты бы записала иначе?`,
     lsn_map_h:"Карта хангыля", lsn_map_sub:(k,n)=>`${k} из ${n} букв — гласные, согласные, дифтонги, патчхим`, lsn_map_learn:"Пройти сектор →", lsn_map_repeat:"Пройти ещё раз →",
     lsn_map_l0:"новая", lsn_map_l1:"учу", lsn_map_l2:"знаю", lsn_map_l3:"крепко",
-    lsn_sec_of:(nm,n)=>`Сектор «${nm}» · 1 из ${n} на карте хангыля →`,
+    lsn_map_kv:"гласные", lsn_map_kc:"согласные", lsn_map_kr:"правило",
+    // Формулировка без согласования с числом: «21 гласная», «22 гласных» —
+    // подбирать окончание под каждое число незачем, двоеточие снимает вопрос.
+    lsn_map_sum:(n,v,c)=>`${n} букв алфавита: гласных — ${v}, согласных — ${c}, плюс правило патчхима`,
+    lsn_map_none:"Алфавит ещё грузится. Открой экран заново.",
+    lsn_sec_of:(nm,i,n)=>`Сектор «${nm}» · ${i} из ${n} на карте хангыля →`,
     lsn_q_read:ch=>`Как читается ${ch}?`, lsn_q_mean:w=>`Что значит ${w}?`, lsn_q_which:r=>`Где буква «${r}»?`, lsn_q_how:m=>`Как будет «${m}»?`,
     lsn_dr_right:"Верно", lsn_dr_words:"Слов в тетрадь", lsn_dr_back:"К урокам",
     lsn_streak_days:n=>`${n} ${n%10===1&&n%100!==11?'день':(n%10>=2&&n%10<=4&&(n%100<10||n%100>=20))?'дня':'дней'} подряд`,
@@ -2858,13 +3258,21 @@ const T={
     wb_empty_filter:"Слов из этой песни в тетради пока нет.", wb_filter_on:ttl=>`Слова из «${ttl}»`,
     wb_empty_songs:"Разобранных песен пока нет. Каждая оставляет здесь свои слова — и они сами возвращаются к тебе по расписанию.",
     wb_empty_songs_btn:"Разобрать первую песню →",
-    wb_song_words:(s,tot)=>`${s} из ${tot} слов в тетради`, wb_song_open:"Открыть разбор", wb_song_filter_btn:"Её слова",
+    wb_song_words:(s,tot)=>`${s} из ${tot} слов в тетради`, wb_song_open:"Слушать снова", wb_song_filter_btn:"Её слова",
+    wb_song_analysis:"Разбор", wb_an_none:"Разбор этой песни ещё не сохранён — открой её один раз, и он появится здесь.",
     songs_h:"Разбор песни", songs_intro:"Выбери песню — айдол разберёт её строка за строкой.", songs_empty:"Пока нет песен.", songs_done_h:"Пройденные песни", song_search:"напр. BLACKPINK DDU-DU или Ditto", song_search_hint:"Пиши название/артиста по-английски или по-корейски — не русскими буквами.", song_none:q=>`«${q}» пока нет. Скоро можно будет добавить любую — текст, перевод и синхрон соберём автоматически.`, song_botnote:"Просит войти? Это бот-чек YouTube (чаще на VPN) →", song_fail:"Клип не загрузился — открой его на YouTube ниже 👇 (разбор всё равно работает)", song_online_h:"Добавить из поиска", song_searching:"Ищу в базе…", song_search_empty:"Нет с синхро-текстом — попробуй другое написание (англ. или кор.).", song_need_login:"Войди, чтобы искать и добавлять песни.", song_building:"Собираю разбор… (~30 сек)", song_build_fail:"Эту не получилось собрать — попробуй другую", song_added:"Добавлено 🎉", song_net:"Сеть недоступна", song_guide:"Включи видео, а затем разбирай текст строку за строкой ниже.", song_next:"Следующая строка", song_finish:"Завершить песню ✓", song_save:tab=>`+ в ${tab}`, song_saved:"Сохранено ✓", song_save_toast:"Сохранено в Рабочую тетрадь", song_done_toast:"Песня пройдена 🎉", song_open_yt:"Открыть на YouTube", song_reload:"Перезагрузить видео",
     kara_hint:"Нажми play — слова подсвечиваются в такт. В конце куплета — пауза для разбора. Если подсветка не совпадает с клипом — жми «Синхрон» ровно когда слышишь первое слово куплета.", kara_synctap:"Синхрон", kara_syncdone:"Синхронизировано ✓", kara_cont:"Не останавливать", kara_verse:"Куплет", kara_repeat:"Повторить куплет", kara_nextv:"Следующий куплет",
     kara_sense_h:"Дословно ≠ по смыслу", kara_lit:"дословно", kara_why:"почему расходится", kara_allwords:"Все слова песни", kara_tr_none:"Перевод этого куплета пока не собран.",
+    kara_whole:"куплет целиком", kara_combo_a:"почему эти слова вместе значат это",
     song_recap_h:"Все слова, куплет за куплетом", song_recap_sub:(a,b)=>`${a} из ${b} уже в тетради`, song_add_verse:"+ весь куплет", song_added_n:n=>`${n} слов в тетради`, song_recap_back:"← назад к тексту", song_recap_none:"В этом куплете слов пока нет.",
     onb_title:"Как здесь всё устроено", onb_help_chip:"Как это устроено", onb_tour:"Показать по экрану →", onb_ok:"Понятно", onb_next:"Далее", onb_done:"Готово",
     topik_note:"Программа построена по стандарту <b>TOPIK I</b> — по образцу King Sejong Institute. Ведёт к официальному экзамену TOPIK.",
+    song_cta:"Понять песню", song_cta_sub:"строка за строкой — дословно и по смыслу",
+    cov_note:(k,tot)=>k?`Ты понимаешь ${k} из ${tot} слов в ней`:`Пока ни одного слова — начни с одной строчки`,
+    sq_cta:"Залатать строки", sq_h:"Какого слова не хватает?", sq_fix_h:"Ещё раз — то, что не вышло",
+    sq_s:"", sq_back:"назад к словам", sq_none:"В этой песне пока мало слов для проверки.",
+    sq_done:"Песня разобрана 🎉", sq_fix_done:"Теперь они твои", sq_fix_btn:n=>`Разобрать ${n} промах${n===1?'':'а'} →`,
+    tile_lesson:"Хангыль", tile_lesson_sub:nm=>`${nm} учит читать`,
     tile_song:"Разбор песни", tile_song_sub:"строка за строкой", tile_slang:"Сленг из песен", tile_slang_sub:"живой корейский", tile_phrase:"Чат с айдолом", tile_phrase_sub:"живое общение",
     seed_song:"Разбери песню: ", seed_slang:"Научи меня корейскому сленгу из песен 🙂", seed_phrase:"Как сказать по-корейски: ",
     coll_h:"Фотокарточки", coll_note:n=>`Новые карточки ${n} открываются за пройденные уроки и проверочные — учись, чтобы открыть все.`,
