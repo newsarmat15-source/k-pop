@@ -107,11 +107,13 @@ async function annotate(verseGroups) {
     `Korean song, already grouped into verses. Each row is "V<verse> L<line> <lyrics>":\n` +
     listing +
     `\n\nReturn ONLY JSON of this exact shape:\n` +
-    `{"lines":[{"i":0,"tr":{"ru":"","en":""},"w":[{"k":"","r":"","rr":"","ru":"","en":""}]}],` +
+    `{"lines":[{"i":0,"tr":{"ru":"","en":""},"c":{"ru":"","en":""},"w":[{"k":"","r":"","rr":"","ru":"","en":""}]}],` +
     `"verses":[{"v":0,"tr":{"ru":"","en":""},"lit":{"ru":"","en":""},"why":{"ru":"","en":""}}]}\n\n` +
     TRANSCRIPTION_RULES +
     `\n\nOther rules:\n` +
     `- "lines": exactly one object per input line, "i" = the L number from the input.\n` +
+    `- lines[].tr = what THAT ONE LINE actually means in natural Russian/English. Not a word-for-word chain — a sentence a native speaker would say. It is shown under the lyrics and lights up word by word while the line is sung, so keep it one short sentence.\n` +
+    `- lines[].c = OPTIONAL, only for lines where the meaning is NOT the sum of the words: idiom, fixed expression, culture/film reference, grammar tail that carries feeling. 1-2 sentences: word A alone means X, word B alone means Y, together they mean Z. Omit the field entirely on ordinary lines — do not pad.\n` +
     `- Split each line into meaningful words; keep particles attached to their word. "ru"/"en" = 1-3 word gloss of THAT word alone.\n` +
     `- "verses": exactly one object per verse, "v" = the V number.\n` +
     `- verses[].lit = word-for-word literal translation of the whole verse. It MUST read clumsily — that is the point.\n` +
@@ -248,7 +250,8 @@ async function handleBuild(req, res) {
         en: x.en || "",
       };
     }).filter((x) => x.k);
-    return { t: l.t, kr: l.kr, tr: a.tr || { ru: "", en: "" }, w: w.length ? w : [{ k: l.kr, r: "", rr: "", ru: "", en: "" }] };
+    const c = a.c && (a.c.ru || a.c.en) ? a.c : null;
+    return { t: l.t, kr: l.kr, tr: a.tr || { ru: "", en: "" }, c, w: w.length ? w : [{ k: l.kr, r: "", rr: "", ru: "", en: "" }] };
   });
 
   const verses = groups.map((g, vi) => {
@@ -262,7 +265,14 @@ async function handleBuild(req, res) {
     const v = {
       end: +end.toFixed(2),
       tr,
-      lines: glines.map((l) => ({ t: l.t, w: l.w })),
+      // s — построчный смысловой перевод: заливается синхронно с пением (public/app.js,
+      // buildSenseFill). c — почему компоновка слов даёт этот смысл, по 🔗.
+      lines: glines.map((l) => {
+        const o = { t: l.t, w: l.w };
+        if (l.tr && (l.tr.ru || l.tr.en)) o.s = l.tr;
+        if (l.c) o.c = l.c;
+        return o;
+      }),
     };
     if (va.lit && (va.lit.ru || va.lit.en)) v.lit = va.lit;
     if (va.why && (va.why.ru || va.why.en)) v.why = va.why;

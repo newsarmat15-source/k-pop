@@ -578,7 +578,10 @@ main{display:none}main.show{display:block}
 .sq-gap .tok-r{color:var(--champ,#f3d9ac)}
 .sq-was .tok-k{color:var(--accent2)}
 .sq-s{font-size:14px;line-height:1.5;color:var(--muted,#a99cc0);margin:0}
-.sq-opt{font-size:16px}
+.sq-opt{display:flex;flex-direction:column;align-items:center;gap:2px;line-height:1.2}
+.sq-opt b{font-size:16px;font-weight:700}
+.sq-opt i{font-size:12.5px;font-style:normal;color:var(--mut);opacity:.9}
+.sq-opt.correct i,.sq-opt.wrong i{color:inherit}
 .sq-fix{margin-bottom:10px}
 .sq-mean{font-size:13px;color:var(--muted,#a99cc0);margin:8px 0 0}
 .sq-mean b{color:var(--ink)}
@@ -950,7 +953,7 @@ div.bio-text{color:var(--mut)}
 /* ===== Первый экран: живое демо разбора ===== */
 .hd-eyebrow{font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--champ,#f3d9ac);margin-bottom:8px}
 .hd-sub{max-width:34em}
-.hd{background:var(--panel,rgba(52,38,78,.42));border:1px solid var(--line);padding:14px;margin-bottom:4px;min-height:190px}
+.hd{background:var(--panel,rgba(52,38,78,.42));border:1px solid var(--line);padding:14px;margin-bottom:4px;min-height:150px}
 .hd-src{font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--mut);margin-bottom:10px}
 .hd-line{margin-bottom:12px;border-left-color:var(--accent2)}
 .hd .ksl{border-left-color:var(--line)}

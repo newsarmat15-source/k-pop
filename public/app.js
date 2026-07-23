@@ -2445,8 +2445,12 @@ function renderSongQuiz(){
     <div class="sq-h">${S.fix?t('sq_fix_h'):t('sq_h')} ${lsnSayBtn(say,'sq-say')}</div>
     ${sqLineHtml(q,false)}
     ${q.s?`<p class="sq-s">${escapeHtml(q.s)}</p>`:''}
-    <div class="lq-opts" id="sqOpts">${q.opts.map((o,oi)=>
-      `<button class="lq-opt dr-opt sq-opt" onclick="pickSongQuiz(${oi})">${escapeHtml(o.k)}</button>`).join('')}</div>
+    <div class="lq-opts" id="sqOpts">${q.opts.map((o,oi)=>{
+      // Транскрипция под вариантом обязательна: человек может ещё не читать хангыль,
+      // а задание про смысл строки, а не про скорость чтения.
+      const rom=(getLang()==='ru'&&o.rr)?o.rr:(o.r||o.rom||'');
+      return `<button class="lq-opt dr-opt sq-opt" onclick="pickSongQuiz(${oi})">
+        <b>${escapeHtml(o.k)}</b>${rom?`<i>${escapeHtml(rom)}</i>`:''}</button>`;}).join('')}</div>
     <div class="dr-react" id="sqReact"></div>
     <button class="lsn-toinfo" onclick="exitSongQuiz()">← ${t('sq_back')}</button>
   </div>`;
@@ -2495,7 +2499,7 @@ function finishSongQuiz(){
   }
   b.innerHTML=`<div class="dr-done">
     <div class="dd-flame">${S.wrong.length?'🎧':'🎉'}</div>
-    <div class="dd-cap">${S.fix?t('sq_fix_done'):t('sq_done')}</div>
+    <div class="dd-cap">${S.fix?t('sq_fix_done'):S.wrong.length?t('sq_almost'):t('sq_done')}</div>
     <div class="dd-row"><span>${t('lsn_dr_right')}</span><b>${S.ok}/${total}</b></div>
     ${xp?`<div class="dd-row"><span>${t('lsn_st_xp')}</span><b>+${xp}</b></div>`:''}
     ${st&&st.fresh?`<div class="dd-froze">🔥 ${t('lsn_streak_days')(st.n)}</div>`:''}
@@ -3191,7 +3195,7 @@ const T={
     cov_note:(k,tot)=>k?`You understand ${k} of ${tot} words in it`:`Not a single word of it yet — start with one line`,
     sq_cta:"Now patch the lines", sq_h:"Which word is missing?", sq_fix_h:"Once more — the ones you missed",
     sq_s:"", sq_back:"back to the words", sq_none:"This song has too few words for a drill yet.",
-    sq_done:"Song cracked 🎉", sq_fix_done:"Now they are yours", sq_fix_btn:n=>`Go over ${n} missed →`,
+    sq_done:"Song cracked", sq_almost:"Almost — a few lines slipped", sq_fix_done:"Now they are yours", sq_fix_btn:n=>`Go over ${n} missed →`,
     tile_lesson:"Hangul", tile_lesson_sub:nm=>`${nm} teaches you to read`,
     tile_song:"Break a song", tile_song_sub:"line by line", tile_slang:"Song slang", tile_slang_sub:"real Korean", tile_phrase:"Chat with your idol", tile_phrase_sub:"just talk, in Korean",
     seed_song:"Break down this song: ", seed_slang:"Teach me some Korean slang from songs 🙂", seed_phrase:"How do you say in Korean: ",
@@ -3271,7 +3275,7 @@ const T={
     cov_note:(k,tot)=>k?`Ты понимаешь ${k} из ${tot} слов в ней`:`Пока ни одного слова — начни с одной строчки`,
     sq_cta:"Залатать строки", sq_h:"Какого слова не хватает?", sq_fix_h:"Ещё раз — то, что не вышло",
     sq_s:"", sq_back:"назад к словам", sq_none:"В этой песне пока мало слов для проверки.",
-    sq_done:"Песня разобрана 🎉", sq_fix_done:"Теперь они твои", sq_fix_btn:n=>`Разобрать ${n} промах${n===1?'':'а'} →`,
+    sq_done:"Песня разобрана", sq_almost:"Почти — несколько строк ушли", sq_fix_done:"Теперь они твои", sq_fix_btn:n=>`Разобрать ${n} промах${n===1?'':'а'} →`,
     tile_lesson:"Хангыль", tile_lesson_sub:nm=>`${nm} учит читать`,
     tile_song:"Разбор песни", tile_song_sub:"строка за строкой", tile_slang:"Сленг из песен", tile_slang_sub:"живой корейский", tile_phrase:"Чат с айдолом", tile_phrase_sub:"живое общение",
     seed_song:"Разбери песню: ", seed_slang:"Научи меня корейскому сленгу из песен 🙂", seed_phrase:"Как сказать по-корейски: ",
