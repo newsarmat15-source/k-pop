@@ -27,6 +27,10 @@
     <button class="navtab" data-view="cabinet-own">Гримёрка</button>
     <button class="navtab" data-view="roster">Айдолы</button>
   </div>
+  <!-- Селектор языка свёрнут в иконку 44x44: развёрнутым он съедал полстроки и ломал
+       шапку на две строки, из-за чего главная кнопка «Понять песню» упиралась в сгиб.
+       Сам <select> лежит поверх иконки прозрачным — родной список ОС открывается
+       по тапу как обычно, а видимым остаётся только глобус. -->
   <div class="lang-wrap">
     <label class="lang-cap" id="langCap" for="langSel">язык обучения</label>
     <select id="langSel" class="lang-sel" onchange="setLang(this.value)" title="Language of your lessons / Язык обучения">
@@ -37,6 +41,7 @@
       <option value="zh">🇨🇳 中文</option>
       <option value="ru">🇷🇺 Русский</option>
     </select>
+    <span class="lang-ico" aria-hidden="true">文A</span>
   </div>
   <div class="auth-area" id="authArea"></div>
 </div></header>

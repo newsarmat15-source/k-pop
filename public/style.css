@@ -239,14 +239,17 @@ main{display:none}main.show{display:block}
 .dm-typing i:nth-child(3){animation-delay:.32s}
 @keyframes dmdot{0%,62%,100%{opacity:.28;transform:translateY(0)}31%{opacity:1;transform:translateY(-3px)}}
 
+/* Контраст, правка 24.07: белый текст на розовой заливке давал 3.25:1 при норме AA 4.5.
+   Взята выворотка кнопки .btn.accent (тёмные чернила на светлой заливке) — она уже
+   сделана правильно и служит образцом для главного действия всего продукта. */
 .lesson-cta{display:flex;align-items:center;gap:14px;width:100%;text-align:left;cursor:pointer;
-  border:none;padding:18px 18px;color:#fff;font:inherit;
-  background:linear-gradient(120deg,var(--accent-fill,#d980ab),#b85a92);box-shadow:0 14px 34px -14px var(--accent-fill,#d980ab);transition:.16s}
+  border:none;padding:18px 18px;color:#3a1a2c;font:inherit;
+  background:linear-gradient(135deg,var(--accent,#e8a9c9),var(--accent2,#f3d9ac));box-shadow:0 14px 34px -14px var(--accent-fill,#d980ab);transition:.16s}
 .lesson-cta:hover{filter:brightness(1.06);transform:translateY(-1px)}
 .lc-emoji{font-size:26px;flex:0 0 auto}
 .lc-text{flex:1;display:flex;flex-direction:column;line-height:1.25}
 .lc-text b{font-size:17px;font-weight:800}
-.lc-text small{font-size:12.5px;opacity:.9}
+.lc-text small{font-size:12.5px;font-weight:600;opacity:.82}
 .lc-arrow{font-size:20px;opacity:.9}
 
 /* Иерархия: чат — во всю ширину и крупно (единственная механика в нише, за которую
@@ -256,8 +259,12 @@ main{display:none}main.show{display:block}
 .tile{display:flex;flex-direction:column;align-items:flex-start;gap:3px;cursor:pointer;font:inherit;text-align:left;
   background:var(--panel);border:1px solid var(--line);color:var(--ink);padding:14px 12px;transition:.14s}
 .tile:hover{border-color:var(--champ,#f3d9ac);transform:translateY(-2px)}
+/* Правка 24.07: чат был подсвечен ровно как «Понять песню» — тот же градиент, та же
+   акцентная рамка, разница в высоте 14px. Два главных действия читались как пара
+   равных, и вход в продукт терялся. Акцент снят, размер оставлен: чат остаётся
+   вторым по величине, но перестаёт спорить с первым. */
 .tile.lead{grid-column:1/-1;display:grid;grid-template-columns:auto 1fr;column-gap:13px;align-items:center;
-  padding:17px 16px;background:linear-gradient(120deg,rgba(217,128,171,.17),rgba(52,38,78,.5));border-color:var(--accent-fill)}
+  padding:17px 16px;background:var(--panel);border-color:var(--line)}
 .tile.lead:hover{border-color:var(--accent)}
 .tile.lead .t-emoji{grid-row:1/3;font-size:27px;margin:0}
 .tile.lead b{font-size:16.5px;align-self:end}
@@ -289,8 +296,11 @@ main{display:none}main.show{display:block}
 .bio-box .bio-text:focus{outline:none}
 .sub-link{width:100%;cursor:pointer;font:inherit;font-size:13px;color:var(--champ,#f3d9ac);background:transparent;border:1px dashed var(--line2,#54426f);padding:13px}
 .sub-link:hover{border-color:var(--champ,#f3d9ac)}
-.connect-link{width:100%;cursor:pointer;font:inherit;font-size:13px;font-weight:600;color:var(--gold);background:rgba(217,164,65,.06);border:1px solid var(--gold);padding:13px;margin-bottom:9px}
-.connect-link:hover{background:rgba(217,164,65,.12)}
+/* Правка 24.07: золотая рамка делала подключение мессенджера самым ярким элементом
+   экрана — то есть громче всего кричал наименее важный пункт. Золото на этом экране
+   осталось только у серии («N дней подряд»), где оно и значит достижение. */
+.connect-link{width:100%;cursor:pointer;font:inherit;font-size:13px;font-weight:600;color:var(--mut,#c7b3da);background:none;border:1px solid var(--line);padding:13px;margin-bottom:9px;transition:border-color .14s,color .14s}
+.connect-link:hover{border-color:var(--accent2);color:var(--ink)}
 .connect-sub{font-size:13px;line-height:1.45;color:var(--muted,#a99cc0);margin:6px 0 14px}
 .connect-rows{display:flex;flex-direction:column;gap:9px}
 .connect-row{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;cursor:pointer;font:inherit;background:var(--panel2);border:1px solid var(--line);padding:12px 14px;position:relative}
@@ -371,6 +381,9 @@ main{display:none}main.show{display:block}
 
 /* ===== УРОК-ФУНДАМЕНТ ===== */
 .lesson-box{background:var(--bg2);border:1px solid var(--line);max-width:560px;width:100%;height:min(86vh,760px);display:flex;flex-direction:column;overflow:hidden}
+/* Список песен короткий — панель фиксированной высоты оставляла под последней карточкой
+   около 470px пустоты. В режиме списка панель растёт по содержимому, потолок прежний. */
+.lesson-box.fit{height:auto;max-height:min(86vh,760px)}
 .lesson-head{display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid var(--line);font-weight:700;color:var(--accent2)}
 .lesson-head span{flex:1;text-align:center}
 .lsn-back{background:none;border:none;color:var(--muted,#a99cc0);font-size:20px;cursor:pointer;line-height:1}
@@ -817,8 +830,15 @@ button.lsn-coach:hover{border-color:var(--accent2)}
 .song-item.done{border-color:rgba(120,200,140,.4)}
 .song-item.done .lsn-badge{color:#7cc88c}
 .song-top{position:sticky;top:0;z-index:3;background:var(--bg2);padding-bottom:10px;margin:-2px 0 4px}
-#ytStage{padding:12px 18px 8px;border-bottom:1px solid var(--line);background:var(--bg2)}
-.song-video{position:relative;width:100%;padding-bottom:56.25%;background:#000;border:1px solid var(--line)}
+#ytStage{padding:12px 18px 8px;border-bottom:1px solid var(--line);background:var(--bg2);transition:padding .25s}
+.song-video{position:relative;width:100%;padding-bottom:56.25%;background:#000;border:1px solid var(--line);transition:width .25s,height .25s}
+/* Клип пошёл — сворачиваем его. Пока не играет, он главный (на iOS без тапа по нему
+   вообще не будет звука), но как только зазвучал, экран нужен строкам: развёрнутая
+   сцена занимала 296px из 378px окна чтения. Плеер остаётся целым, а не обрезанным
+   полосой, чтобы родная кнопка «пауза» осталась доступной. */
+#ytStage.compact{padding:8px 18px 6px}
+#ytStage.compact .song-video{width:170px;height:96px;padding-bottom:0;margin:0 auto}
+#ytStage.compact .yt-hint,#ytStage.compact .song-vfoot{display:none!important}
 .song-video iframe,.song-video>#ytPlayer{position:absolute;inset:0;width:100%;height:100%;border:0}
 .yt-err{position:absolute;inset:0;z-index:2;background:rgba(8,6,14,.92);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:16px}
 .yt-err-msg{font-size:14px;color:var(--txt);max-width:280px;line-height:1.4}
@@ -840,16 +860,24 @@ button.lsn-coach:hover{border-color:var(--accent2)}
 
 /* ===== КАРАОКЕ-РАЗБОР ===== */
 .kara-hint{font-size:11.5px;color:var(--dim,#a394bd);margin:10px 0 14px;line-height:1.4}
-.kara-lines{display:flex;flex-direction:column;gap:14px;margin-bottom:14px}
+.kara-lines{display:flex;flex-direction:column;gap:18px;margin-bottom:14px}
+/* Группа «строка + её смысл». Скролл ведёт СЮДА, поэтому оба слоя всегда в кадре
+   одновременно — ради этого обещания продукт и существует. */
+.kgrp{display:flex;flex-direction:column;gap:7px}
 .kline{display:flex;flex-wrap:wrap;gap:6px 14px;justify-content:flex-start;padding-left:11px;border-left:2px solid var(--line);transition:border-color .3s,opacity .3s}
 /* «готовящаяся» строка в проигрыше: показана заранее, подсвечен край — но слова НЕ закрашены */
 .kline.upcoming{border-left-color:var(--champ,#f3d9ac)}
-.kline.upcoming .tok-r{color:var(--ink)}
 .tok{display:flex;flex-direction:column;align-items:flex-start;gap:1px;transition:transform .18s cubic-bezier(.2,.7,.3,1);line-height:1.15}
 .tok.on{transform:scale(1.06)}
-.tok-k{font-size:12.5px;font-weight:600;color:var(--dim,#a394bd)}
-.tok-r{font-size:16px;font-weight:700;color:var(--muted,#a99cc0)}
-.tok-m{font-size:11px;color:var(--dim,#a394bd);opacity:.85}
+/* ИЕРАРХИЯ СЛОЁВ, правка 24.07. Было наоборот: хангыль 12.5px/600 приглушённым,
+   транскрипция 16px/700 — то есть самым крупным на экране была латиница/кириллица,
+   хотя продукт обещает читать по-корейски, и глаз вёлся по заливке транскрипции.
+   Стало: хангыль — главный слой (19px/700, --ink), транскрипция — подпорка
+   (13px/500, --muted: 6.4:1 на панели, проходит AA), значение — тот же приглушённый
+   регистр. Это же чинит первый экран и демо-карточку, они делят те же классы. */
+.tok-k{font-size:19px;font-weight:700;color:var(--ink);line-height:1.25}
+.tok-r{font-size:13px;font-weight:500;color:var(--muted,#a99cc0)}
+.tok-m{font-size:11.5px;color:var(--muted,#a99cc0);opacity:.85}
 /* Заливка слова по мере пропевания. Поверх приглушённого текста лежит его же копия
    (::after + data-txt) цветом акцента, обрезанная по --fill через clip-path.
    Ни width, ни height не анимируются — лейаут не дёргается, кадр остаётся плавным. */
@@ -857,7 +885,10 @@ button.lsn-coach:hover{border-color:var(--accent2)}
 .tok-k::after,.tok-r::after{content:attr(data-txt);position:absolute;left:0;top:0;white-space:pre;color:var(--accent2);-webkit-clip-path:inset(0 calc(100% - var(--fill,0%)) 0 0);clip-path:inset(0 calc(100% - var(--fill,0%)) 0 0);pointer-events:none}
 .tok.done{--fill:100%}
 .tok.on .tok-m{color:var(--muted,#a99cc0);opacity:1}
-.kara-pause{background:var(--panel,rgba(52,38,78,.42));border:1px solid var(--accent2);padding:14px;margin-bottom:12px}
+/* Панель куплета больше не несёт построчный смысл (он под строками) — она уехала под
+   сгиб и стала тихой: рамка по --line, а не акцентная, иначе пустая коробка внизу
+   кричит громче самого текста песни. */
+.kara-pause{background:var(--panel,rgba(52,38,78,.42));border:1px solid var(--line);padding:14px;margin-bottom:12px}
 .kp-h{font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--champ,#f3d9ac);margin-bottom:8px}
 .kp-tr{font-size:14.5px;line-height:1.5;color:var(--ink);margin-bottom:10px}
 .kp-note{font-size:13px;line-height:1.5;color:var(--muted,#a99cc0);background:rgba(243,217,172,.07);border:1px solid rgba(243,217,172,.2);padding:9px 11px;margin-bottom:10px}
@@ -866,6 +897,10 @@ button.lsn-coach:hover{border-color:var(--accent2)}
    свой clip-path), поэтому длинная фраза корректно переносится на несколько строк:
    у цельного абзаца обрезка по правому краю дала бы вертикальную полосу вместо чтения. */
 .kp-slines{display:flex;flex-direction:column;gap:9px;margin-bottom:10px}
+/* Смысл строки стоит ПОД своей строкой, с тем же левым отступом — визуально это
+   продолжение строки, а не отдельный блок. */
+.kgrp .ksl{margin-left:11px;padding-left:11px;border-left:2px solid transparent}
+.kgrp .ksl-t{font-size:13.5px}
 .ksl{padding-left:10px;border-left:2px solid var(--line);transition:border-color .3s}
 .ksl.on{border-left-color:var(--accent2)}
 .ksl.done{border-left-color:rgba(217,128,171,.35)}
@@ -966,11 +1001,16 @@ button.lsn-coach:hover{border-color:var(--accent2)}
 /* В гримёрке справка была громче имени айдола: золотая рамка, капс, Unbounded, 199x32 над
    всем экраном. Стала тихой кнопкой «?» в углу портрета — 44x44, без золота.
    --gold в этом продукте значит «награда», а не «справка». */
-.home .onb-help{position:absolute;top:8px;right:8px;z-index:2;width:44px;height:44px;padding:0;margin:0;
-  align-self:auto;justify-content:center;gap:0;background:rgba(17,11,25,.6);backdrop-filter:blur(6px);
-  border-color:rgba(248,241,251,.3);color:var(--mut);font-size:0}
-.home .onb-help::before{width:auto;height:auto;border:none;font-size:17px;color:inherit}
-.home .onb-help:hover{background:rgba(17,11,25,.9);border-color:var(--ink);color:var(--ink)}
+/* Правка 24.07: серый квадрат 44x44 с «?» поверх портрета читался как незагрузившийся
+   элемент, а не как справка. Тап-цель осталась 44x44 (она обязательна), но видимой
+   стала мягкая круглая накладка 28px — понятный жест «подсказка», а не дырка в макете. */
+.home .onb-help{position:absolute;top:10px;right:10px;z-index:2;width:44px;height:44px;padding:0;margin:0;
+  align-self:auto;justify-content:center;gap:0;background:none;border:none;color:var(--ink);font-size:0}
+.home .onb-help::before{width:28px;height:28px;border-radius:50%;font-size:14px;line-height:1;color:inherit;
+  border:1px solid rgba(248,241,251,.42);background:rgba(17,11,25,.55);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
+  transition:background-color .15s,border-color .15s}
+.home .onb-help:hover{background:none}
+.home .onb-help:hover::before{background:rgba(17,11,25,.92);border-color:var(--ink)}
 .home{position:relative}
 
 /* гид-подсветка */
@@ -1213,11 +1253,13 @@ div.bio-text{color:var(--mut)}
 .lp-line{border-left-color:var(--accent2)}
 .lp-s .ksl-t{font-size:14px}
 /* Контраст: --dim на панели даёт 4.06:1 — ниже нормы AA для мелкого текста.
-   В демо этим цветом набран сам хангыль и значение слова, то есть несущий
-   текст, а не подпись. В карточке лендинга приглушённый слой поднят до 6.4:1. */
-.lp-card .tok-k,.lp-card .tok-m,.lp-card .ksl-t{color:var(--muted,#a99cc0)}
+   Приглушённый слой карточки поднят до 6.4:1. Хангыль отсюда убран: с 24.07 он
+   главный слой и набран --ink (см. .tok-k). */
+.lp-card .tok-m,.lp-card .ksl-t{color:var(--muted,#a99cc0)}
 .lp-card .tok-m{opacity:1}
-.lp-prog{height:3px;background:var(--line);margin-top:12px;overflow:hidden}
+/* Дорожка видна ДО старта: пустая полоса цветом --line на панели сливалась с фоном,
+   и человек не понимал, что у куплета вообще есть длина и конец. */
+.lp-prog{height:4px;background:rgba(248,241,251,.14);border:1px solid var(--line);margin-top:12px;overflow:hidden}
 .lp-prog i{display:block;height:100%;background:var(--accent2);transform-origin:left;transform:scaleX(0)}
 .lp-ctrl{margin-top:12px}
 .lp-play{width:100%;justify-content:center;min-height:52px;font-size:15px;margin-left:0}
@@ -1235,9 +1277,14 @@ div.bio-text{color:var(--mut)}
 .lp-more{display:flex;gap:8px;margin-top:10px}
 .lp-ghost{flex:1;min-height:44px;background:none;border:1px solid var(--line);color:var(--mut);font:inherit;font-size:13px;padding:10px;cursor:pointer;transition:border-color .14s,color .14s}
 .lp-ghost:hover{border-color:var(--accent2);color:var(--accent2)}
-.lp-lang{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:16px;color:var(--mut);font-size:12.5px}
-.lp-lang select{min-height:44px;background:transparent;border:1px solid var(--line);color:var(--ink);font:inherit;font-size:13px;padding:6px 8px;cursor:pointer}
-.lp-lang select:hover{border-color:var(--accent2)}
+/* Под демо — следующий шаг, а не настройка (язык живёт в шапке иконкой). Кнопка
+   нарочно тише, чем «Слушать первый куплет»: сперва человек должен услышать товар,
+   и две одинаково яркие кнопки подряд гасили бы главную. */
+.lp-lang{display:flex;margin-top:16px}
+.lp-getidol{width:100%;min-height:52px;font:inherit;font-size:14.5px;font-weight:700;letter-spacing:.02em;
+  background:none;border:1px solid var(--accent2);color:var(--accent2);cursor:pointer;padding:12px;
+  transition:background-color .14s}
+.lp-getidol:hover{background:rgba(243,217,172,.12)}
 .lp-foot{color:var(--mut);font-size:12.5px;line-height:1.5;margin-top:16px;text-align:center}
 @media(max-width:400px){
   .lp{padding:16px 14px 32px}
@@ -1252,9 +1299,6 @@ div.bio-text{color:var(--mut)}
    ещё нет), поэтому у гостя их нет вовсе — заодно исчезает врущее «активно». */
 .hbar{gap:4px 8px;min-height:52px;padding-block:4px}
 body.guest .navtabs{display:none}
-/* Селектор языка у гостя уходит из шапки на страницу: в шапке он был самым
-   заметным элементом первого экрана (золотая рамка) и ломал её на две строки. */
-body.guest .lang-wrap{display:none}
 .navtab{min-height:44px;display:inline-flex;align-items:center}
 .hbar .btn.sm{min-height:44px;display:inline-flex;align-items:center}
 /* Два margin-left:auto в одной flex-строке (у .lang-wrap и .auth-area) съедали
@@ -1264,20 +1308,45 @@ body.guest .lang-wrap{display:none}
 .auth-area{margin-left:0}
 /* Подпись селектора остаётся для скринридера, но перестаёт быть самым громким
    элементом первого экрана. Сам селектор — нейтральная рамка, не золотая. */
-.lang-wrap{gap:0;margin-left:auto}
+/* ЯЗЫК — ИКОНКА 44x44, правка 24.07.
+   Развёрнутый селектор (текст «🇷🇺 Русский» в рамке) съедал полстроки, шапка вставала
+   в две строки высотой 100px, и из-за этого главная кнопка «Понять песню» упиралась
+   в сгиб, а на узком экране уходила за него. Свёрнут в одну тап-цель 44x44: сам
+   <select> лежит поверх прозрачным (родной список ОС открывается как обычно и
+   рисуется системой, прозрачность на него не влияет), видим только глобус. */
+.lang-wrap{gap:0;margin-left:auto;position:relative;flex:0 0 44px;width:44px;height:44px}
 .lang-cap{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;border:0}
-.lang-sel{min-height:44px;border-color:var(--line);color:var(--mut);background:transparent;padding:6px 8px}
-.lang-sel:hover{border-color:var(--accent2);color:var(--ink)}
-/* Шапка гостя должна вставать в одну строку на 360: логотип + язык + вход/регистрация.
-   Кнопки ужимаем по горизонтали, но не по высоте — 44px остаются. */
+.lang-sel{position:absolute;inset:0;width:100%;height:100%;min-height:44px;opacity:0;padding:0;border:0;cursor:pointer;-webkit-appearance:none;appearance:none}
+/* «文A» вместо глобуса-эмодзи: эмодзи рисуется системным цветным шрифтом и на тёмной
+   шапке становится самым ярким пятном — ровно то, от чего уходили. Знак монохромный,
+   узнаваемый как переключатель языка и живёт в той же типографике, что и логотип. */
+.lang-ico{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-size:13px;font-weight:700;line-height:1;letter-spacing:.02em;border:1px solid var(--line);color:var(--mut);pointer-events:none;transition:border-color .14s,color .14s}
+.lang-wrap:hover .lang-ico,.lang-sel:focus-visible+.lang-ico{border-color:var(--accent2)}
+/* Шапка встаёт в одну строку на телефоне: логотип + вкладки + язык + «Выйти».
+   Кнопки ужимаем по горизонтали, но не по высоте — 44px остаются.
+   @username убран: на первом экране имя аккаунта ничего не решает, а занимало
+   столько же, сколько сама кнопка выхода, и утаскивало шапку на вторую строку. */
 @media(max-width:480px){
   .hbar .btn.sm{padding:9px 11px;font-size:12.5px}
-  .lang-sel{font-size:12px;padding:6px 6px;max-width:112px}
+  .auth-user b{display:none}
 }
 @media(max-width:420px){
-  .lang-sel{font-size:11.5px;padding:5px 5px;max-width:104px}
-  .navtab{padding:7px 11px;font-size:12.5px}
-  .hbar .btn.sm{padding:9px 9px;font-size:12px}
+  /* Шапке отдаём поля страницы: 40px горизонтального воздуха — это ровно та разница,
+     из-за которой «Выйти» не помещалось и уезжало на вторую строку. */
+  header .wrap.hbar{padding-inline:12px;gap:4px 6px}
+  .logo{font-size:13px;letter-spacing:.12em}
+  .logo b{padding:3px 5px 2px 6px;letter-spacing:.1em}
+  .navtab{padding:7px 7px;font-size:12px}
+  .hbar .btn.sm{padding:9px 8px;font-size:12px}
+}
+/* 320px: логотип + две вкладки + язык + «Выйти» в одну строку не помещаются даже
+   после сжатия — не хватает около 10px, и добирать их пришлось бы кеглем 11px или
+   снятием рамок с вкладок. Читаемость дороже: на 320 шапка честно встаёт в две
+   строки (101px), но главная кнопка при этом всё равно выше сгиба — замер
+   на 320x760: «Понять песню» в 596..685. Одна строка гарантирована с 390px. */
+@media(max-width:360px){
+  header .wrap.hbar{padding-inline:10px}
 }
 
 /* ============================================================================
