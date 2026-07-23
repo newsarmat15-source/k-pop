@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0B0F1A">
+<meta name="robots" content="noindex,nofollow">
+<title>Пульт — Idolingo</title>
+<link rel="apple-touch-icon" href="/idols/idol1.jpg">
+<style>
+:root{
+  --bg:#0B0F1A; --card:#111726; --card2:#0E1322; --bd:#232B3D; --bd2:#334155;
+  --fg:#F1F5F9; --muted:#94A3B8; --gold:#E8B44A; --ok:#34D399; --warn:#FBBF24;
+  --blue:#60A5FA; --red:#F87171;
+  --r:14px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg); color:var(--fg); font:16px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  padding-bottom:96px; overflow-x:hidden;
+}
+header{
+  position:sticky; top:0; z-index:30; background:rgba(11,15,26,.94);
+  backdrop-filter:blur(8px); border-bottom:1px solid var(--bd);
+  padding:calc(env(safe-area-inset-top) + 10px) 14px 0;
+}
+.brand{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}
+.brand h1{font-size:17px;margin:0;letter-spacing:.2px}
+.brand h1 span{color:var(--gold)}
+.sync{font-size:12px;color:var(--muted)}
+nav{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none}
+nav::-webkit-scrollbar{display:none}
+nav button{
+  flex:0 0 auto; background:none;border:none;color:var(--muted);font:inherit;font-size:14px;
+  padding:11px 12px; border-bottom:2px solid transparent; cursor:pointer; min-height:44px;
+}
+nav button.on{color:var(--fg);border-bottom-color:var(--gold);font-weight:600}
+nav button b{
+  display:inline-block;margin-left:6px;background:var(--bd);color:var(--fg);
+  font-size:11px;font-weight:700;border-radius:999px;padding:1px 6px;vertical-align:1px
+}
+nav button.on b{background:var(--gold);color:#1A1206}
+main{padding:14px 14px 0;max-width:760px;margin:0 auto}
+.hint{color:var(--muted);font-size:13px;margin:0 0 12px}
+.card{
+  background:var(--card); border:1px solid var(--bd); border-radius:var(--r);
+  padding:13px 13px 11px; margin-bottom:10px;
+}
+.card.saved{border-color:#5A4A1E; background:linear-gradient(180deg,#151322,var(--card))}
+.card.queued{border-color:#1E3A5A}
+.card.done{opacity:.5}
+.top{display:flex;gap:8px;align-items:flex-start;justify-content:space-between}
+.ttl{font-weight:650;font-size:15px;line-height:1.3;flex:1;min-width:0;word-wrap:break-word}
+.card.done .ttl{text-decoration:line-through}
+.body{color:var(--muted);font-size:13.5px;margin:6px 0 0;white-space:pre-wrap}
+.meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.chip{font-size:11px;font-weight:600;padding:3px 8px;border-radius:999px;background:var(--bd);color:var(--muted)}
+.chip.p0{background:#3B1417;color:#FCA5A5}
+.chip.p1{background:#3A2A10;color:#FCD34D}
+.chip.p2,.chip.p3{background:#1B2436;color:#93A5C0}
+.chip.st-saved{background:#3A2A10;color:var(--warn)}
+.chip.st-queued{background:#12283F;color:var(--blue)}
+.chip.st-done{background:#102E24;color:var(--ok)}
+.chip.own{background:#1A2033;color:#A5B4FC}
+textarea{
+  width:100%; margin-top:10px; background:var(--card2); color:var(--fg);
+  border:1px solid var(--bd2); border-radius:10px; padding:11px 12px;
+  font:inherit; font-size:15px; resize:none; overflow:hidden; min-height:52px;
+}
+textarea:focus{outline:none;border-color:var(--gold)}
+textarea::placeholder{color:#5A6580}
+.row{display:flex;align-items:center;gap:8px;margin-top:9px;flex-wrap:wrap}
+button.act{
+  min-height:40px;padding:0 15px;border-radius:10px;border:1px solid var(--bd2);
+  background:var(--card2);color:var(--fg);font:inherit;font-size:14px;font-weight:600;cursor:pointer
+}
+button.act:active{transform:scale(.98)}
+button.save{background:var(--gold);border-color:var(--gold);color:#1A1206}
+button.save[disabled]{background:var(--card2);border-color:var(--bd);color:#5A6580}
+button.ghost{background:none;border-color:transparent;color:var(--muted);padding:0 8px}
+.state{font-size:12px;color:var(--muted);margin-left:auto}
+.state.dirty{color:var(--warn)}
+.state.ok{color:var(--ok)}
+.bar{
+  position:fixed;left:0;right:0;bottom:0;z-index:40;
+  padding:10px 14px calc(env(safe-area-inset-bottom) + 10px);
+  background:rgba(11,15,26,.96);backdrop-filter:blur(8px);border-top:1px solid var(--bd);
+}
+.bar .in{max-width:760px;margin:0 auto;display:flex;gap:10px;align-items:center}
+button.apply{
+  flex:1;min-height:50px;border-radius:12px;border:none;font:inherit;font-size:16px;font-weight:700;
+  background:var(--gold);color:#1A1206;cursor:pointer
+}
+button.apply[disabled]{background:#1A2033;color:#5A6580}
+.warn{background:#2A1A0C;border:1px solid #5A4A1E;color:#FCD34D;font-size:13px;padding:10px 12px;border-radius:10px;margin-bottom:12px}
+.gate{max-width:380px;margin:16vh auto;padding:0 20px;text-align:center}
+.gate input{width:100%;margin:14px 0;background:var(--card);border:1px solid var(--bd2);border-radius:10px;padding:13px;color:var(--fg);font:inherit}
+.toast{
+  position:fixed;left:50%;bottom:78px;transform:translateX(-50%);z-index:60;
+  background:#1B2436;border:1px solid var(--bd2);color:var(--fg);font-size:14px;
+  padding:11px 16px;border-radius:10px;max-width:88vw;text-align:center;
+  opacity:0;pointer-events:none;transition:opacity .18s
+}
+.toast.on{opacity:1}
+.empty{color:var(--muted);font-size:14px;text-align:center;padding:30px 10px}
+.addbtn{width:100%;min-height:46px;border:1px dashed var(--bd2);background:none;color:var(--muted);
+  border-radius:var(--r);font:inherit;font-size:14px;cursor:pointer;margin-bottom:10px}
+</style>
+</head>
+<body>
+
+<div id="gate" class="gate" hidden>
+  <h1 style="font-size:18px">Пульт Idolingo</h1>
+  <p class="hint">Введи ключ доступа — сохранится в этом браузере.</p>
+  <input id="gateKey" type="password" placeholder="ключ" autocomplete="off">
+  <button class="act save" style="width:100%;min-height:46px" onclick="setKey()">Войти</button>
+  <p id="gateErr" class="hint" style="color:var(--red)"></p>
+</div>
+
+<div id="app" hidden>
+  <header>
+    <div class="brand">
+      <h1>Пульт <span>Idolingo</span></h1>
+      <div class="sync" id="sync">…</div>
+    </div>
+    <nav id="nav"></nav>
+  </header>
+
+  <main id="main"></main>
+
+  <div class="bar">
+    <div class="in">
+      <button class="apply" id="applyBtn" onclick="applyAll()" disabled>Применить всё</button>
+      <button class="act ghost" onclick="load(true)" title="Обновить">⟳</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const TABS = [
+  {k:"today",   t:"Сегодня", hint:"Цели на день. Ставит kpop-growth, исходя из карты. Отмечай сделанное — я вижу это в базе."},
+  {k:"roadmap", t:"Карта",   hint:"Ближайшие достижимые этапы. У каждого срок и метрика провала. Правь прямо здесь."},
+  {k:"fix",     t:"Правки",  hint:"Пиши корректировку в поле пункта → «Сохранить». Копи сколько нужно. Когда всё сформулировал — «Применить всё» внизу."},
+  {k:"agent",   t:"Агенты",  hint:"Кто работает и над чем. Правка = задание агенту."},
+];
+let KEY = localStorage.getItem("ops_key") || new URLSearchParams(location.search).get("k") || "";
+let items = [], tab = "today", dirty = {};
+try { dirty = JSON.parse(localStorage.getItem("ops_dirty") || "{}"); } catch(e) { dirty = {}; }
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s??"").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+function toast(msg){ const t=$("toast"); t.textContent=msg; t.classList.add("on"); clearTimeout(t._x); t._x=setTimeout(()=>t.classList.remove("on"),2600); }
+function saveDirty(){ try{ localStorage.setItem("ops_dirty", JSON.stringify(dirty)); }catch(e){} }
+
+async function api(action, body){
+  const url = "/api/ops?action=" + action;
+  const opt = { method: body ? "POST" : "GET", headers: { "x-ops-key": KEY } };
+  if (body){ opt.headers["Content-Type"]="application/json"; opt.body = JSON.stringify(body); }
+  const r = await fetch(url, opt);
+  const j = await r.json().catch(()=>({error:"Ответ не прочитался"}));
+  if (!r.ok) throw new Error(j.error || ("Ошибка " + r.status));
+  return j;
+}
+
+function setKey(){
+  const v = $("gateKey").value.trim();
+  if (!v) return;
+  KEY = v; localStorage.setItem("ops_key", v);
+  $("gateErr").textContent = "";
+  load();
+}
+
+async function load(manual){
+  try {
+    const j = await api("list");
+    items = j.items;
+    $("gate").hidden = true; $("app").hidden = false;
+    $("sync").textContent = "обновлено " + new Date().toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"});
+    render();
+    if (manual) toast("Обновлено");
+  } catch(e){
+    if (String(e.message).includes("Нет доступа") || !KEY){
+      $("app").hidden = true; $("gate").hidden = false;
+      if (KEY) $("gateErr").textContent = "Ключ не подошёл";
+      KEY = ""; localStorage.removeItem("ops_key");
+    } else toast("Не загрузилось: " + e.message);
+  }
+}
+
+function statusChip(s){
+  if (s==="saved")  return '<span class="chip st-saved">сохранено, не применено</span>';
+  if (s==="queued") return '<span class="chip st-queued">отдано в работу</span>';
+  if (s==="done")   return '<span class="chip st-done">готово</span>';
+  return "";
+}
+
+function render(){
+  const counts = {};
+  for (const t of TABS) counts[t.k] = items.filter(i => i.kind===t.k && i.status!=="done" && i.status!=="dropped").length;
+  $("nav").innerHTML = TABS.map(t =>
+    `<button class="${t.k===tab?"on":""}" onclick="go('${t.k}')">${t.t}${counts[t.k]?`<b>${counts[t.k]}</b>`:""}</button>`
+  ).join("");
+
+  const list = items.filter(i => i.kind===tab).sort((a,b)=> (a.sort-b.sort) || a.created_at.localeCompare(b.created_at));
+  const meta = TABS.find(t=>t.k===tab);
+  let html = `<p class="hint">${meta.hint}</p>`;
+  if (tab === "fix") html += `<button class="addbtn" onclick="addItem()">+ Новый пункт</button>`;
+  html += list.length ? list.map(cardHtml).join("") : `<div class="empty">Пусто.</div>`;
+  $("main").innerHTML = html;
+  document.querySelectorAll("textarea").forEach(autosize);
+
+  const n = items.filter(i => i.status==="saved").length;
+  const nd = Object.keys(dirty).length;
+  const btn = $("applyBtn");
+  btn.disabled = n === 0;
+  btn.textContent = n ? `Применить всё (${n})` + (nd?` · ${nd} не сохранено`:"") : (nd?`${nd} не сохранено`:"Применить всё");
+}
+
+function go(k){ tab = k; render(); window.scrollTo(0,0); }
+function autosize(el){ el.style.height="auto"; el.style.height = Math.max(52, el.scrollHeight) + "px"; }
+
+function cardHtml(i){
+  const d = dirty[i.id];
+  const val = d !== undefined ? d : (i.draft || "");
+  const changed = d !== undefined && d !== (i.draft || "");
+  const ph = i.kind === "agent" ? "Задание или замечание агенту…"
+           : i.kind === "today" ? "Что не так с этой целью…"
+           : "Что поменять, как должно быть…";
+  return `
+  <div class="card ${i.status}">
+    <div class="top">
+      <div class="ttl">${esc(i.title)}</div>
+      <button class="act ghost" style="min-height:28px;font-size:18px;line-height:1" onclick="toggleDone('${i.id}')" title="Готово">${i.status==="done"?"↺":"✓"}</button>
+    </div>
+    ${i.body ? `<p class="body">${esc(i.body)}</p>` : ""}
+    <div class="meta">
+      ${i.priority ? `<span class="chip ${String(i.priority).toLowerCase()}">${esc(i.priority)}</span>` : ""}
+      ${i.due ? `<span class="chip">${esc(i.due)}</span>` : ""}
+      ${i.owner ? `<span class="chip own">${esc(i.owner)}</span>` : ""}
+      ${i.metric ? `<span class="chip">метрика: ${esc(i.metric)}</span>` : ""}
+      ${statusChip(i.status)}
+    </div>
+    <textarea id="t_${i.id}" placeholder="${ph}" oninput="onEdit('${i.id}',this)">${esc(val)}</textarea>
+    <div class="row">
+      <button class="act save" id="b_${i.id}" onclick="saveOne('${i.id}')" ${changed?"":"disabled"}>Сохранить</button>
+      ${i.kind==="fix" ? `<button class="act ghost" onclick="delItem('${i.id}')">Удалить</button>` : ""}
+      <span class="state ${changed?"dirty":(i.draft?"ok":"")}" id="s_${i.id}">${
+        changed ? "не сохранено" : (i.draft ? "сохранено" : "")
+      }</span>
+    </div>
+  </div>`;
+}
+
+function onEdit(id, el){
+  autosize(el);
+  const it = items.find(x=>x.id===id);
+  const same = el.value === (it.draft || "");
+  if (same) delete dirty[id]; else dirty[id] = el.value;
+  saveDirty();
+  $("b_"+id).disabled = same;
+  const s = $("s_"+id);
+  s.textContent = same ? (it.draft ? "сохранено" : "") : "не сохранено";
+  s.className = "state " + (same ? (it.draft?"ok":"") : "dirty");
+}
+
+async function saveOne(id){
+  const el = $("t_"+id);
+  try {
+    const j = await api("save", { id, draft: el.value });
+    const idx = items.findIndex(x=>x.id===id);
+    items[idx] = j.item;
+    delete dirty[id]; saveDirty();
+    render();
+    toast("Сохранено");
+  } catch(e){ toast("Не сохранилось: " + e.message); }
+}
+
+async function applyAll(){
+  const n = items.filter(i=>i.status==="saved").length;
+  if (!n) return;
+  if (Object.keys(dirty).length && !confirm("Есть несохранённые поля — они не попадут в пачку. Всё равно применить?")) return;
+  try {
+    const j = await api("apply", {});
+    await load();
+    const cmd = "применить правки из пульта";
+    try { await navigator.clipboard.writeText(cmd); } catch(e){}
+    toast(`Отдано в работу: ${j.applied}. Команда скопирована — вставь в чат.`);
+  } catch(e){ toast("Не применилось: " + e.message); }
+}
+
+async function toggleDone(id){
+  const it = items.find(x=>x.id===id);
+  const next = it.status === "done" ? (it.draft ? "saved" : "idle") : "done";
+  try { const j = await api("status", { id, status: next }); items[items.findIndex(x=>x.id===id)] = j.item; render(); }
+  catch(e){ toast(e.message); }
+}
+
+async function addItem(){
+  const title = prompt("Тема пункта (коротко):");
+  if (!title || !title.trim()) return;
+  try {
+    const j = await api("item", { kind:"fix", title: title.trim(), sort: 900, owner: "Сармат" });
+    items.push(j.item); render();
+    setTimeout(()=>{ const el=$("t_"+j.item.id); if(el){ el.focus(); el.scrollIntoView({block:"center"}); } }, 50);
+  } catch(e){ toast(e.message); }
+}
+
+async function delItem(id){
+  if (!confirm("Удалить пункт?")) return;
+  try { await api("delete", { id }); items = items.filter(x=>x.id!==id); delete dirty[id]; saveDirty(); render(); }
+  catch(e){ toast(e.message); }
+}
+
+// Ключ мог прийти ссылкой — убираем его из адреса, чтобы не светился в истории.
+if (new URLSearchParams(location.search).get("k")) {
+  localStorage.setItem("ops_key", KEY);
+  history.replaceState(null, "", location.pathname);
+}
+if (!KEY) { $("gate").hidden = false; } else { load(); }
+document.addEventListener("visibilitychange", () => { if (!document.hidden && KEY && !$("app").hidden) load(); });
+</script>
+</body>
+</html>
