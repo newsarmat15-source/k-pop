@@ -932,7 +932,13 @@ function renderCabGrid(){
   const g=document.getElementById('cabGrid');
   if(!g)return;
   g.innerHTML='';
-  IDOLS.filter(c=>c.gender===state.genderTab).forEach(c=>{
+  /* Своего айдола в общей витрине не показываем. Он уже чей-то — твой, и встречать
+     его среди свободных значит вслух сказать, что он такой же товар с полки, как
+     остальные. Уникальность персонажа — это то, за чем человек сюда пришёл, поэтому
+     карточка исчезает из списка сразу после выбора. Сверяем по имени: в свою запись
+     (api/idol) уходит именно оно, а id карточки витрины на сервере не хранится. */
+  const mine=(typeof myIdol!=='undefined'&&myIdol&&myIdol.name)?String(myIdol.name).toLowerCase():null;
+  IDOLS.filter(c=>c.gender===state.genderTab&&(!mine||String(c.name).toLowerCase()!==mine)).forEach(c=>{
     const el=document.createElement('div');el.className='card';
     el.innerHTML=`<div class="ph"><img src="${c.img}" alt="${c.name}"></div>
       <div class="body"><div class="nm"><span class="cc" style="background:${c.color}"></span><b>${c.name}</b></div>
@@ -2662,7 +2668,19 @@ function karaBuild(song){
     const end=Math.max(...ws.map(w=>(w.te!=null?w.te:(w.t1!=null?w.t1:w.t0))));
     flatLines.push({vi,li,start,end});
   }));
-  return {song,verses,lines:flatLines,vIdx:0,videoOffset:wa?0:(song.videoOffset||0),
+  /* СДВИГ КЛИП ↔ ДОРОЖКА. Раньше стояло videoOffset: wa?0:(song.videoOffset||0), и это
+     был баг, из-за которого «Вся песня» ломалась: wa включается, если у слов ЕСТЬ свои
+     тайминги, но у 봄날 они посчитаны по АЛЬБОМНОЙ дорожке (первое слово 17.05с), а у
+     клипа впереди 31 секунда киноинтро. Сдвиг обнулялся — время клипа сравнивалось с
+     временем дорожки напрямую, и уже на 36-й секунде видео (это около 5-й секунды пения)
+     приложение считало, что песня кончилась, и вместо караоке открывало набор слов.
+     Нулевой сдвиг допустим ТОЛЬКО когда тайминги сняты с самого клипа (ASR по видео) —
+     это и объявляет флаг wordAligned. Наличие w[].t само по себе ничего не говорит о том,
+     от какой дорожки они отсчитаны. */
+  // Ручная посадка (karaTapSync) старше любого значения из данных: человек слышал ушами.
+  const baseOff=(song.wordAligned===true?0:(song.videoOffset||0));
+  const userOff=karaUserOff(song.id);
+  return {song,verses,lines:flatLines,vIdx:0,videoOffset:(userOff||baseOff),
     get off(){return this.videoOffset},player:null,timer:null,saved:{},tok:[],lastLine:null,ready:false,readyTimer:null};
 }
 
@@ -2684,6 +2702,7 @@ function openSong(id){
   document.getElementById('ytStage').style.display='';
   const lk=document.getElementById('ytOpenLink');if(lk)lk.href='https://www.youtube.com/watch?v='+song.ytId;
   const rl=document.getElementById('ytReloadLbl');if(rl)rl.textContent=t('song_reload');
+  karaSyncLabels();
   renderKaraBody();
   document.getElementById('songBody').scrollTop=0;
   songStudyTouch(song);
@@ -2732,6 +2751,43 @@ function ensureYtPlayer(cb){
 }
 
 // «Перезагрузить видео» — просто перезагрузить текущее в том же плеере (снимает застрявшую загрузку).
+/* ПОДГОНКА ЗАЛИВКИ ОДНИМ ТАПОМ.
+   Тайминги строк у нас с альбомной дорожки (lrclib), играем мы клип с YouTube, а у
+   клипа впереди интро своей длины: у 봄날 это 31 секунда, у собранных песен вообще
+   ноль по умолчанию — отсюда жалоба «слова заливаются несинхронно, то опаздывают,
+   то спешат». Угадать разницу нечем: длительность ролика ничего не говорит о том,
+   где в нём начинается вокал.
+   Поэтому — ручная посадка: человек жмёт кнопку ровно на первом слове подсвеченной
+   строки, мы берём время плеера и вычитаем ожидаемое время этой строки. Разница и
+   есть сдвиг. Хранится по песне (so_songoff_<id>) и применяется при следующем заходе. */
+function karaUserOff(id){try{return Number(localStorage.getItem('so_songoff_'+id))||0}catch(e){return 0}}
+function karaTapSync(){
+  const K=window._kara;if(!K||!K.player||!K.player.getCurrentTime)return;
+  let ct=0;try{ct=K.player.getCurrentTime()||0}catch(e){}
+  if(!ct)return;
+  // Ожидаемое время = начало строки, которая сейчас в фокусе (её и слышит человек).
+  const f=karaFocus(K,karaNow(K));
+  const ln=(K.lines||[]).find(x=>x.vi===f.vi&&x.li===f.li);
+  if(!ln)return;
+  const off=ct-ln.start;
+  K.videoOffset=off;
+  try{localStorage.setItem('so_songoff_'+K.song.id,String(off))}catch(e){}
+  karaApply(ct-off);
+  karaSyncLabels();
+  toast&&typeof toast==='function'&&toast(t('sync_done'));
+}
+function karaResetSync(){
+  const K=window._kara;if(!K)return;
+  try{localStorage.removeItem('so_songoff_'+K.song.id)}catch(e){}
+  K.videoOffset=(K.song.wordAligned===true?0:(K.song.videoOffset||0));
+  karaSyncLabels();
+}
+function karaSyncLabels(){
+  const K=window._kara;
+  const b=document.getElementById('songSync');if(b)b.textContent=t('sync_tap');
+  const r=document.getElementById('songSyncReset');
+  if(r){const has=!!(K&&karaUserOff(K.song.id));r.hidden=!has;r.textContent=t('sync_reset');}
+}
 function karaReload(){
   const K=window._kara;if(!K||!window._ytPlayer||!K.song)return;
   try{window._ytPlayer.loadVideoById(K.song.ytId)}catch(e){}
@@ -4006,7 +4062,7 @@ const T={
     lp_save_note:"The account is only so these words are still here tomorrow. Half a minute.",
     lp_saved:n=>n?`${n} words saved — now let's keep them`:"Words saved — now let's keep them",
     lp_adopted:n=>`Account created · ${n} words from the song are yours now`,
-    lp_again:"↻ Again", lp_full:"Whole song →",
+    lp_again:"↻ Again", lp_full:"Whole song with the video →",
     lp_foot:"Next: an idol who explains the lines — and talks to you in Korean.",
     nav_home:"Backstage", nav_idols:"Idols", no_idol_h:"Find out what your idol is really singing", no_idol_sub:"Every line twice: word by word, and what those words actually mean together. Any K-pop song, right now.", no_idol_btn:"Pick an idol →",
     hd_eyebrow:"WORD BY WORD · AND WHAT IT REALLY MEANS", hd_sub:"Every line twice: word by word, and what those words actually mean together. Any K-pop song, right now.",
@@ -4059,14 +4115,14 @@ const T={
     wb_empty_songs_btn:"Break your first song →",
     wb_song_words:(s,tot)=>`${s} of ${tot} words in your workbook`, wb_song_open:"Play it again", wb_song_filter_btn:"Its words",
     wb_song_analysis:"Breakdown", wb_an_none:"No breakdown saved for this song yet — open it once and it lands here.",
-    songs_h:"Break a song", songs_intro:"Pick a song — your idol walks you through it line by line.", songs_empty:"No songs yet.", songs_done_h:"Songs you’ve done", song_search:"e.g. Ditto", song_search_hint:"Type the title/artist in English or Korean — not transliterated.", song_none:q=>`“${q}” isn’t here yet. Soon you’ll add any song — we’ll pull lyrics, translation and sync automatically.`, song_botnote:"Asks to sign in? That’s YouTube’s bot-check (worse on VPN) →", song_fail:"The clip couldn’t load — open it on YouTube below 👇 (the breakdown still works)", song_online_h:"Add from search", song_searching:"Searching the database…", song_search_empty:"Nothing with synced lyrics — try another spelling (English or Korean).", song_need_login:"Log in to search and add songs.", song_building:"Building the breakdown… (~30 sec)", song_build_fail:"Couldn’t build this one — try another song", song_added:"Added 🎉", song_net:"Network unavailable", song_guide:"Play the video, then step through the lyrics line by line below.", song_next:"Next line", song_finish:"Finish song ✓", song_save:tab=>`+ ${tab}`, song_saved:"Saved ✓", song_save_toast:"Saved to your Workbook", song_done_toast:"Song complete 🎉", song_open_yt:"Open on YouTube", song_reload:"Reload video",
+    songs_h:"Break a song", songs_intro:"Pick a song — your idol walks you through it line by line.", songs_empty:"No songs yet.", songs_done_h:"Songs you’ve done", song_search:"e.g. Ditto", song_search_hint:"Type the title/artist in English or Korean — not transliterated.", song_none:q=>`“${q}” isn’t here yet. Soon you’ll add any song — we’ll pull lyrics, translation and sync automatically.`, song_botnote:"Asks to sign in? That’s YouTube’s bot-check (worse on VPN) →", song_fail:"The clip couldn’t load — open it on YouTube below 👇 (the breakdown still works)", song_online_h:"Add from search", song_searching:"Searching the database…", song_search_empty:"Nothing with synced lyrics — try another spelling (English or Korean).", song_need_login:"Log in to search and add songs.", song_building:"Building the breakdown… (~30 sec)", song_build_fail:"Couldn’t build this one — try another song", song_added:"Added 🎉", song_net:"Network unavailable", song_guide:"Play the video, then step through the lyrics line by line below.", song_next:"Next line", song_finish:"Finish song ✓", song_save:tab=>`+ ${tab}`, song_saved:"Saved ✓", song_save_toast:"Saved to your Workbook", song_done_toast:"Song complete 🎉", song_open_yt:"Open on YouTube", song_reload:"Reload video", sync_tap:"Fill off? Tap on the first word", sync_reset:"reset sync", sync_done:"Synced to your ear",
     kara_hint:"Press play — words light up in time. At each verse end it pauses for the breakdown. If the highlight drifts from the clip, tap “Sync” exactly when you hear the verse’s first word.", kara_synctap:"Sync", kara_syncdone:"Synced to the clip ✓", kara_cont:"Don’t stop", kara_verse:"Verse", kara_repeat:"Repeat verse", kara_nextv:"Next verse",
     kara_sense_h:"Word-for-word ≠ what it means", kara_lit:"word-for-word", kara_why:"why they differ", kara_allwords:"All the words in this song", kara_tr_none:"No translation for this verse yet.",
     kara_whole:"the whole verse", kara_combo_a:"why these words mean this together",
     song_recap_h:"Every word, verse by verse", song_recap_sub:(a,b)=>`${a} of ${b} already in your workbook`, song_add_verse:"+ whole verse", song_added_n:n=>`${n} words added to the workbook`, song_recap_back:"← back to the lyrics", song_recap_none:"No words in this verse yet.",
     onb_title:"How it all works", onb_help_chip:"How it works", onb_tour:"Show me around →", onb_ok:"Got it", onb_next:"Next", onb_done:"Done",
     topik_note:"Built to the <b>TOPIK I</b> standard, modeled on the King Sejong Institute — steps you toward the official TOPIK proficiency exam.",
-    song_cta:"Understand a song", song_cta_sub:"line by line — word for word and what it really means",
+    song_cta:"Break down a song", song_cta_sub:"line by line — word for word and what it really means",
     cov_note:(k,tot)=>k?`You understand ${k} of ${tot} words in it`:`Not a single word of it yet — start with one line`,
     wb_stat:["new","I recognise it","familiar","learned"], wb_dem_hint:"Slipped away? Tap to drop it a step",
     wb_dem_toast:s=>`Dropped to “${s}” — it comes back today`, wb_dem_min:"It is already at the first step.",
@@ -4120,7 +4176,7 @@ const T={
     lp_save_note:"Аккаунт нужен только чтобы завтра эти слова были на месте. Полминуты.",
     lp_saved:n=>n?`${n} слов сохранено — закрепим их за тобой`:"Слова сохранены — закрепим их за тобой",
     lp_adopted:n=>`Аккаунт создан · ${n} слов из песни теперь твои`,
-    lp_again:"↻ Ещё раз", lp_full:"Вся песня →",
+    lp_again:"↻ Ещё раз", lp_full:"Вся песня с клипом →",
     lp_foot:"Дальше: айдол, который объясняет строки — и говорит с тобой по-корейски.",
     hd_eyebrow:"ДОСЛОВНО · И ЧТО ЭТО ЗНАЧИТ НА САМОМ ДЕЛЕ", hd_sub:"Каждая строчка дважды: слово за словом — и что эти слова значат вместе. Любая песня, прямо сейчас.",
     hd_h:"Пойми, о чём на самом деле поёт твой айдол", hd_foot:"Объясняет твой айдол — а потом сам заговорит с тобой по-корейски.",
@@ -4174,14 +4230,14 @@ const T={
     wb_empty_songs_btn:"Разобрать первую песню →",
     wb_song_words:(s,tot)=>`${s} из ${tot} слов в тетради`, wb_song_open:"Слушать снова", wb_song_filter_btn:"Её слова",
     wb_song_analysis:"Разбор", wb_an_none:"Разбор этой песни ещё не сохранён — открой её один раз, и он появится здесь.",
-    songs_h:"Разбор песни", songs_intro:"Выбери песню — айдол разберёт её строка за строкой.", songs_empty:"Пока нет песен.", songs_done_h:"Пройденные песни", song_search:"напр. Ditto", song_search_hint:"Пиши название/артиста по-английски или по-корейски — не русскими буквами.", song_none:q=>`«${q}» пока нет. Скоро можно будет добавить любую — текст, перевод и синхрон соберём автоматически.`, song_botnote:"Просит войти? Это бот-чек YouTube (чаще на VPN) →", song_fail:"Клип не загрузился — открой его на YouTube ниже 👇 (разбор всё равно работает)", song_online_h:"Добавить из поиска", song_searching:"Ищу в базе…", song_search_empty:"Нет с синхро-текстом — попробуй другое написание (англ. или кор.).", song_need_login:"Войди, чтобы искать и добавлять песни.", song_building:"Собираю разбор… (~30 сек)", song_build_fail:"Эту не получилось собрать — попробуй другую", song_added:"Добавлено 🎉", song_net:"Сеть недоступна", song_guide:"Включи видео, а затем разбирай текст строку за строкой ниже.", song_next:"Следующая строка", song_finish:"Завершить песню ✓", song_save:tab=>`+ в ${tab}`, song_saved:"Сохранено ✓", song_save_toast:"Сохранено в Рабочую тетрадь", song_done_toast:"Песня пройдена 🎉", song_open_yt:"Открыть на YouTube", song_reload:"Перезагрузить видео",
+    songs_h:"Разбор песни", songs_intro:"Выбери песню — айдол разберёт её строка за строкой.", songs_empty:"Пока нет песен.", songs_done_h:"Пройденные песни", song_search:"напр. Ditto", song_search_hint:"Пиши название/артиста по-английски или по-корейски — не русскими буквами.", song_none:q=>`«${q}» пока нет. Скоро можно будет добавить любую — текст, перевод и синхрон соберём автоматически.`, song_botnote:"Просит войти? Это бот-чек YouTube (чаще на VPN) →", song_fail:"Клип не загрузился — открой его на YouTube ниже 👇 (разбор всё равно работает)", song_online_h:"Добавить из поиска", song_searching:"Ищу в базе…", song_search_empty:"Нет с синхро-текстом — попробуй другое написание (англ. или кор.).", song_need_login:"Войди, чтобы искать и добавлять песни.", song_building:"Собираю разбор… (~30 сек)", song_build_fail:"Эту не получилось собрать — попробуй другую", song_added:"Добавлено 🎉", song_net:"Сеть недоступна", song_guide:"Включи видео, а затем разбирай текст строку за строкой ниже.", song_next:"Следующая строка", song_finish:"Завершить песню ✓", song_save:tab=>`+ в ${tab}`, song_saved:"Сохранено ✓", song_save_toast:"Сохранено в Рабочую тетрадь", song_done_toast:"Песня пройдена 🎉", song_open_yt:"Открыть на YouTube", song_reload:"Перезагрузить видео", sync_tap:"Заливка не попадает? Тапни на первом слове", sync_reset:"сбросить подгонку", sync_done:"Заливка села по голосу",
     kara_hint:"Нажми play — слова подсвечиваются в такт. В конце куплета — пауза для разбора. Если подсветка не совпадает с клипом — жми «Синхрон» ровно когда слышишь первое слово куплета.", kara_synctap:"Синхрон", kara_syncdone:"Синхронизировано ✓", kara_cont:"Не останавливать", kara_verse:"Куплет", kara_repeat:"Повторить куплет", kara_nextv:"Следующий куплет",
     kara_sense_h:"Дословно ≠ по смыслу", kara_lit:"дословно", kara_why:"почему расходится", kara_allwords:"Все слова песни", kara_tr_none:"Перевод этого куплета пока не собран.",
     kara_whole:"куплет целиком", kara_combo_a:"почему эти слова вместе значат это",
     song_recap_h:"Все слова, куплет за куплетом", song_recap_sub:(a,b)=>`${a} из ${b} уже в тетради`, song_add_verse:"+ весь куплет", song_added_n:n=>`${n} слов в тетради`, song_recap_back:"← назад к тексту", song_recap_none:"В этом куплете слов пока нет.",
     onb_title:"Как здесь всё устроено", onb_help_chip:"Как это устроено", onb_tour:"Показать по экрану →", onb_ok:"Понятно", onb_next:"Далее", onb_done:"Готово",
     topik_note:"Программа построена по стандарту <b>TOPIK I</b> — по образцу King Sejong Institute. Ведёт к официальному экзамену TOPIK.",
-    song_cta:"Понять песню", song_cta_sub:"строка за строкой — дословно и по смыслу",
+    song_cta:"Разбор песни", song_cta_sub:"строка за строкой — дословно и по смыслу",
     cov_note:(k,tot)=>k?`Ты понимаешь ${k} из ${tot} слов в ней`:`Пока ни одного слова — начни с одной строчки`,
     wb_stat:["новое","узнаю","знакомо","выучено"], wb_dem_hint:"Выветрилось? Нажми — опущу на ступень",
     wb_dem_toast:s=>`Опустил до «${s}» — вернётся сегодня`, wb_dem_min:"Оно и так на первой ступени.",
@@ -4224,6 +4280,10 @@ function applyStatic(){
   markPartialLangs();
   const s=document.getElementById('langSel');if(s)s.value=getLang();
   const lc=document.getElementById('langCap');if(lc)lc.textContent=t('lang_cap');
+  // Квадрат языка показывает текущий выбор. Латиницей для всех шести: код на родной
+  // письменности (например 日本語) в 44px не читается, а смысл «сейчас выбран этот язык»
+  // важнее украшения. Переключение видно сразу — раньше квадрат не менялся никогда.
+  const li=document.getElementById('langIco');if(li)li.textContent=(getLang()||'en').slice(0,2).toUpperCase();
   langPartialNote();
   const nav=document.querySelector('.navtab[data-view="cabinet-own"]');if(nav)nav.textContent=t('nav_home');
   const navi=document.querySelector('.navtab[data-view="roster"]');if(navi)navi.textContent=t('nav_idols');

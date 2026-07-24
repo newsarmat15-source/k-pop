@@ -903,6 +903,14 @@ button.lsn-coach:hover{border-color:var(--accent2)}
 .song-botnote{font-size:11px;color:var(--dim,#a394bd);line-height:1.35}
 .song-reload,.song-vfoot .song-yt{flex:1;text-align:center;justify-content:center;white-space:nowrap;background:var(--panel,rgba(52,38,78,.42));border:1px solid var(--line);color:var(--mut,#c7b3da);font:inherit;font-size:13px;font-weight:600;padding:9px 10px;cursor:pointer;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:5px}
 .song-reload:hover,.song-vfoot .song-yt:hover{border-color:var(--accent2);color:var(--accent2)}
+/* Подгонка заливки. Кнопка широкая и стоит первой: промах синхрона — первое, что
+   человек замечает, и чинить его он должен пальцем, а не уходя со страницы.
+   Высота 44px как у всего, во что целятся пальцем. */
+.song-vfoot .song-sync{flex:2;min-height:44px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  background:var(--panel,rgba(52,38,78,.42));border:1px solid var(--accent2);color:var(--accent2);
+  font:inherit;font-size:13px;font-weight:600;padding:9px 10px;cursor:pointer}
+.song-vfoot .song-sync.ghost{flex:0 0 auto;border-color:var(--line);color:var(--mut,#c7b3da);font-weight:500}
+.song-vfoot .song-sync:active{transform:scale(.98)}
 .song-fail{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:18px;font-size:13px;line-height:1.5;color:var(--mut,#c7b3da);background:var(--panel,#1E1629)}
 .song-item{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:var(--panel,rgba(52,38,78,.42));border:1px solid var(--line);color:var(--ink);padding:12px 14px;cursor:pointer;transition:border-color .15s,color .15s,transform .15s;margin-bottom:8px}
 .song-item:hover{border-color:var(--accent2);transform:translateX(2px)}
