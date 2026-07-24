@@ -261,13 +261,12 @@ function syllabify(s) {
  * Заодно отсекаем то, что показывать бессмысленно: практики, фанкамы, реакции и чужие
  * «lyrics»-видео (у нас свой текст на экране — второй поверх клипа только мешает).
  */
-const YT_BAD = /performance|dance practice|practice ver|choreograph|안무|연습|live|concert|fancam|reaction|cover|remix|sped|slowed|teaser|behind|making|spoiler|shorts|hour|loop|color coded|line distribution|karaoke|lyrics|lyric video|audio|오디오|topic|instrumental|inst\.|full album|album ver/i;
-// Настоящий клип помечается «M/V» — отраслевой стандарт k-pop. «official» сам по себе
-// слабый сигнал: «Official Audio» — это статичная картинка со звуком, не видео, и
-// именно её Сармат видел как «просто картинку без видео». Поэтому M/V весит много,
-// а голое «official» — мало.
+// То, что показывать бессмысленно ИЛИ у чего звук не совпадёт с альбомной дорожкой:
+// живые выступления, фанкамы, практики, инструменталы, чужие каналы. «Official Audio»
+// сюда НЕ входит: это статичная картинка, но звук — та самая альбомная дорожка, и когда
+// у песни нет клипа нужной длины, синхронное аудио лучше рассинхронного клипа.
+const YT_BAD = /performance|dance practice|practice ver|choreograph|안무|연습|live|concert|fancam|직캠|reaction|cover|remix|sped|slowed|teaser|behind|making|spoiler|shorts|hour|loop|line distribution|instrumental|inst\.|full album|music ?core|music ?bank|inkigayo|show ?champion|방송|커버|remake|topic/i;
 const YT_MV = /\bm\/?v\b|뮤직비디오|music video/i;
-const YT_GOOD = /official/i;
 
 function ytCandidates(html) {
   const out = [];
@@ -294,13 +293,15 @@ async function youtubeId(query, duration = 0) {
     const cands = ytCandidates(html);
     if (!cands.length) return (html.match(/"videoId":"([\w-]{11})"/) || [])[1] || "";
     const score = (c) => {
-      let s = 0;
-      const d = c.sec && duration ? Math.abs(c.sec - duration) : 999;
-      s += d <= 2 ? 6 : d <= 6 ? 4 : d <= 15 ? 1 : -4;
-      if (YT_MV.test(c.title)) s += 6;          // настоящий клип — главный приоритет
-      if (YT_GOOD.test(c.title)) s += 1;        // «official» слабо, у аудио оно тоже есть
-      if (YT_BAD.test(c.title)) s -= 6;         // концерт, фанкам, «official audio», текстовик
-      if (c.sec && c.sec < 90) s -= 3;          // короче полутора минут — тизер, не клип
+      // СИНХРОН ГЛАВНЕЕ КАРТИНКИ. Текст размечен под альбомную дорожку; клип другой длины
+      // синхронизировать невозможно (у CHOOM клип 204с против 179с — рассинхрон и вылет в
+      // конец). Поэтому за каждую секунду расхождения длины — минус, и клип, не совпавший
+      // по длине, проигрывает даже статичному «Official Audio», у которого звук ровно тот.
+      const d = c.sec && duration ? Math.abs(c.sec - duration) : 40;
+      let s = -Math.min(d, 30) * 2;
+      if (YT_MV.test(c.title)) s += 6;          // среди СОВПАВШИХ по длине клип лучше картинки
+      if (YT_BAD.test(c.title)) s -= 20;        // концерт, фанкам, практика, инструментал — нет
+      if (c.sec && c.sec < 90) s -= 10;         // короче полутора минут — тизер
       return s;
     };
     const best = cands.slice().sort((a, b) => score(b) - score(a))[0];
