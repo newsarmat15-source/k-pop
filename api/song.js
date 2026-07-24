@@ -448,6 +448,23 @@ export default async function handler(req, res) {
       const { data } = await supabase().from("songs").select("data").order("created_at", { ascending: false }).limit(200);
       return res.status(200).json({ ok: true, songs: (data || []).map((x) => x.data).filter(Boolean) });
     }
+    // Подгонка клип↔текст, общая для всех. Клип с интро идёт впереди альбомной дорожки
+    // на постоянную величину; первый, кто выровнял тапом, чинит песню для всех остальных.
+    // Тайминги в данных — от альбома, поэтому храним ОДИН сдвиг на песню, а не трогаем строки.
+    if (action === "offset") {
+      const b = req.body || {};
+      const off = Number(b.offset);
+      if (!b.id || !isFinite(off) || Math.abs(off) > 120) return res.status(400).json({ error: "Нужны id и разумный offset" });
+      const db = supabase();
+      const { data: row } = await db.from("songs").select("data").eq("id", b.id).maybeSingle();
+      if (!row || !row.data) return res.status(404).json({ error: "Песня не найдена" });
+      const patch = { video_offset: off };
+      row.data.videoOffset = off;
+      patch.data = row.data;
+      const { error } = await db.from("songs").update(patch).eq("id", b.id);
+      if (error) throw error;
+      return res.status(200).json({ ok: true, offset: off });
+    }
     return res.status(400).json({ error: "Неизвестный action" });
   } catch (e) {
     return res.status(500).json({ error: String(e?.message || e) });

@@ -2835,6 +2835,12 @@ function karaTapSync(){
   karaApply(ct-off);
   karaSyncLabels();
   toast&&typeof toast==='function'&&toast(t('sync_done'));
+  // Сдвиг общий для всех: клип с интро одинаково смещён у каждого. Сохраняем в каталог,
+  // чтобы следующий человек получил уже выровненную песню и не тапал заново.
+  // Собранные песни (usr_*) — в каталоге; демо 봩날 хранить незачем, оно и так выверено.
+  if(currentUser&&/^usr_/.test(String(K.song.id||''))){
+    try{fetch('/api/song?action=offset',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:K.song.id,offset:off})}).catch(()=>{})}catch(e){}
+  }
 }
 function karaResetSync(){
   const K=window._kara;if(!K)return;
