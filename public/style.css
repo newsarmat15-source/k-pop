@@ -584,6 +584,7 @@ button.lsn-coach:hover{border-color:var(--accent2)}
 
 /* Карта хангыля: все 40 букв сразу, цвет плитки = уровень владения (SRS). */
 .hm-sum{font-size:13px;line-height:1.5;color:var(--champ,#f3d9ac);margin-bottom:10px}
+.hm-say{font-size:12px;line-height:1.5;color:var(--dim,#a394bd);margin-bottom:10px}
 .hm-empty{font-size:13px;color:var(--dim,#a394bd);border:1px solid var(--line);padding:14px;text-align:center}
 .hm-legend{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;font-size:11px;color:var(--dim,#a394bd);margin-bottom:16px}
 .hm-dot{display:inline-block;width:11px;height:11px;border:1px solid var(--line);margin-right:1px;vertical-align:-1px}
@@ -957,6 +958,13 @@ button.lsn-coach:hover{border-color:var(--accent2)}
    иначе только что спетое слово темнело бы прямо под текущим и рвало строку. */
 .kgrp:not(:has(.tok.on)) .tok.done .tok-k::after{color:var(--lyr-past)}
 .tok.on .tok-m{color:var(--mut);opacity:1}
+/* Строка, которая поётся не по-корейски. В k-pop таких половина, и раньше их просто
+   не показывали — экран уверенно врал, что сейчас звучит корейская строка, а заливка
+   тянулась через выброшенный кусок. Теперь строка на месте и держит ритм, но кегль
+   вдвое меньше и цвет тише: учить в ней нечего, глазу не за что цепляться. */
+.kgrp.foreign .kline{border-left-color:transparent}
+.kgrp.foreign .tok-k{font-size:15px;font-weight:450;color:var(--dim)}
+.kgrp.foreign .tok-k::after{color:var(--mut)}
 /* Панель куплета больше не несёт построчный смысл (он под строками) — она уехала под
    сгиб и стала тихой: рамка по --line, а не акцентная, иначе пустая коробка внизу
    кричит громче самого текста песни. */

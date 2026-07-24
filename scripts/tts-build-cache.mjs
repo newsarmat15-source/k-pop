@@ -10,7 +10,7 @@
  */
 import { readFile, writeFile, mkdir, access } from "node:fs/promises";
 import path from "node:path";
-import { synthesize, ttsKey, toSpeakable, DEFAULT_ENGINE } from "../lib/tts-ko.js";
+import { synthesize, ttsKey, toSpeakable, isJamo, JAMO_CACHE_TAG, DEFAULT_ENGINE } from "../lib/tts-ko.js";
 
 const FORCE = process.argv.includes("--force");
 const ENGINE = process.env.TTS_ENGINE || DEFAULT_ENGINE;
@@ -50,7 +50,10 @@ async function main() {
 
   let made = 0, skipped = 0, failed = 0;
   for (const it of items) {
-    const key = ttsKey(it.text) + (it.slow ? "-slow" : "");
+    // Метка версии у чамо: с 24.07 буква озвучивается ЗВУКОМ (ㄱ → 가), а не названием
+    // (기역). Ключ считается от того же символа, поэтому без метки новый файл лёг бы
+    // поверх старого только с --force, а браузеры продолжили бы играть закэшированный.
+    const key = ttsKey(it.text) + (isJamo(it.text) ? JAMO_CACHE_TAG : "") + (it.slow ? "-slow" : "");
     // расширение — по факту, а не по вере: Inworld отдаёт wav, MiniMax mp3.
     // Отдавать wav под именем .mp3 нельзя, Safari на этом спотыкается.
     const already = (await exists(path.join(DIR, `${key}.mp3`))) ? "mp3"

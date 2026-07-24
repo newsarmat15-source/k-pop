@@ -54,40 +54,40 @@ window.SONGS = [
             s: { ru: 'Скучаю — и оттого что говорю это вслух, скучаю ещё сильнее.', en: 'I miss you — and saying it out loud makes me miss you more.' },
             c: { ru: '보고 «смотреть» + 싶다 «хотеть» = «скучаю». В корейском тоска — это не чувство, а желание увидеть.', en: '보고 “to look” + 싶다 “to want” = “I miss you”. In Korean longing is not a feeling but a wish to see.' },
             w: [
-            { k: '보고 싶다', r: 'bo·go·sip·tta', rr: 'по·го·сип·та', ru: 'скучаю', en: 'miss you' },
-            { k: '이렇게', r: 'i·reo·ke', rr: 'и·ро·кхе', ru: 'вот так', en: 'like this' },
-            { k: '말하니까', r: 'ma·ra·ni·kka', rr: 'ма·ра·ни·кка', ru: 'раз говорю', en: 'because I say it' },
-            { k: '더', r: 'deo', rr: 'то', ru: 'ещё больше', en: 'more' },
-            { k: '보고 싶다', r: 'bo·go·sip·tta', rr: 'по·го·сип·та', ru: 'скучаю', en: 'miss you' }
+            { t: 17.16, k: '보고 싶다', r: 'bo·go·sip·tta', rr: 'по·го·сип·та', ru: 'скучаю', en: 'miss you' },
+            { t: 19.96, k: '이렇게', r: 'i·reo·ke', rr: 'и·ро·кхе', ru: 'вот так', en: 'like this' },
+            { t: 20.48, k: '말하니까', r: 'ma·ra·ni·kka', rr: 'ма·ра·ни·кка', ru: 'раз говорю', en: 'because I say it' },
+            { t: 21.26, k: '더', r: 'deo', rr: 'то', ru: 'ещё больше', en: 'more' },
+            { t: 21.64, k: '보고 싶다', r: 'bo·go·sip·tta', rr: 'по·го·сип·та', ru: 'скучаю', en: 'miss you' }
           ] },
-          { t: 23.74,
+          { t: 23.95,
             s: { ru: 'Смотрю на ваше фото — и всё равно скучаю.', en: 'Even looking at your photo, I still miss you.' },
             w: [
-            { k: '너희', r: 'neo·hi', rr: 'но·хи', ru: 'ваше', en: 'your (pl.)' },
-            { k: '사진을', r: 'sa·ji·neul', rr: 'са·джи·ныль', ru: 'фото', en: 'photo' },
-            { k: '보고 있어도', r: 'bo·go·i·sseo·do', rr: 'по·го·и·ссо·до', ru: 'даже смотря', en: 'even looking' },
-            { k: '보고 싶다', r: 'bo·go·sip·tta', rr: 'по·го·сип·та', ru: 'скучаю', en: 'miss you' }
+            { t: 24.0, k: '너희', r: 'neo·hi', rr: 'но·хи', ru: 'ваше', en: 'your (pl.)' },
+            { t: 24.4, k: '사진을', r: 'sa·ji·neul', rr: 'са·джи·ныль', ru: 'фото', en: 'photo' },
+            { t: 24.96, k: '보고 있어도', r: 'bo·go·i·sseo·do', rr: 'по·го·и·ссо·до', ru: 'даже смотря', en: 'even looking' },
+            { t: 26.12, k: '보고 싶다', r: 'bo·go·sip·tta', rr: 'по·го·сип·та', ru: 'скучаю', en: 'miss you' }
           ] },
-          { t: 27.86,
+          { t: 27.84,
             s: { ru: 'Время безжалостно — и мне досадно за нас самих.', en: 'Time is so cruel — and I resent us for it.' },
             c: { ru: '밉다 в словаре — «противен, ненавистен». Но рядом с 우리가 «нас» это не ненависть, а досада на самих себя: сами виноваты, что так вышло.', en: '밉다 is dictionary-“hateful”. Next to 우리가 “us” it is not hatred but self-reproach: we let it come to this.' },
             w: [
-            { k: '너무', r: 'neo·mu', rr: 'но·му', ru: 'слишком', en: 'too' },
-            { k: '야속한', r: 'ya·so·kan', rr: 'я·со·кхан', ru: 'безжалостное', en: 'cruel' },
-            { k: '시간', r: 'si·gan', rr: 'щи·ган', ru: 'время', en: 'time' },
-            { k: '나는', r: 'na·neun', rr: 'на·нын', ru: 'я', en: 'I' },
-            { k: '우리가', r: 'u·ri·ga', rr: 'у·ри·га', ru: 'нас', en: 'us' },
-            { k: '밉다', r: 'mip·tta', rr: 'мип·та', ru: 'досадно', en: 'resent' }
+            { t: 27.84, k: '너무', r: 'neo·mu', rr: 'но·му', ru: 'слишком', en: 'too' },
+            { t: 28.32, k: '야속한', r: 'ya·so·kan', rr: 'я·со·кхан', ru: 'безжалостное', en: 'cruel' },
+            { t: 28.92, k: '시간', r: 'si·gan', rr: 'щи·ган', ru: 'время', en: 'time' },
+            { t: 30.0, k: '나는', r: 'na·neun', rr: 'на·нын', ru: 'я', en: 'I' },
+            { t: 30.6, k: '우리가', r: 'u·ri·ga', rr: 'у·ри·га', ru: 'нас', en: 'us' },
+            { t: 31.0, k: '밉다', r: 'mip·tta', rr: 'мип·та', ru: 'досадно', en: 'resent' }
           ] },
-          { t: 31.77,
+          { t: 31.76,
             s: { ru: 'За нас, кому теперь трудно даже увидеться хоть раз.', en: 'For us, who now find it hard to even meet once.' },
             w: [
-            { k: '이젠', r: 'i·jen', rr: 'и·джен', ru: 'теперь', en: 'now' },
-            { k: '얼굴', r: 'eol·gul', rr: 'оль·гуль', ru: 'лицо', en: 'face' },
-            { k: '한 번', r: 'han·beon', rr: 'хан·бон', ru: 'один раз', en: 'once' },
-            { k: '보는 것조차', r: 'bo·neun·geot·jjo·cha', rr: 'по·нын·гот·чо·ча', ru: 'даже увидеть', en: 'even seeing' },
-            { k: '힘들어진', r: 'him·deu·reo·jin', rr: 'хим·ды·ро·джин', ru: 'стало трудно', en: 'became hard' },
-            { k: '우리가', r: 'u·ri·ga', rr: 'у·ри·га', ru: 'нам', en: 'us' }
+            { t: 31.76, k: '이젠', r: 'i·jen', rr: 'и·джен', ru: 'теперь', en: 'now' },
+            { t: 32.0, k: '얼굴', r: 'eol·gul', rr: 'оль·гуль', ru: 'лицо', en: 'face' },
+            { t: 32.26, k: '한 번', r: 'han·beon', rr: 'хан·бон', ru: 'один раз', en: 'once' },
+            { t: 32.52, k: '보는 것조차', r: 'bo·neun·geot·jjo·cha', rr: 'по·нын·гот·чо·ча', ru: 'даже увидеть', en: 'even seeing' },
+            { t: 33.4, k: '힘들어진', r: 'him·deu·reo·jin', rr: 'хим·ды·ро·джин', ru: 'стало трудно', en: 'became hard' },
+            { t: 34.11, k: '우리가', r: 'u·ri·ga', rr: 'у·ри·га', ru: 'нам', en: 'us' }
           ] }
         ]
       },

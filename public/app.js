@@ -200,7 +200,7 @@ function toast(msg){
    по собственным часам, молча, но полностью. Демо не может не состояться. */
 const LP_SONG='spring_day';   // единственный разбор, открытый без аккаунта
 const LP_AUDIO='/audio/spring_day_demo.m4a';  // пусто — витрина работает молча
-const LP_AUDIO_T0=16.63;      // время дорожки альбома в нулевой секунде отрывка
+const LP_AUDIO_T0=16.79;      // время дорожки альбома в нулевой секунде отрывка
 const LP_PRE=1.0;             // сколько секунд клипа даём до первого слова
 const LP_WAIT=2500;           // звук вообще не пошёл — идём молча
 const LP_WAIT_MAX=5500;       // звук грузится — ждём, но не дольше этого
@@ -210,7 +210,11 @@ function lpSongObj(){
   return all.find(s=>s&&s.id===LP_SONG)||all[0]||null;
 }
 // Первый куплет с таймингами по словам. У курируемых песен тайминг построчный,
-// поэтому внутри строки слова делим по длине — та же схема, что в karaBuild.
+// ПРАВКА 24.07: если у слова есть собственное время (t) — берём его.
+// Раньше слова внутри строки всегда делились пропорционально длине в буквах, и это
+// давало промах больше секунды: 이렇게 подсвечивалось на 18.78, а поётся на 19.96.
+// Заливка ехала относительно звука, и это первое, что видел гость. Деление по длине
+// осталось только как запасной вариант для строк без пословной разметки.
 function lpBuild(){
   const s=lpSongObj();
   const v=s&&s.verses&&s.verses[0];
@@ -221,12 +225,19 @@ function lpBuild(){
     if(!ws.length)return;
     const end=(i+1<v.lines.length?v.lines[i+1].t:v.end)||(ln.t+4);
     const span=Math.max(0.4,end-ln.t);
+    const exact=ws.every(x=>x.t!=null);
     const wt=ws.map(x=>Math.max(1,String(x.k).replace(/\s/g,'').length));
     const sum=wt.reduce((a,b)=>a+b,0)||1;
     let acc=ln.t;
     const words=ws.map((x,j)=>{
-      const t0=acc;acc+=span*wt[j]/sum;
-      return {k:x.k,r:(L==='ru'&&x.rr)?x.rr:(x.r||x.rom||''),m:LT(x,L),t0,t1:acc,raw:x};
+      let t0,t1;
+      if(exact){
+        t0=x.t;
+        // Конец слова: своё te, иначе начало следующего, у последнего — конец строки.
+        t1=x.te!=null?x.te:(j+1<ws.length?ws[j+1].t:end);
+        if(!(t1>t0))t1=t0+0.3;
+      }else{t0=acc;acc+=span*wt[j]/sum;t1=acc}
+      return {k:x.k,r:(L==='ru'&&x.rr)?x.rr:(x.r||x.rom||''),m:LT(x,L),t0,t1,raw:x};
     });
     lines.push({t0:ln.t,t1:end,words,s:LT(ln.s,L),
       txt:ws.map(x=>x.k).join(' ')});
@@ -3024,16 +3035,21 @@ function renderSongRecap(){
   const K=window._kara;if(!K)return;
   const b=document.getElementById('songBody');if(!b)return;
   const L=getLang();
-  const groups=songWordsByVerse(K.song);
+  // Куплеты без корейских слов в наборе не показываем: с 24.07 разбор держит и строки,
+  // которые поются по-английски, и в песне вроде «PSYCHO» целые секции — рэп на английском.
+  // Пустая карточка «Куплет 12» с надписью «нечего сохранять» — это шум, а не честность.
+  const groups=songWordsByVerse(K.song).filter(g=>g.words.length);
   const have={};lsnVocab().forEach(x=>{have[x.kr]=1});
   let total=0,got=0;
   groups.forEach(g=>g.words.forEach(w=>{total++;if(have[w.kr])got++}));
-  const body=groups.map(g=>{
+  const body=groups.map((g,n)=>{
     const allIn=g.words.length>0&&g.words.every(w=>have[w.kr]);
     const tr=LT(g.tr,L);
+    // Нумеруем подряд (n+1), а обработчикам отдаём настоящий индекс куплета (g.i):
+    // после отсева чисто английских секций сквозная нумерация зияла бы дырами.
     return `<section class="rcp-v">
       <div class="rcp-vh">
-        <span class="rcp-vn">${t('kara_verse')} ${g.i+1}</span>
+        <span class="rcp-vn">${t('kara_verse')} ${n+1}</span>
         <button class="rcp-all" type="button" ${allIn?'disabled':''} onclick="songAddVerse(${g.i})">${allIn?'✓ '+t('song_saved'):t('song_add_verse')}</button>
       </div>
       ${tr?`<p class="rcp-tr">${escapeHtml(tr)}</p>`:''}

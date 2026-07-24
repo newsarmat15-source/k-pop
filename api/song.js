@@ -11,7 +11,13 @@ import { transcribeLatin, transcribeCyrillic, pronounce } from "../lib/ko-g2p.js
 export const config = { maxDuration: 60 };
 
 const MODEL = "anthropic/claude-haiku-4.5";
-const MAX_LINES = 8; // первые ~2 куплета — держим латентность/размер разумными
+// Разбирается ВСЯ песня. До 24.07 здесь стояло MAX_LINES=8 — «первые ~2 куплета».
+// На проверке это выглядело как зависание: у BABYMONSTER «PSYCHO» разбор кончался
+// на 45-й секунде из 196 (23% песни), клип играл дальше, а экран уже показывал набор
+// слов. Латентность держим не обрезкой песни, а параллельными кусками (annotateAll).
+const MAX_LINES = 200; // предохранитель от аномального LRC, а не продуктовое ограничение
+const CHUNK_LINES = 10; // корейских строк на один вызов модели
+const MAX_PARALLEL = 4; // одновременных вызовов — чтобы не ловить лимит роутера
 
 // Автоподсказки — iTunes Search API (бесплатный, прощает частичный ввод, знает корейский).
 async function itunesSuggest(q) {
@@ -47,7 +53,13 @@ async function lrclibFind(artist, track) {
   return clean[0] || ok[0] || null;
 }
 
-// LRC → [{t, kr}] (только строки с корейским)
+// LRC → [{t, kr, ko}] — ВСЕ спетые строки, а не только корейские.
+// До 24.07 строки без хангыля выбрасывались. В k-pop их половина: у «PSYCHO»
+// из 80 строк отбрасывалось 55, и человек видел четыре корейские строки подряд там,
+// где на самом деле поётся английский. Отсюда «написано вообще не то» и рваный ритм
+// заливки: слово тянулось через весь выброшенный кусок до следующей корейской строки.
+// Английские строки НЕ разбираются пословно (учить в них нечего), но остаются на
+// экране и, главное, держат тайминг.
 function parseSynced(lrc) {
   const out = [];
   for (const line of (lrc || "").split("\n")) {
@@ -55,19 +67,23 @@ function parseSynced(lrc) {
     if (!m) continue;
     const t = +m[1] * 60 + +m[2] + (m[3] ? +("0." + m[3]) : 0);
     const kr = (m[4] || "").trim();
-    if (kr && /[가-힣]/.test(kr)) out.push({ t: +t.toFixed(2), kr, i: out.length });
+    if (!kr) continue;
+    out.push({ t: +t.toFixed(2), kr, ko: /[가-힣]/.test(kr), i: out.length });
   }
   return out;
 }
 
-// Разбиваем строки на куплеты по паузам между ними (> 3.5с = граница).
+// Разбиваем строки на куплеты по паузам между ними. Порог опущен с 3.5с до 2.5с:
+// раньше пауза считалась по ОТФИЛЬТРОВАННЫМ строкам и была фиктивно большой —
+// каждая корейская строка становилась «куплетом» из одной строки (у PSYCHO вышло
+// 1,1,1,3,1,1). Теперь паузы настоящие.
 function groupVerses(lines) {
   const verses = [];
   let cur = [];
   for (let i = 0; i < lines.length; i++) {
     cur.push(lines[i]);
     const gap = i + 1 < lines.length ? lines[i + 1].t - lines[i].t : 99;
-    if (gap > 3.5 || cur.length >= 4) {
+    if (gap > 2.5 || cur.length >= 6) {
       verses.push(cur);
       cur = [];
     }
@@ -95,14 +111,18 @@ const TRANSCRIPTION_RULES = [
   "Latin words inside Korean lyrics (e.g. 'friend') keep the word itself in 'r' and a Cyrillic reading in 'rr'.",
 ].join("\n");
 
-async function annotate(verseGroups) {
+async function annotate(verseGroups, vBase = 0) {
   const key = process.env.FAL_KEY;
   if (!key) throw new Error("FAL_KEY не задан");
   const system =
     "You are a Korean lyrics annotator for a language-learning app. Output ONLY valid minified JSON, no prose, no markdown fences.";
+  // Строки без хангыля идут в промпт как КОНТЕКСТ (модель должна понимать куплет целиком),
+  // но объекта в ответе на них не ждём — разбирать в них нечего.
   const listing = verseGroups
-    .map((g, v) => g.map((l) => `V${v} L${l.i} ${l.kr}`).join("\n"))
+    .map((g, v) => g.map((l) => `V${v + vBase} L${l.i} ${l.kr}${l.ko ? "" : "   <- not Korean: context only, DO NOT return an object for this line"}`).join("\n"))
     .join("\n");
+  const vNums = verseGroups.map((_, v) => v + vBase);
+  const koLines = verseGroups.flatMap((g) => g.filter((l) => l.ko).map((l) => l.i));
   const prompt =
     `Korean song, already grouped into verses. Each row is "V<verse> L<line> <lyrics>":\n` +
     listing +
@@ -111,11 +131,12 @@ async function annotate(verseGroups) {
     `"verses":[{"v":0,"tr":{"ru":"","en":""},"lit":{"ru":"","en":""},"why":{"ru":"","en":""}}]}\n\n` +
     TRANSCRIPTION_RULES +
     `\n\nOther rules:\n` +
-    `- "lines": exactly one object per input line, "i" = the L number from the input.\n` +
+    `- "lines": one object per KOREAN input line — these and only these L numbers: ${koLines.join(", ")}. "i" = the L number from the input.\n` +
+    `- If the SAME lyrics line appears again later (chorus), you may return it once — we reuse that breakdown for every repeat.\n` +
     `- lines[].tr = what THAT ONE LINE actually means in natural Russian/English. Not a word-for-word chain — a sentence a native speaker would say. It is shown under the lyrics and lights up word by word while the line is sung, so keep it one short sentence.\n` +
     `- lines[].c = OPTIONAL, only for lines where the meaning is NOT the sum of the words: idiom, fixed expression, culture/film reference, grammar tail that carries feeling. 1-2 sentences: word A alone means X, word B alone means Y, together they mean Z. Omit the field entirely on ordinary lines — do not pad.\n` +
     `- Split each line into meaningful words; keep particles attached to their word. "ru"/"en" = 1-3 word gloss of THAT word alone.\n` +
-    `- "verses": exactly one object per verse, "v" = the V number.\n` +
+    `- "verses": exactly ${vNums.length} objects, one per verse, with these exact "v" values: ${vNums.join(", ")}. NEVER merge two verses into one object and never split one verse into two — the grouping above is fixed. A verse whose lines are all non-Korean still gets an object.\n` +
     `- verses[].lit = word-for-word literal translation of the whole verse. It MUST read clumsily — that is the point.\n` +
     `- verses[].tr = what the verse actually means in natural Russian/English.\n` +
     `- verses[].why = 2-4 sentences explaining WHY lit and tr differ. Name concrete words: word A means X on its own, word B means Y on its own, but together they mean Z. Cover idioms, film/culture references and grammar tails that carry feeling no single word carries. Write it for a fan with zero Korean.\n` +
@@ -139,6 +160,53 @@ async function annotate(verseGroups) {
   const m = out.match(/\{[\s\S]*\}/);
   const parsed = JSON.parse(m ? m[0] : out);
   return { lines: parsed.lines || [], verses: parsed.verses || [] };
+}
+
+/**
+ * Разбор всей песни. Куплеты режутся на куски примерно по CHUNK_LINES корейских строк
+ * (граница куска = граница куплета, иначе смысловой перевод куплета соберётся из огрызков)
+ * и уходят в модель параллельно. Один длинный вызов на всю песню не влезал бы в
+ * maxDuration=60 и стабильно обрывал JSON на середине.
+ * Кусок, который не удался, не роняет песню целиком — его строки просто останутся
+ * без разбора, а не оборвут её на середине, как это делала обрезка MAX_LINES=8.
+ */
+async function annotateAll(groups) {
+  const chunks = [];
+  let cur = [], curKo = 0, start = 0;
+  groups.forEach((g, vi) => {
+    cur.push(g);
+    curKo += g.filter((l) => l.ko).length;
+    if (curKo >= CHUNK_LINES) { chunks.push({ groups: cur, vBase: start }); cur = []; curKo = 0; start = vi + 1; }
+  });
+  if (cur.length) chunks.push({ groups: cur, vBase: start });
+
+  const results = [];
+  for (let i = 0; i < chunks.length; i += MAX_PARALLEL) {
+    const batch = chunks.slice(i, i + MAX_PARALLEL);
+    results.push(
+      ...(await Promise.all(
+        batch.map((c) =>
+          annotate(c.groups, c.vBase)
+            .then((r) => ({ ...r, chunk: c, ok: true }))
+            .catch((e) => ({ lines: [], verses: [], chunk: c, ok: false, err: String(e?.message || e) }))
+        )
+      ))
+    );
+  }
+  if (!results.some((r) => r.ok)) throw new Error(results[0]?.err || "модель не ответила ни на один кусок");
+
+  const lines = [];
+  const verses = [];
+  for (const r of results) {
+    lines.push(...r.lines);
+    // ЗАЩИТА ОТ СЪЕЗДА КУПЛЕТОВ. Модель регулярно перегруппировывает куплеты по-своему
+    // (у PSYCHO склеила шесть в три), но нумерует их с нуля — и объяснение «почему
+    // дословно ≠ по смыслу» приезжало к ЧУЖИМ строкам. Именно это Сармат увидел как
+    // «написано вообще не то». Поэтому: количество не сошлось — верхний слой куплета
+    // не берём вообще, смысл соберётся из построчных переводов (они по «i» не съезжают).
+    if (r.ok && r.verses.length === r.chunk.groups.length) verses.push(...r.verses);
+  }
+  return { lines, verses };
 }
 
 // Страховка от книжной романизации: если модель вернула слитную строку без «·»,
@@ -178,15 +246,51 @@ function syllabify(s) {
   return out.filter(Boolean).join("·") || str;
 }
 
-// Ищем id клипа на YouTube по названию (скрейп страницы результатов).
-async function youtubeId(query) {
+/* Ищем клип на YouTube (скрейп страницы результатов).
+ *
+ * До 24.07 бралось ПЕРВОЕ видео из выдачи. Для «PSYCHO» это оказался PERFORMANCE VIDEO
+ * на 206 секунд против 196 у записи, под которую сделаны тайминги lrclib, — и весь разбор
+ * ехал мимо пения. Тайминги мы не двигаем (двигать нечем, forced alignment здесь нет),
+ * поэтому выбираем видео, у которого ДЛИТЕЛЬНОСТЬ совпадает с записью.
+ * Заодно отсекаем то, что показывать бессмысленно: практики, фанкамы, реакции и чужие
+ * «lyrics»-видео (у нас свой текст на экране — второй поверх клипа только мешает).
+ */
+const YT_BAD = /performance|dance practice|practice ver|choreograph|안무|연습|live|fancam|reaction|cover|remix|sped|slowed|teaser|behind|making|spoiler|shorts|hour|loop|color coded|line distribution|karaoke|lyrics/i;
+const YT_GOOD = /official|m\/v|music video|뮤직비디오/i;
+
+function ytCandidates(html) {
+  const out = [];
+  const re = /"videoRenderer":\{"videoId":"([\w-]{11})"/g;
+  let m;
+  while ((m = re.exec(html)) && out.length < 12) {
+    const win = html.slice(m.index, m.index + 3000);
+    const t = win.match(/"title":\{"runs":\[\{"text":"((?:[^"\\]|\\.)*)"/);
+    const len = win.match(/"simpleText":"(\d+:\d+(?::\d+)?)"/);
+    let title = "";
+    try { title = t ? JSON.parse('"' + t[1] + '"') : ""; } catch { title = ""; }
+    const sec = len ? len[1].split(":").reverse().reduce((s, p, i) => s + +p * Math.pow(60, i), 0) : 0;
+    out.push({ id: m[1], title, sec });
+  }
+  return out;
+}
+
+async function youtubeId(query, duration = 0) {
   try {
     const r = await fetch("https://www.youtube.com/results?search_query=" + encodeURIComponent(query), {
       headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)", "Accept-Language": "en-US" },
     });
     const html = await r.text();
-    const m = html.match(/"videoId":"([\w-]{11})"/);
-    return m ? m[1] : "";
+    const cands = ytCandidates(html);
+    if (!cands.length) return (html.match(/"videoId":"([\w-]{11})"/) || [])[1] || "";
+    const score = (c) => {
+      let s = 0;
+      const d = c.sec && duration ? Math.abs(c.sec - duration) : 999;
+      s += d <= 2 ? 6 : d <= 6 ? 4 : d <= 15 ? 1 : -4;
+      if (YT_BAD.test(c.title)) s -= 5;
+      if (YT_GOOD.test(c.title)) s += 2;
+      return s;
+    };
+    return cands.slice().sort((a, b) => score(b) - score(a))[0].id;
   } catch (e) {
     return "";
   }
@@ -212,7 +316,7 @@ async function handleBuild(req, res) {
     error: `Дневной лимит новых песен (${lim.limit}) исчерпан. Готовые песни из каталога — без ограничений.`, limit: lim.limit });
 
   const allLines = parseSynced(rec.syncedLyrics);
-  if (!allLines.length) return res.status(422).json({ error: "В песне нет корейского текста" });
+  if (!allLines.some((l) => l.ko)) return res.status(422).json({ error: "В песне нет корейского текста" });
   const lines = allLines.slice(0, MAX_LINES);
 
   // Куплеты режем ДО обращения к модели: она должна видеть границы куплета,
@@ -221,19 +325,35 @@ async function handleBuild(req, res) {
 
   let ann;
   try {
-    ann = await annotate(groups);
+    ann = await annotateAll(groups);
   } catch (e) {
     return res.status(502).json({ error: "Не удалось собрать разбор, попробуй другую песню", detail: String(e?.message || e) });
   }
 
   const byLine = new Map();
   for (const a of ann.lines) if (a && a.i != null) byLine.set(+a.i, a);
+  // Припев поётся 3-4 раза, а модель разбирает его ОДИН раз — остальные вхождения
+  // возвращались пустыми и падали в запасной вариант «вся строка одним словом»: без
+  // транскрипции, без перевода слов, без возможности сохранить их в тетрадь. На PSYCHO
+  // так осталось без разбора 10 корейских строк из 25 — то есть весь припев.
+  // Поэтому разбор ищем и по ТЕКСТУ строки, а не только по её номеру.
+  const byText = new Map();
+  for (const [i, a] of byLine) {
+    const src = lines[i];
+    if (src && !byText.has(src.kr)) byText.set(src.kr, a);
+  }
   const byVerse = new Map();
   for (const v of ann.verses) if (v && v.v != null) byVerse.set(+v.v, v);
 
   const built = lines.map((l, i) => {
-    const a = byLine.get(i) || ann.lines[i] || {};
-    const raw = Array.isArray(a.w) && a.w.length ? a.w : [{ k: l.kr, r: "", rr: "", ru: (a.tr && a.tr.ru) || "", en: (a.tr && a.tr.en) || "" }];
+    // Сопоставление СТРОГО по «i». Позиционный запасной вариант (ann.lines[i]) убран:
+    // модель молчит по неспетым/английским строкам, и позиция в её ответе перестаёт
+    // совпадать с позицией в песне — разбор приезжал к чужой строке.
+    const a = byLine.get(i) || byText.get(l.kr) || {};
+    // Строка не на корейском: слова нужны только как якоря тайминга, разбирать нечего.
+    const raw = !l.ko
+      ? l.kr.split(/\s+/).filter(Boolean).map((word) => ({ k: word, r: "", rr: "", ru: "", en: "" }))
+      : Array.isArray(a.w) && a.w.length ? a.w : [{ k: l.kr, r: "", rr: "", ru: (a.tr && a.tr.ru) || "", en: (a.tr && a.tr.en) || "" }];
     // Транскрипцию считаем сами: правила произношения детерминированы, а модель
     // на них регулярно съезжает в книжную романизацию. Ответ модели держим только
     // как запасной вариант — для латиницы внутри корейского текста и прочих
@@ -251,13 +371,15 @@ async function handleBuild(req, res) {
       };
     }).filter((x) => x.k);
     const c = a.c && (a.c.ru || a.c.en) ? a.c : null;
-    return { t: l.t, kr: l.kr, tr: a.tr || { ru: "", en: "" }, c, w: w.length ? w : [{ k: l.kr, r: "", rr: "", ru: "", en: "" }] };
+    const o = { t: l.t, kr: l.kr, tr: (l.ko && a.tr) || { ru: "", en: "" }, c, w: w.length ? w : [{ k: l.kr, r: "", rr: "", ru: "", en: "" }] };
+    if (!l.ko) o.x = 1; // «строка не на корейском» — фронт рисует её приглушённо и не тащит слова в тетрадь
+    return o;
   });
 
   const verses = groups.map((g, vi) => {
     const last = g[g.length - 1];
     const end = lines[last.i + 1] ? lines[last.i + 1].t : last.t + 4;
-    const va = byVerse.get(vi) || ann.verses[vi] || {};
+    const va = byVerse.get(vi) || {};
     const glines = g.map((l) => built[l.i]);
     // Фолбэк, если модель не дала перевод куплета: склейка построчных.
     const joined = (k) => glines.map((l) => (l.tr && l.tr[k]) || "").filter(Boolean).join(" ");
@@ -271,6 +393,7 @@ async function handleBuild(req, res) {
         const o = { t: l.t, w: l.w };
         if (l.tr && (l.tr.ru || l.tr.en)) o.s = l.tr;
         if (l.c) o.c = l.c;
+        if (l.x) o.x = 1;
         return o;
       }),
     };
@@ -279,7 +402,7 @@ async function handleBuild(req, res) {
     return v;
   });
 
-  const ytId = await youtubeId(rec.artistName + " " + rec.trackName + " official");
+  const ytId = await youtubeId(rec.artistName + " " + rec.trackName + " official", rec.duration);
   const song = {
     id,
     title: rec.trackName,
