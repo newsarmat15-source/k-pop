@@ -148,7 +148,7 @@ header{position:sticky;top:0;z-index:40;backdrop-filter:blur(14px);background:rg
 .pass-eye{position:absolute;right:6px;top:11px;background:none;border:none;font-size:20px;cursor:pointer;padding:4px 6px;line-height:1;opacity:.75}
 .pass-eye:hover{opacity:1}
 /* iOS не зумит поля с font-size>=16px */
-.song-search,.wb-add input,.chat-input input,#forgotEmail{font-size:16px}
+.song-search,.chat-input input,#forgotEmail{font-size:16px}
 .spinner.sm{width:14px;height:14px;border-width:2px;display:inline-block;vertical-align:middle}
 /* TOPIK был самым громким элементом экрана уроков: золотой баннер на золотом
    фоне над списком, где фанату K-pop продают официальный экзамен.
@@ -761,13 +761,6 @@ button.lsn-coach:hover{border-color:var(--accent2)}
 .wb-tab{flex:1;background:none;border:none;border-bottom:2px solid transparent;color:var(--dim,#a394bd);font:inherit;font-size:13px;font-weight:600;padding:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px}
 .wb-tab span{font-size:11px;background:var(--panel2);border:1px solid var(--line);padding:1px 7px}
 .wb-tab.on{color:var(--accent2);border-bottom-color:var(--accent2)}
-.wb-add{display:flex;gap:7px;margin-bottom:8px}
-.wb-add input{background:var(--panel2);border:1px solid var(--line);color:var(--ink);font:inherit;font-size:16px;padding:9px 11px}
-.wb-add input:focus{outline:none;border-color:var(--accent2)}
-#wbKr{width:40%}
-#wbMean{flex:1}
-.wb-add input#wbKr{font-size:16px}
-.wb-addbtn{padding:9px 15px;font-size:16px;margin-left:0}
 .wb-hint{font-size:11px;color:var(--mut);opacity:.75;margin-bottom:14px;line-height:1.45}
 .wb-list{display:flex;flex-direction:column;gap:6px}
 .wb-row{display:flex;align-items:flex-start;gap:8px;background:var(--panel,rgba(52,38,78,.42));border:1px solid var(--line);padding:8px 10px}

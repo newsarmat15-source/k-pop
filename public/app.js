@@ -2183,14 +2183,9 @@ function renderWorkbook(){
       <button class="${dir==='kr'?'on':''}" onclick="wbSetDir('kr')">${t('wb_dir_a')}</button>
       <button class="${dir==='nat'?'on':''}" onclick="wbSetDir('nat')">${t('wb_dir_b')}</button>
     </div>
-    <div class="wb-add">
-      ${dir==='kr'
-        ? `<input id="wbKr" placeholder="한국어" maxlength="40" autocomplete="off">
-           <input id="wbMean" placeholder="${t('wb_mean_ph')}" maxlength="60" autocomplete="off">`
-        : `<input id="wbMean" placeholder="${t('wb_mean_ph')}" maxlength="60" autocomplete="off">
-           <input id="wbKr" placeholder="한국어" maxlength="40" autocomplete="off">`}
-      <button class="btn accent wb-addbtn" onclick="wbAddWord()">+</button>
-    </div>
+    <!-- Ручной ввод убран 25.07: слова копятся сами из песен (🎵) и уроков (📘).
+         Форма «поле+поле+плюс» читалась как переводчик и требовала уже ЗНАТЬ
+         корейское слово — вывернуто для приложения, где корейский только учат. -->
     <div class="wb-hint">${isSlang?t('wb_hint_slang'):t('wb_hint_words')}</div>
     <div class="wb-list">${rows}</div>`;
 }
@@ -2475,17 +2470,9 @@ if(!window._wbSongHook){
 
 function switchWb(tab){window._wbTab=tab;if(tab!=='words')window._wbSongFilter=null;renderWorkbook()}
 
-function wbAddWord(){
-  const kr=document.getElementById('wbKr').value.trim();
-  const mean=document.getElementById('wbMean').value.trim();
-  if(!kr){toast(t('wb_need_kr'));return}
-  const voc=lsnVocab();
-  if(voc.some(v=>v&&v.kr===kr)){toast(t('wb_dup'));return}
-  voc.push({kr,rom:wbRomanize(kr),ru:mean,en:mean,from:'manual',slang:window._wbTab==='slang'});
-  lsnSaveVocab(voc);
-  window._wbSongFilter=null;
-  renderWorkbook();
-}
+// wbAddWord удалён 25.07 вместе с формой ручного ввода. Слова попадают в тетрадь
+// только из песен (wbSeedFromSong / разбор) и уроков — карточка приходит уже полной
+// (kr + rom + перевод + строка-источник), а не собирается человеком вслепую.
 
 function wbDelete(kr){
   const voc=lsnVocab().filter(v=>v.kr!==kr);
@@ -4311,12 +4298,12 @@ const T={
     tile_wb:"Workbook", tile_wb_sub:"your words & slang",
     wb_h:"Workbook", wb_words:"Words", wb_slang:"Slang", wb_del:"Remove", wb_mean_ph:"meaning", wb_need_kr:"Type the Korean word", wb_dup:"Already in your workbook",
     wb_empty_words:"No words yet — finish lessons and they’ll pile up here automatically.", wb_empty_slang:"No slang yet — it’ll collect from song breakdowns. You can add your own too.",
-    wb_hint_words:"📘 auto from lessons · ✍️ added by you", wb_hint_slang:"🎵 from songs · ✍️ added by you",
+    wb_hint_words:"📘 from lessons & 🎵 from songs — added for you", wb_hint_slang:"🎵 from songs — added for you",
     wb_songs:"Songs", wb_hint_songs:"Songs you’ve broken down · every word is already in your words tab",
     wb_say:"Play the word · hold for slow", wb_prog:"How well it sits in memory", wb_tap:"tap to check yourself",
     wb_go:n=>`Review ${n} ${n===1?'word':'words'}`, wb_go_sub:"about a minute — that’s the whole batch",
     wb_alldone:"Today’s batch is done ✓", wb_next_in:n=>n<=1?"The next words come back tomorrow":`The next words come back in ${n} days`,
-    wb_dir_h:"Direction", wb_dir_a:"한국어 → EN", wb_dir_b:"EN → 한국어",
+    wb_dir_h:"How to show a word", wb_dir_a:"Show 한국어", wb_dir_b:"Hide 한국어",
     wb_hard:"tough one", wb_rev_recog:"do you know this word?", wb_rev_prod:"say it in Korean",
     wb_show:"Show", wb_no:"Didn’t know it", wb_yes:"Knew it", wb_back:"← workbook",
     wb_fin_h:"Batch complete", wb_fin_sub:n=>n<=1?"These words come back tomorrow — that’s how they stay.":`These words come back in ${n} days — that’s how they stay.`,
@@ -4427,12 +4414,12 @@ const T={
     tile_wb:"Рабочая тетрадь", tile_wb_sub:"твои слова и сленг",
     wb_h:"Рабочая тетрадь", wb_words:"Слова", wb_slang:"Сленг", wb_del:"Удалить", wb_mean_ph:"перевод", wb_need_kr:"Впиши корейское слово", wb_dup:"Уже есть в тетради",
     wb_empty_words:"Пока пусто — проходи уроки, и слова сами накопятся здесь.", wb_empty_slang:"Пока пусто — сленг накопится из разборов песен. Можно добавить и своё.",
-    wb_hint_words:"📘 авто с уроков · ✍️ добавил ты", wb_hint_slang:"🎵 из песен · ✍️ добавил ты",
+    wb_hint_words:"📘 с уроков и 🎵 из песен — копятся сами", wb_hint_slang:"🎵 из песен — копятся сами",
     wb_songs:"Песни", wb_hint_songs:"Разобранные песни · их слова уже лежат во вкладке «Слова»",
     wb_say:"Послушать слово · держи дольше — медленно", wb_prog:"Насколько крепко слово сидит", wb_tap:"тап — проверь себя",
     wb_go:n=>`Повторить ${n} ${n===1?'слово':(n<5?'слова':'слов')}`, wb_go_sub:"минута — это вся сегодняшняя порция",
     wb_alldone:"Сегодняшняя порция закрыта ✓", wb_next_in:n=>n<=1?"Следующие слова вернутся завтра":`Следующие слова вернутся через ${n} дн.`,
-    wb_dir_h:"Направление", wb_dir_a:"한국어 → RU", wb_dir_b:"RU → 한국어",
+    wb_dir_h:"Как показывать слово", wb_dir_a:"Показывать 한국어", wb_dir_b:"Прятать 한국어",
     wb_hard:"тяжёлое", wb_rev_recog:"знаешь это слово?", wb_rev_prod:"скажи по-корейски",
     wb_show:"Показать", wb_no:"Не помню", wb_yes:"Помню", wb_back:"← в тетрадь",
     wb_fin_h:"Порция закрыта", wb_fin_sub:n=>n<=1?"Эти слова вернутся завтра — так они и остаются в голове.":`Эти слова вернутся через ${n} дн. — так они и остаются в голове.`,
