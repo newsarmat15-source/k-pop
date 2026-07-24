@@ -1546,6 +1546,7 @@ function openHangulMap(){
   const nC=secs.filter(s=>s.kind==='c').reduce((n,s)=>n+s.letters.length,0);
   document.getElementById('lessonBody').innerHTML=
     `<div class="hm-sum">${t('lsn_map_sum')(nV+nC,nV,nC)}</div>
+     <div class="hm-say">${t('lsn_map_say')}</div>
      <div class="hm-legend"><span class="hm-dot t0"></span>${t('lsn_map_l0')}
       <span class="hm-dot t1"></span>${t('lsn_map_l1')}
       <span class="hm-dot t2"></span>${t('lsn_map_l2')}
@@ -2134,8 +2135,11 @@ function renderWorkbook(){
       <button class="${dir==='nat'?'on':''}" onclick="wbSetDir('nat')">${t('wb_dir_b')}</button>
     </div>
     <div class="wb-add">
-      <input id="wbKr" placeholder="한국어" maxlength="40">
-      <input id="wbMean" placeholder="${t('wb_mean_ph')}" maxlength="60">
+      ${dir==='kr'
+        ? `<input id="wbKr" placeholder="한국어" maxlength="40" autocomplete="off">
+           <input id="wbMean" placeholder="${t('wb_mean_ph')}" maxlength="60" autocomplete="off">`
+        : `<input id="wbMean" placeholder="${t('wb_mean_ph')}" maxlength="60" autocomplete="off">
+           <input id="wbKr" placeholder="한국어" maxlength="40" autocomplete="off">`}
       <button class="btn accent wb-addbtn" onclick="wbAddWord()">+</button>
     </div>
     <div class="wb-hint">${isSlang?t('wb_hint_slang'):t('wb_hint_words')}</div>
@@ -2232,11 +2236,14 @@ function renderWbReview(){
     renderWbBuild(v,lineWords);
     return;
   }
-  // Направление задаёт не тумблер, а уровень слова: сперва узнавание (кор → родной),
-  // с третьего уровня — воспроизведение (родной → кор). Это то же восхождение,
-  // что Quizlet ведёт внутри Learn от выбора варианта к письменному ответу
-  // [help.quizlet.com, «Studying with Learn»], и то, чего нет в плоском списке слов.
-  const prod=st.l>=2;
+  // Направление держит ТУМБЛЕР — тот самый «한국어 → RU / RU → 한국어» над списком.
+  // До 24.07 он менял только вид списка, а спрашивало всегда по уровню слова, и на
+  // проверке это выглядело как «переключатель не работает в принципе». Подпись обязана
+  // означать ровно то, что написано: выбрал «RU → 한국어» — спрашивают с русского.
+  // Восхождение узнавание→воспроизведение при этом не потеряно: слово, доросшее до
+  // 3-го уровня, идёт в сборку строки целиком (renderWbBuild выше) — там отвечать
+  // приходится по-корейски в любом направлении.
+  const prod=wbDir()==='nat';
   const q=prod?mean:v.kr, a=prod?v.kr:mean;
   const pct=Math.round(Math.min(R.i/R.total,1)*100);
   body.innerHTML=`
@@ -2570,9 +2577,12 @@ function songWordsByVerse(song){
       const lineW=(ln.w||[]).map(x=>((x&&x.k)||'').trim()).filter(Boolean);
       const line=lineW.join(' ');
       const lineS=ln.s||null;
+      // Строки без хангыля (в k-pop их половина) теперь тоже есть в разборе — они держат
+      // тайминг. Но в тетрадь идёт только корейское: учить «Yeah yeah yeah» незачем.
+      if(ln.x)return;
       (ln.w||[]).forEach(w=>{
         const kr=((w&&w.k)||'').trim();
-        if(!kr||seen[kr])return;seen[kr]=1;
+        if(!kr||seen[kr]||!/[가-힣]/.test(kr))return;seen[kr]=1;
         words.push({kr,rom:w.r||w.rom||'',rr:w.rr||'',ru:w.ru||'',en:w.en||'',line,lineW,lineS});
       });
     });
@@ -2610,12 +2620,18 @@ function karaBuild(song){
       if(wa){
         words=ln.w.map(x=>({...x,t0:(x.t!=null?x.t:0),te:(x.te!=null?x.te:null)}));
       }else{
-        const end=(i+1<v.lines.length?v.lines[i+1].t:v.end);
-        const total=Math.max(0.1,end-ln.t);
+        // Строку размазывали РОВНО до начала следующей. Если между ними проигрыш или
+        // кусок, который не поётся, последние слова ползли через всю пустоту — заливка
+        // отставала от голоса. Теперь длина строки ограничена ещё и тем, сколько её
+        // реально поют: ~0,42с на слог (темп k-pop-куплета). Раньше кончилась строка —
+        // заливка стоит и ждёт, а не тянется.
+        const gap=Math.max(0.1,(i+1<v.lines.length?v.lines[i+1].t:v.end)-ln.t);
         const weights=ln.w.map(x=>Math.max(1,(x.k||'').replace(/\s/g,'').length));
         const sum=weights.reduce((a,b)=>a+b,0);
+        const total=Math.min(gap,Math.max(1,0.42*sum));
         let acc=ln.t;
-        words=ln.w.map((x,j)=>{const t0=acc;acc+=total*weights[j]/sum;return {...x,t0};});
+        // te = когда слово реально допето. Ниже общий код по нему обрежет заливку.
+        words=ln.w.map((x,j)=>{const t0=acc;acc+=total*weights[j]/sum;return {...x,t0,te:acc};});
       }
       return {...ln,words,t:(words.length?words[0].t0:(ln.t||0))};
     });
@@ -2842,7 +2858,9 @@ function renderKaraVerse(){
       // data-txt — та же строка для слоя-заливки (::after), см. .tok-k::after в style.css
       return `<span class="tok" data-i="${idx}"><span class="tok-k" data-txt="${attrEsc(kr)}">${escapeHtml(kr)}</span><span class="tok-r" data-txt="${attrEsc(rm)}">${escapeHtml(rm)}</span><span class="tok-m">${escapeHtml(LT(w,L))}</span></span>`;
     }).join('');
-    return `<div class="kline">${toks}</div>`;
+    // ln.x — строка поётся не по-корейски. Её показываем (иначе экран врёт о том, что
+    // сейчас звучит, и заливка едет), но приглушённо: разбирать в ней нечего.
+    return `<div class="kline${ln.x?' foreign':''}">${toks}</div>`;
   }).join('');
   box.innerHTML=html;
   // Элементы кэшируем: заливка идёт 60 раз в секунду, querySelectorAll в кадре — расточительство.
@@ -2998,16 +3016,21 @@ function renderSongRecap(){
   const K=window._kara;if(!K)return;
   const b=document.getElementById('songBody');if(!b)return;
   const L=getLang();
-  const groups=songWordsByVerse(K.song);
+  // Куплеты без корейских слов в наборе не показываем: с 24.07 разбор держит и строки,
+  // которые поются по-английски, и в песне вроде «PSYCHO» целые секции — рэп на английском.
+  // Пустая карточка «Куплет 12» с надписью «нечего сохранять» — это шум, а не честность.
+  const groups=songWordsByVerse(K.song).filter(g=>g.words.length);
   const have={};lsnVocab().forEach(x=>{have[x.kr]=1});
   let total=0,got=0;
   groups.forEach(g=>g.words.forEach(w=>{total++;if(have[w.kr])got++}));
-  const body=groups.map(g=>{
+  const body=groups.map((g,n)=>{
     const allIn=g.words.length>0&&g.words.every(w=>have[w.kr]);
     const tr=LT(g.tr,L);
+    // Нумеруем подряд (n+1), а обработчикам отдаём настоящий индекс куплета (g.i):
+    // после отсева чисто английских секций сквозная нумерация зияла бы дырами.
     return `<section class="rcp-v">
       <div class="rcp-vh">
-        <span class="rcp-vn">${t('kara_verse')} ${g.i+1}</span>
+        <span class="rcp-vn">${t('kara_verse')} ${n+1}</span>
         <button class="rcp-all" type="button" ${allIn?'disabled':''} onclick="songAddVerse(${g.i})">${allIn?'✓ '+t('song_saved'):t('song_add_verse')}</button>
       </div>
       ${tr?`<p class="rcp-tr">${escapeHtml(tr)}</p>`:''}
@@ -3990,6 +4013,9 @@ const T={
     lsn_map_l0:"new", lsn_map_l1:"learning", lsn_map_l2:"known", lsn_map_l3:"solid",
     lsn_map_kv:"vowels", lsn_map_kc:"consonants", lsn_map_kr:"rule",
     lsn_map_sum:(n,v,c)=>`${n} letters in the alphabet — ${v} vowels and ${c} consonants, plus the batchim rule`,
+    // Тап по согласной играет слог, а не название буквы (см. lib/tts-ko.js): человеку
+    // надо сказать, почему звучит «га», когда на плитке написано «g».
+    lsn_map_say:"🔊 Tap a letter to hear it. A consonant can't be said on its own — it sounds inside a syllable: ㄱ → 가 “ga”.",
     lsn_map_none:"The alphabet is still loading. Reopen this screen.",
     lsn_sec_of:(nm,i,n)=>`Sector "${nm}" · ${i} of ${n} on the Hangul map →`,
     lsn_q_read:ch=>`How is ${ch} read?`, lsn_q_mean:w=>`What does ${w} mean?`, lsn_q_which:r=>`Which letter is "${r}"?`, lsn_q_how:m=>`How do you say "${m}"?`,
@@ -4103,6 +4129,7 @@ const T={
     // Формулировка без согласования с числом: «21 гласная», «22 гласных» —
     // подбирать окончание под каждое число незачем, двоеточие снимает вопрос.
     lsn_map_sum:(n,v,c)=>`${n} букв алфавита: гласных — ${v}, согласных — ${c}, плюс правило патчхима`,
+    lsn_map_say:"🔊 Нажми на букву — услышишь её. Согласную одну произнести нельзя, она звучит внутри слога: ㄱ → 가 «га».",
     lsn_map_none:"Алфавит ещё грузится. Открой экран заново.",
     lsn_sec_of:(nm,i,n)=>`Сектор «${nm}» · ${i} из ${n} на карте хангыля →`,
     lsn_q_read:ch=>`Как читается ${ch}?`, lsn_q_mean:w=>`Что значит ${w}?`, lsn_q_which:r=>`Где буква «${r}»?`, lsn_q_how:m=>`Как будет «${m}»?`,

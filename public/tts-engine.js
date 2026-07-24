@@ -33,7 +33,17 @@
   }
 
   var cur = null;            // текущий Audio
-  var API_TIMEOUT = 1000;    // по контракту: дольше секунды сеть не ждём, уходим в фолбэк
+  /* Было 1000мс. Синтез на сервере занимает 2-6 секунд, значит секундный лимит
+     ГАРАНТИРОВАЛ провал: всё, чего нет в кэше, доставалось системному голосу, а он на
+     Windows/Android читает хангыль чужим языком — отсюда «слова не озвучиваются» и
+     «говорит на японском». Ждём столько, сколько синтез реально длится; кнопка на это
+     время помечена .busy, а системный голос остаётся последним рубежом, а не первым. */
+  var API_TIMEOUT = 6000;
+  /* Одиночная чамо. Её озвучка сменилась (было НАЗВАНИЕ буквы, стал ЗВУК), а ключ кэша
+     считается от того же символа — без метки браузер вечно играл бы старый файл.
+     Метка ДОЛЖНА совпадать с JAMO_CACHE_TAG в lib/tts-ko.js. */
+  var JAMO = /^[ㄱ-ㅎㅏ-ㅣ]$/;
+  var JAMO_TAG = "-s1";
 
   window.speakKoStop = function () {
     try { if (cur) { cur.pause(); cur.currentTime = 0; } } catch (e) {}
@@ -82,14 +92,16 @@
     if (!txt) return Promise.resolve("fail");
     window.speakKoStop();
 
-    var key = opts.key || ttsKey(txt) + (opts.slow ? "-slow" : "");
+    var base = ttsKey(txt) + (JAMO.test(txt) ? JAMO_TAG : "");
+    var key = opts.key || base + (opts.slow ? "-slow" : "");
 
     return loadManifest().then(function (m) {
       var fromManifest = m && m[key];
       var candidates = [];
       if (fromManifest) candidates.push(fromManifest);
+      if (opts.slow && m && m[base]) candidates.push(m[base]); // нет медленной версии — играем обычную
       candidates.push("/tts/" + key + ".mp3");
-      if (opts.slow) candidates.push("/tts/" + ttsKey(txt) + ".mp3"); // нет slow-версии — играем обычную
+      if (opts.slow) candidates.push("/tts/" + base + ".mp3");
 
       return candidates.reduce(function (chain, url) {
         return chain.catch(function () { return play(url).then(function () { return "cache"; }); });
