@@ -119,13 +119,15 @@ async function annotate(verseGroups, vBase = 0) {
   if (!key) throw new Error("FAL_KEY не задан");
   const system =
     "You are a Korean lyrics annotator for a language-learning app. Output ONLY valid minified JSON, no prose, no markdown fences.";
-  // Строки без хангыля идут в промпт как КОНТЕКСТ (модель должна понимать куплет целиком),
-  // но объекта в ответе на них не ждём — разбирать в них нечего.
+  // Не-корейские строки (в k-pop это половина — английские) тоже переводим: фанат хочет
+  // понимать и их. Для них возвращаем ТОЛЬКО перевод строки (tr), без пословного разбора —
+  // корейской грамматики там нет. Раньше их слали лишь как контекст и объекта не ждали.
   const listing = verseGroups
-    .map((g, v) => g.map((l) => `V${v + vBase} L${l.i} ${l.kr}${l.ko ? "" : "   <- not Korean: context only, DO NOT return an object for this line"}`).join("\n"))
+    .map((g, v) => g.map((l) => `V${v + vBase} L${l.i} ${l.kr}${l.ko ? "" : "   <- not Korean (English etc): translate the line, no word breakdown"}`).join("\n"))
     .join("\n");
   const vNums = verseGroups.map((_, v) => v + vBase);
   const koLines = verseGroups.flatMap((g) => g.filter((l) => l.ko).map((l) => l.i));
+  const nonKoLines = verseGroups.flatMap((g) => g.filter((l) => !l.ko).map((l) => l.i));
   const prompt =
     `Korean song, already grouped into verses. Each row is "V<verse> L<line> <lyrics>":\n` +
     listing +
@@ -134,7 +136,8 @@ async function annotate(verseGroups, vBase = 0) {
     `"verses":[{"v":0,"tr":{"ru":"","en":""},"lit":{"ru":"","en":""},"why":{"ru":"","en":""}}]}\n\n` +
     TRANSCRIPTION_RULES +
     `\n\nOther rules:\n` +
-    `- "lines": one object per KOREAN input line — these and only these L numbers: ${koLines.join(", ")}. "i" = the L number from the input.\n` +
+    `- "lines": one object per SUNG line. Korean lines (L numbers: ${koLines.join(", ") || "none"}) get the FULL object with "w". Non-Korean lines (L numbers: ${nonKoLines.join(", ") || "none"}) get ONLY {"i","tr"} — no "w", no "c". "i" = the L number from the input.\n` +
+    `- For a non-Korean (English) line: tr.ru = a natural Russian translation of that line; tr.en = the original English line unchanged. Do NOT break it into words.\n` +
     `- If the SAME lyrics line appears again later (chorus), you may return it once — we reuse that breakdown for every repeat.\n` +
     `- lines[].tr = what THAT ONE LINE actually means in natural Russian/English. Not a word-for-word chain — a sentence a native speaker would say. It is shown under the lyrics and lights up word by word while the line is sung, so keep it one short sentence.\n` +
     `- lines[].c = OPTIONAL, only for lines where the meaning is NOT the sum of the words: idiom, fixed expression, culture/film reference, grammar tail that carries feeling. 1-2 sentences: word A alone means X, word B alone means Y, together they mean Z. Omit the field entirely on ordinary lines — do not pad.\n` +
@@ -382,7 +385,9 @@ async function handleBuild(req, res) {
       };
     }).filter((x) => x.k);
     const c = a.c && (a.c.ru || a.c.en) ? a.c : null;
-    const o = { t: l.t, kr: l.kr, tr: (l.ko && a.tr) || { ru: "", en: "" }, c, w: w.length ? w : [{ k: l.kr, r: "", rr: "", ru: "", en: "" }] };
+    // Перевод строки берём и для корейских, и для английских (у английских — только он,
+    // без пословного разбора). Раньше стоял гейт l.ko, и английские строки шли без перевода.
+    const o = { t: l.t, kr: l.kr, tr: (a.tr && (a.tr.ru || a.tr.en)) ? a.tr : { ru: "", en: "" }, c, w: w.length ? w : [{ k: l.kr, r: "", rr: "", ru: "", en: "" }] };
     if (!l.ko) o.x = 1; // «строка не на корейском» — фронт рисует её приглушённо и не тащит слова в тетрадь
     return o;
   });

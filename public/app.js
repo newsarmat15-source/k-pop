@@ -3012,6 +3012,9 @@ function renderKaraVerse(){
 // Смысл ОДНОЙ строки — заливается пословно синхронно с пением (см. updateKaraSense).
 // 🔗 рядом — почему именно такая компоновка слов даёт такой смысл.
 function karaSenseHtml(K,ln,li,L){
+  // Английскую строку не переводим для англоязычного интерфейса — это было бы дублирование
+  // строки самой собой. Для русского и прочих перевод под ней нужен.
+  if(ln.x&&(L||getLang())==='en')return '';
   const txt=LT(ln.s,L);if(!txt)return '';
   const combo=LT(ln.c,L);
   const co=K.comboOpen===li;
