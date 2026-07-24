@@ -54,6 +54,8 @@ async function main() {
     // (기역). Ключ считается от того же символа, поэтому без метки новый файл лёг бы
     // поверх старого только с --force, а браузеры продолжили бы играть закэшированный.
     const key = ttsKey(it.text) + (isJamo(it.text) ? JAMO_CACHE_TAG : "") + (it.slow ? "-slow" : "");
+    // Живое аудио носителя (scripts/tts-native.mjs) главнее TTS: не перетираем и не платим.
+    if (manifest[key] && String(manifest[key]).startsWith("/tts/native/")) { skipped++; continue; }
     // расширение — по факту, а не по вере: Inworld отдаёт wav, MiniMax mp3.
     // Отдавать wav под именем .mp3 нельзя, Safari на этом спотыкается.
     const already = (await exists(path.join(DIR, `${key}.mp3`))) ? "mp3"
