@@ -184,13 +184,26 @@ function toast(msg){
    остаются за регистрацией.
    Разметка строки — те же .kline/.tok/.tok-k/.tok-r/.tok-m и .ksl/.ksw, что в
    настоящем разборе: демо не может разойтись с продуктом, потому что это он и есть.
-   Клип не обязателен: если YouTube не завёлся (запрет встраивания, блокировка
-   автоплея на iOS, нет сети) — куплет идёт по собственным часам, молча, но
-   полностью, а пустой плеер убирается с экрана. Демо не может не состояться. */
+   ЗВУК ВИТРИНЫ — СВОЙ ФАЙЛ, НЕ YOUTUBE (правка 24.07).
+   Раньше витрина поднимала плеер YouTube, и это давало тишину чаще, чем звук:
+   встраивание может быть запрещено, автоплей на iOS блокируется, скрипт грузится
+   1-3 секунды. Демо уходило в молчаливый запасной режим, и первое впечатление
+   от продукта было немым. Теперь играет <audio> с локальным отрывком: один тап
+   пользователя — и звук стартует мгновенно и всегда, без сети до YouTube.
+   Отрывок ровно на длину куплета (19с), лежит в public/audio/.
+   ЮРИДИЧЕСКОЕ: это чужая фонограмма, размещённая у нас, а не встроенная. Решение
+   Сармата от 24.07, риск назван и принят. Сделано так, чтобы снос стоил одно
+   движение: удалить файл и обнулить LP_AUDIO — витрина сама уйдёт на свои часы.
+   Внутри Гримёрки песни по-прежнему играют с YouTube: там их заказывает сам
+   пользователь, и хранить мы ничего не хотим.
+   Звук не обязателен: если файл не отдался или кодек не поддержан — куплет идёт
+   по собственным часам, молча, но полностью. Демо не может не состояться. */
 const LP_SONG='spring_day';   // единственный разбор, открытый без аккаунта
+const LP_AUDIO='/audio/spring_day_demo.m4a';  // пусто — витрина работает молча
+const LP_AUDIO_T0=16.63;      // время дорожки альбома в нулевой секунде отрывка
 const LP_PRE=1.0;             // сколько секунд клипа даём до первого слова
-const LP_WAIT=2500;           // плеер вообще не появился — идём без клипа
-const LP_WAIT_MAX=5500;       // плеер грузится — ждём, но не дольше этого
+const LP_WAIT=2500;           // звук вообще не пошёл — идём молча
+const LP_WAIT_MAX=5500;       // звук грузится — ждём, но не дольше этого
 function lpNow(){return (window.performance&&performance.now)?performance.now():Date.now()}
 function lpSongObj(){
   const all=(window.SONGS||[]);
@@ -256,14 +269,10 @@ function renderLanding(){
     return;
   }
   set('lpSub',t('lp_sub')(D.song.title,D.song.artist));
-  window._lp={D,i:-1,playing:false,done:false,raf:null,iv:null,player:null,master:null,run:true,t0:0,wall:0};
-  // API ютуба тянем заранее, а не по тапу: холодная загрузка скрипта — это 1-3 секунды,
-  // и без прогрева демо всегда уходило в тишину, не дождавшись плеера. Ничего не играет
-  // и не создаётся — только скрипт.
-  try{if(typeof loadYT==='function')loadYT(function(){})}catch(e){}
+  window._lp={D,i:-1,playing:false,done:false,raf:null,iv:null,audio:null,master:null,run:true,t0:0,wall:0};
   host.innerHTML=`
     <div class="lp-src">${escapeHtml(D.song.title)} · ${escapeHtml(D.song.artist)}</div>
-    <div class="lp-vid" id="lpVidBox" style="display:none"><div id="lpYt"></div></div>
+    ${LP_AUDIO?`<audio id="lpAudio" preload="auto" playsinline src="${LP_AUDIO}"></audio>`:''}
     <div class="lp-stage" id="lpStage">${lpLineHtml(D.lines[0])}</div>
     <div class="lp-prog"><i id="lpProg"></i></div>
     <div class="lp-ctrl" id="lpCtrl">
@@ -286,89 +295,66 @@ function lpStop(){
   if(S.raf){cancelAnimationFrame(S.raf);S.raf=null}
   if(S.iv){clearInterval(S.iv);S.iv=null}
   if(S.wait){clearInterval(S.wait);S.wait=null}
-  try{S.player&&S.player.destroy&&S.player.destroy()}catch(e){}
-  S.player=null;S.playing=false;
+  try{if(S.audio){S.audio.pause();S.audio.currentTime=0}}catch(e){}
+  S.audio=null;S.playing=false;
 }
 function lpPlay(){
   const S=window._lp;if(!S||S.playing)return;
   S.playing=true;S.done=false;S.i=-1;S.master=null;S.run=true;
   const ctrl=document.getElementById('lpCtrl');
   if(ctrl)ctrl.innerHTML=`<div class="lp-wait" id="lpWait">${t('lp_wait')}</div>`;
-  lpStartVideo();
+  lpStartAudio();
 }
-function lpStartVideo(){
+// Звук стартуем СИНХРОННО внутри обработчика тапа: play() из таймера или из
+// колбэка браузер считает автоплеем и глушит. Отсюда и порядок — сначала play(),
+// и только потом всё остальное.
+function lpStartAudio(){
   const S=window._lp;if(!S)return;
-  const box=document.getElementById('lpVidBox');
-  const yt=S.D.song.ytId;
-  if(!yt||!box||typeof loadYT!=='function'||!window.requestAnimationFrame){lpGo(false);return}
-  box.style.display='';
-  box.innerHTML='<div id="lpYt"></div>';
+  const el=document.getElementById('lpAudio');
+  if(!LP_AUDIO||!el||!window.requestAnimationFrame){lpGo(false);return}
+  S.audio=el;
   let settled=false;
-  const stopWatch=()=>{if(S.wait){clearInterval(S.wait);S.wait=null}};
-  const done=ok=>{if(settled)return;settled=true;stopWatch();lpGo(!!ok)};
+  const done=ok=>{if(settled)return;settled=true;if(S.wait){clearInterval(S.wait);S.wait=null}lpGo(!!ok)};
+  el.onerror=()=>done(false);
   const t0=lpNow();
-  // Ждём клип по состоянию плеера, а не по одному таймеру. Замер на живом Chrome
-  // (23.07): объект плеера появляется через 0.6с, CUED на 1.8с, буферизация до
-  // 3.8с, PLAYING на 4.0с — одного короткого таймаута тут мало, он всегда рубил
-  // звук. Поэтому: пока плеер жив (буферизует/перематывает) — ждём до LP_WAIT_MAX;
-  // если объекта плеера так и нет — уходим в тишину через LP_WAIT; если плеер
-  // застрял в CUED (автоплей запрещён системой, типичный iOS) — не ждём вовсе,
-  // это не «медленно», это «никогда».
-  let cuedAt=0;
+  // Ждём не «загрузки», а реально пошедшего времени: у отрывка в 300 КБ это доли
+  // секунды, но на слабой сети готовность приходит позже, чем событие play.
   S.wait=setInterval(()=>{
     if(settled)return;
-    const el=lpNow()-t0;
-    let has=false,st=-9;
-    try{has=!!(S.player&&S.player.getPlayerState)}catch(e){}
-    if(has)try{st=S.player.getPlayerState()}catch(e){}
-    if(st===1){done(true);return}
-    if(st===5){
-      if(!cuedAt)cuedAt=lpNow();
-      else if(lpNow()-cuedAt>1500){done(false);return}   // автоплей заблокирован
-    }else cuedAt=0;
-    if(!S.player&&el>=LP_WAIT){done(false);return}
-    if(el>=LP_WAIT_MAX)done(false);
-  },200);
-  const startAt=Math.max(0,Math.floor(S.D.start+S.D.off-LP_PRE));
+    if(el.currentTime>0.05&&!el.paused){done(true);return}
+    if(lpNow()-t0>=LP_WAIT&&el.paused){done(false);return}   // тап не дал звука
+    if(lpNow()-t0>=LP_WAIT_MAX)done(!el.paused);
+  },100);
   try{
-    loadYT(()=>{
-      if(window._lp!==S||!S.playing||settled)return;
-      try{
-        S.player=new YT.Player('lpYt',{videoId:yt,
-          playerVars:{playsinline:1,rel:0,modestbranding:1,start:startAt,origin:location.origin},
-          events:{
-            onReady:e=>{try{e.target.playVideo()}catch(err){}},
-            onError:()=>done(false),
-            onStateChange:e=>{if(e&&e.data===1)done(true)}
-          }});
-      }catch(err){done(false)}
-    });
-  }catch(err){done(false)}
+    el.currentTime=0;
+    const p=el.play();
+    if(p&&p.catch)p.catch(()=>done(false));
+  }catch(e){done(false)}
 }
-// Часы куплета. Ведёт клип, если он реально играет (тогда заливка совпадает со
-// звуком), иначе — собственный отсчёт. Опрос плеера редкий, между опросами время
-// доигрывается по стенным часам: заливка идёт на частоте экрана, а не рывками.
-function lpGo(withVideo){
+// Часы куплета. Ведёт звук, если он реально идёт (тогда заливка совпадает со
+// слышимым), иначе — собственный отсчёт. Опрос дорожки редкий, между опросами
+// время доигрывается по стенным часам: заливка идёт на частоте экрана, не рывками.
+function lpGo(withAudio){
   const S=window._lp;if(!S||!S.playing)return;
-  if(withVideo){
-    S.master='yt';
+  if(withAudio){
+    S.master='audio';
     lpSync();
     if(!S.iv)S.iv=setInterval(lpSync,200);
   }else{
     S.master='solo';
-    const box=document.getElementById('lpVidBox');if(box){box.style.display='none';box.innerHTML='<div id="lpYt"></div>'}
-    try{S.player&&S.player.destroy&&S.player.destroy()}catch(e){}
-    S.player=null;
+    try{if(S.audio)S.audio.pause()}catch(e){}
+    S.audio=null;
     S.t0=S.D.start-0.6;S.wall=lpNow();S.run=true;
   }
   const w=document.getElementById('lpWait');if(w)w.textContent=t('lp_sing');
   if(!S.raf)S.raf=requestAnimationFrame(lpFrame);
 }
+// Время отрывка → время дорожки альбома, в котором посчитаны все тайминги строк.
 function lpSync(){
-  const S=window._lp;if(!S||S.master!=='yt'||!S.player||!S.player.getCurrentTime)return;
-  let ct=0,st=1;
-  try{ct=S.player.getCurrentTime()||0;st=S.player.getPlayerState?S.player.getPlayerState():1}catch(e){}
-  S.t0=ct-S.D.off;S.wall=lpNow();S.run=(st===1);
+  const S=window._lp;if(!S||S.master!=='audio'||!S.audio)return;
+  let ct=0,playing=true;
+  try{ct=S.audio.currentTime||0;playing=!S.audio.paused&&!S.audio.ended}catch(e){}
+  S.t0=ct+LP_AUDIO_T0;S.wall=lpNow();S.run=playing;
 }
 function lpTime(){
   const S=window._lp;if(!S)return 0;
@@ -428,9 +414,8 @@ function lpFinish(){
   if(S.raf){cancelAnimationFrame(S.raf);S.raf=null}
   if(S.iv){clearInterval(S.iv);S.iv=null}
   if(S.wait){clearInterval(S.wait);S.wait=null}
-  try{S.player&&S.player.pauseVideo&&S.player.pauseVideo()}catch(e){}
-  try{S.player&&S.player.destroy&&S.player.destroy()}catch(e){}
-  S.player=null;
+  try{if(S.audio)S.audio.pause()}catch(e){}
+  S.audio=null;
   const host=document.getElementById('lpDemo');if(!host)return;
   const words=lpWords();
   host.innerHTML=`
@@ -1547,6 +1532,7 @@ function openHangulMap(){
   const nC=secs.filter(s=>s.kind==='c').reduce((n,s)=>n+s.letters.length,0);
   document.getElementById('lessonBody').innerHTML=
     `<div class="hm-sum">${t('lsn_map_sum')(nV+nC,nV,nC)}</div>
+     <div class="hm-say">${t('lsn_map_say')}</div>
      <div class="hm-legend"><span class="hm-dot t0"></span>${t('lsn_map_l0')}
       <span class="hm-dot t1"></span>${t('lsn_map_l1')}
       <span class="hm-dot t2"></span>${t('lsn_map_l2')}
@@ -2135,8 +2121,11 @@ function renderWorkbook(){
       <button class="${dir==='nat'?'on':''}" onclick="wbSetDir('nat')">${t('wb_dir_b')}</button>
     </div>
     <div class="wb-add">
-      <input id="wbKr" placeholder="한국어" maxlength="40">
-      <input id="wbMean" placeholder="${t('wb_mean_ph')}" maxlength="60">
+      ${dir==='kr'
+        ? `<input id="wbKr" placeholder="한국어" maxlength="40" autocomplete="off">
+           <input id="wbMean" placeholder="${t('wb_mean_ph')}" maxlength="60" autocomplete="off">`
+        : `<input id="wbMean" placeholder="${t('wb_mean_ph')}" maxlength="60" autocomplete="off">
+           <input id="wbKr" placeholder="한국어" maxlength="40" autocomplete="off">`}
       <button class="btn accent wb-addbtn" onclick="wbAddWord()">+</button>
     </div>
     <div class="wb-hint">${isSlang?t('wb_hint_slang'):t('wb_hint_words')}</div>
@@ -2233,11 +2222,14 @@ function renderWbReview(){
     renderWbBuild(v,lineWords);
     return;
   }
-  // Направление задаёт не тумблер, а уровень слова: сперва узнавание (кор → родной),
-  // с третьего уровня — воспроизведение (родной → кор). Это то же восхождение,
-  // что Quizlet ведёт внутри Learn от выбора варианта к письменному ответу
-  // [help.quizlet.com, «Studying with Learn»], и то, чего нет в плоском списке слов.
-  const prod=st.l>=2;
+  // Направление держит ТУМБЛЕР — тот самый «한국어 → RU / RU → 한국어» над списком.
+  // До 24.07 он менял только вид списка, а спрашивало всегда по уровню слова, и на
+  // проверке это выглядело как «переключатель не работает в принципе». Подпись обязана
+  // означать ровно то, что написано: выбрал «RU → 한국어» — спрашивают с русского.
+  // Восхождение узнавание→воспроизведение при этом не потеряно: слово, доросшее до
+  // 3-го уровня, идёт в сборку строки целиком (renderWbBuild выше) — там отвечать
+  // приходится по-корейски в любом направлении.
+  const prod=wbDir()==='nat';
   const q=prod?mean:v.kr, a=prod?v.kr:mean;
   const pct=Math.round(Math.min(R.i/R.total,1)*100);
   body.innerHTML=`
@@ -2576,9 +2568,12 @@ function songWordsByVerse(song){
       const lineW=(ln.w||[]).map(x=>((x&&x.k)||'').trim()).filter(Boolean);
       const line=lineW.join(' ');
       const lineS=ln.s||null;
+      // Строки без хангыля (в k-pop их половина) теперь тоже есть в разборе — они держат
+      // тайминг. Но в тетрадь идёт только корейское: учить «Yeah yeah yeah» незачем.
+      if(ln.x)return;
       (ln.w||[]).forEach(w=>{
         const kr=((w&&w.k)||'').trim();
-        if(!kr||seen[kr])return;seen[kr]=1;
+        if(!kr||seen[kr]||!/[가-힣]/.test(kr))return;seen[kr]=1;
         words.push({kr,rom:w.r||w.rom||'',rr:w.rr||'',ru:w.ru||'',en:w.en||'',line,lineW,lineS});
       });
     });
@@ -2616,12 +2611,18 @@ function karaBuild(song){
       if(wa){
         words=ln.w.map(x=>({...x,t0:(x.t!=null?x.t:0),te:(x.te!=null?x.te:null)}));
       }else{
-        const end=(i+1<v.lines.length?v.lines[i+1].t:v.end);
-        const total=Math.max(0.1,end-ln.t);
+        // Строку размазывали РОВНО до начала следующей. Если между ними проигрыш или
+        // кусок, который не поётся, последние слова ползли через всю пустоту — заливка
+        // отставала от голоса. Теперь длина строки ограничена ещё и тем, сколько её
+        // реально поют: ~0,42с на слог (темп k-pop-куплета). Раньше кончилась строка —
+        // заливка стоит и ждёт, а не тянется.
+        const gap=Math.max(0.1,(i+1<v.lines.length?v.lines[i+1].t:v.end)-ln.t);
         const weights=ln.w.map(x=>Math.max(1,(x.k||'').replace(/\s/g,'').length));
         const sum=weights.reduce((a,b)=>a+b,0);
+        const total=Math.min(gap,Math.max(1,0.42*sum));
         let acc=ln.t;
-        words=ln.w.map((x,j)=>{const t0=acc;acc+=total*weights[j]/sum;return {...x,t0};});
+        // te = когда слово реально допето. Ниже общий код по нему обрежет заливку.
+        words=ln.w.map((x,j)=>{const t0=acc;acc+=total*weights[j]/sum;return {...x,t0,te:acc};});
       }
       return {...ln,words,t:(words.length?words[0].t0:(ln.t||0))};
     });
@@ -2860,7 +2861,9 @@ function renderKaraVerse(){
       // data-txt — та же строка для слоя-заливки (::after), см. .tok-k::after в style.css
       return `<span class="tok" data-i="${idx}"><span class="tok-k" data-txt="${attrEsc(kr)}">${escapeHtml(kr)}</span><span class="tok-r" data-txt="${attrEsc(rm)}">${escapeHtml(rm)}</span><span class="tok-m">${escapeHtml(LT(w,L))}</span></span>`;
     }).join('');
-    return `<div class="kgrp" data-li="${li}"><div class="kline">${toks}</div>${karaSenseHtml(K,ln,li,L)}</div>`;
+    // ln.x — строка поётся не по-корейски. Её показываем (иначе экран врёт о том, что
+    // сейчас звучит, и заливка едет), но приглушённо: разбирать в ней нечего.
+    return `<div class="kgrp${ln.x?' foreign':''}" data-li="${li}"><div class="kline">${toks}</div>${karaSenseHtml(K,ln,li,L)}</div>`;
   }).join('');
   box.innerHTML=html;
   // Элементы кэшируем: заливка идёт 60 раз в секунду, querySelectorAll в кадре — расточительство.
@@ -4012,6 +4015,9 @@ const T={
     lsn_map_l0:"new", lsn_map_l1:"learning", lsn_map_l2:"known", lsn_map_l3:"solid",
     lsn_map_kv:"vowels", lsn_map_kc:"consonants", lsn_map_kr:"rule",
     lsn_map_sum:(n,v,c)=>`${n} letters in the alphabet — ${v} vowels and ${c} consonants, plus the batchim rule`,
+    // Тап по согласной играет слог, а не название буквы (см. lib/tts-ko.js): человеку
+    // надо сказать, почему звучит «га», когда на плитке написано «g».
+    lsn_map_say:"🔊 Tap a letter to hear it. A consonant can't be said on its own — it sounds inside a syllable: ㄱ → 가 “ga”.",
     lsn_map_none:"The alphabet is still loading. Reopen this screen.",
     lsn_sec_of:(nm,i,n)=>`Sector "${nm}" · ${i} of ${n} on the Hangul map →`,
     lsn_q_read:ch=>`How is ${ch} read?`, lsn_q_mean:w=>`What does ${w} mean?`, lsn_q_which:r=>`Which letter is "${r}"?`, lsn_q_how:m=>`How do you say "${m}"?`,
@@ -4125,6 +4131,7 @@ const T={
     // Формулировка без согласования с числом: «21 гласная», «22 гласных» —
     // подбирать окончание под каждое число незачем, двоеточие снимает вопрос.
     lsn_map_sum:(n,v,c)=>`${n} букв алфавита: гласных — ${v}, согласных — ${c}, плюс правило патчхима`,
+    lsn_map_say:"🔊 Нажми на букву — услышишь её. Согласную одну произнести нельзя, она звучит внутри слога: ㄱ → 가 «га».",
     lsn_map_none:"Алфавит ещё грузится. Открой экран заново.",
     lsn_sec_of:(nm,i,n)=>`Сектор «${nm}» · ${i} из ${n} на карте хангыля →`,
     lsn_q_read:ch=>`Как читается ${ch}?`, lsn_q_mean:w=>`Что значит ${w}?`, lsn_q_which:r=>`Где буква «${r}»?`, lsn_q_how:m=>`Как будет «${m}»?`,
