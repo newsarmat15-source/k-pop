@@ -227,9 +227,15 @@ function clockGet(c){
   const w=lpNow();
   const dt=Math.max(0,(w-c.wall)/1000);c.wall=w;
   const target=c.real+(c.run?(w-c.realWall)/1000:0);
+  // Часы САМИ идут вперёд по стенным часам (v += dt), а проба лишь мягко правит дрейф.
+  // Прежняя версия просто тянула v к target через exp-сглаживание — а это давало
+  // постоянное ОТСТАВАНИЕ примерно на tau: заливка ровно опаздывала за голосом.
+  // Самоход убирает лаг (v движется сам, коррекция только гасит накопленный дрейф),
+  // сглаживание остаётся — рывка на редкой пробе по-прежнему нет.
+  if(c.run)c.v+=dt;
   const err=target-c.v;
   if(err>0.6||err<-0.6){c.v=target;}            // перемотка или большой разрыв — сразу
-  else{c.v+=err*(1-Math.exp(-dt/c.tau));}        // иначе плавно, без рывка на пробе
+  else{c.v+=err*Math.min(1,dt/c.tau);}          // гасим дрейф за ~tau, без запаздывания
   return c.v;
 }
 function lpSongObj(){
@@ -1588,6 +1594,13 @@ function openHangulMap(){
       <span class="hm-dot t2"></span>${t('lsn_map_l2')}
       <span class="hm-dot t3"></span>${t('lsn_map_l3')}</div>${sectors||`<div class="hm-empty">${t('lsn_map_none')}</div>`}`;
   document.getElementById('lessonBody').scrollTop=0;
+  // Прогреваем озвучку всех букв карты, чтобы тап играл мгновенно, а не тянул файл
+  // по 2 секунды при каждом нажатии (жалоба Сармата 24.07).
+  try{
+    const chars=[];
+    secs.forEach(s=>{if(!s.rule&&s.letters)s.letters.forEach(l=>{if(l.char)chars.push(l.char)})});
+    if(window.speakKoPrefetch&&chars.length)window.speakKoPrefetch(chars);
+  }catch(e){}
 }
 
 /* ===================== ПЕРВАЯ МИНУТА: ТВОЁ ИМЯ ХАНГЫЛЕМ =====================

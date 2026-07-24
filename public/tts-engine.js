@@ -51,18 +51,57 @@
     try { if (window.speechSynthesis) window.speechSynthesis.cancel(); } catch (e) {}
   };
 
-  /* играет url; резолвится в момент НАЧАЛА воспроизведения */
+  /* Прогретые аудио: url -> HTMLAudioElement, уже скачанный и раскодированный.
+     Без этого КАЖДЫЙ тап по букве тянул .wav заново (даже при попадании в кэш это
+     около 2 секунд ожидания — замерено на проде). С прогревом повторный тап играет
+     мгновенно: файл уже в элементе, только currentTime=0 и play(). */
+  var warm = {};
+  function warmAudio(url) {
+    if (warm[url]) return warm[url];
+    var a = new Audio();
+    a.preload = "auto";
+    a.src = url;
+    try { a.load(); } catch (e) {}
+    warm[url] = a;
+    return a;
+  }
+  /* Заранее скачивает озвучку для списка текстов (буквы карты хангыля и т.п.),
+     чтобы тап по ним был без задержки. Тянет по одному, не забивая канал разом. */
+  window.speakKoPrefetch = function (texts) {
+    if (!texts) return;
+    if (!Array.isArray(texts)) texts = [texts];
+    loadManifest().then(function (m) {
+      var i = 0;
+      (function next() {
+        if (i >= texts.length) return;
+        var txt = String(texts[i++] == null ? "" : texts[i - 1]).trim();
+        if (txt) {
+          var base = ttsKey(txt) + (JAMO.test(txt) ? JAMO_TAG : "");
+          warmAudio((m && m[base]) || ("/tts/" + base + ".mp3"));
+        }
+        // маленькая пауза между загрузками, чтобы не съесть канал на входе в карту
+        setTimeout(next, 40);
+      })();
+    });
+  };
+
+  /* играет url; резолвится в момент НАЧАЛА воспроизведения. Прогретый элемент
+     переиспользуем — тогда старт мгновенный. */
   function play(url) {
     return new Promise(function (resolve, reject) {
-      var a = new Audio(url);
+      var a = warm[url] || new Audio(url);
       var settled = false;
-      a.addEventListener("playing", function () { if (!settled) { settled = true; resolve(); } });
-      a.addEventListener("error", function () { if (!settled) { settled = true; reject(new Error("audio error")); } });
+      function onPlaying() { if (!settled) { settled = true; cleanup(); resolve(); } }
+      function onError() { if (!settled) { settled = true; cleanup(); reject(new Error("audio error")); } }
+      function cleanup() { a.removeEventListener("playing", onPlaying); a.removeEventListener("error", onError); }
+      a.addEventListener("playing", onPlaying);
+      a.addEventListener("error", onError);
       cur = a;
+      try { a.currentTime = 0; } catch (e) {}
       var p = a.play();
-      if (p && p.catch) p.catch(function (e) { if (!settled) { settled = true; reject(e); } });
+      if (p && p.catch) p.catch(function (e) { if (!settled) { settled = true; cleanup(); reject(e); } });
       // страховка: если 'playing' не пришёл за 2.5с — считаем провалом
-      setTimeout(function () { if (!settled) { settled = true; reject(new Error("play timeout")); } }, 2500);
+      setTimeout(function () { if (!settled) { settled = true; cleanup(); reject(new Error("play timeout")); } }, 2500);
     });
   }
 
