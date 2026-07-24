@@ -1153,6 +1153,7 @@ async function openChat(prefill,returnTo){
   window._chatReturn=returnTo||null;
   navOv('chat');
   const ov=document.getElementById('chatOv');ovSolo('chatOv');ov.classList.add('show');
+  relayMount();                       // полоса «пусть пишет в мессенджер» — см. секцию мессенджеров
   const log=document.getElementById('chatLog');
   chatWaitStop();
   log.innerHTML='<div class="chat-empty">'+t('chat_loading')+'</div>';
@@ -1190,7 +1191,7 @@ async function sendChat(){
     const d=await r.json();
     document.getElementById('chatTyping')?.remove();
     if(!r.ok||d.ok===false){log.insertAdjacentHTML('beforeend','<div class="chat-empty">'+(d.error||t('chat_err'))+'</div>')}
-    else{log.insertAdjacentHTML('beforeend',chatBubble(d.reply));pingStudy()}
+    else{log.insertAdjacentHTML('beforeend',chatBubble(d.reply));pingStudy();relayHot()}
   }catch(e){document.getElementById('chatTyping')?.remove();log.insertAdjacentHTML('beforeend','<div class="chat-empty">'+t('chat_net')+'</div>')}
   chatStatus();
   btn.disabled=false;log.scrollTop=log.scrollHeight;inp.focus();
@@ -3403,17 +3404,25 @@ function closeConnect(){document.getElementById('connectOv').classList.remove('s
 document.getElementById('connectOv').onclick=e=>{if(e.target.id==='connectOv')closeConnect()};
 // Какой мессенджер вести первым — по языку интерфейса (там реально сидит аудитория).
 // Совпадает с langChannel() в lib/reply.js: RU/UK → Telegram, JA/TH/ZH → LINE, иначе Discord.
+// off:true — канал жив в коде, но в интерфейсе не показывается. LINE заблокирован
+// вендором на стороне владельца аккаунта: кнопка вела бы в тупик, а тупик хуже, чем
+// отсутствие кнопки. Разблокируют — снять флаг, остальной код трогать не нужно.
 const CONNECT_CH={
   telegram:{ic:'✈️',name:'Telegram',sub:()=>t('connect_telegram_sub'),go:"connectCode('telegram')"},
-  line:    {ic:'💬',name:'LINE',    sub:()=>t('connect_line_sub'),    go:"connectCode('line')"},
+  line:    {ic:'💬',name:'LINE',    sub:()=>t('connect_line_sub'),    go:"connectCode('line')", off:true},
   discord: {ic:'🎮',name:'Discord', sub:()=>t('connect_discord_sub'), go:'connectDiscord()'},
 };
-function primaryChannel(){const l=getLang();if(['ru','uk'].includes(l))return'telegram';if(['ja','th','zh'].includes(l))return'line';return'discord';}
-async function openConnect(){
+function connectShown(){return Object.keys(CONNECT_CH).filter(k=>!CONNECT_CH[k].off)}
+// JA/TH/ZH раньше вели на LINE — то есть в заблокированный канал. Пока он выключен,
+// им, как и всем не-русскоязычным, показываем Discord.
+function primaryChannel(){const l=getLang();if(['ru','uk'].includes(l))return'telegram';return'discord';}
+// pre — канал уже выбран (заход из полосы у чата): модалка открывается сразу в работе,
+// лишний тап по списку не нужен. Без pre — прежнее поведение, список каналов.
+async function openConnect(pre){
   const box=document.getElementById('connectBody');
   const prim=primaryChannel();
   const p=CONNECT_CH[prim];
-  const others=Object.keys(CONNECT_CH).filter(k=>k!==prim);
+  const others=connectShown().filter(k=>k!==prim);
   // Одна крупная кнопка под язык юзара = переезд в 2 касания. Остальные каналы — мелко ниже.
   box.innerHTML=`<div class="onb-title">${t('connect_h')}</div>
     <p class="connect-sub">${t('connect_sub')}</p>
@@ -3427,12 +3436,19 @@ async function openConnect(){
     </div>
     <div id="connectResult"></div>`;
   document.getElementById('connectOv').classList.add('show');
+  // Канал выбран заранее — запускаем привязку сразу. Discord уводит на OAuth целой
+  // страницей, Telegram рисует ссылку/код прямо в этой модалке (она и есть запасная
+  // поверхность, если браузер съест window.open после await).
+  if(pre&&CONNECT_CH[pre]){ if(pre==='discord'){connectDiscord();return} connectCode(pre); }
   // Отметим уже привязанные каналы.
   try{
     const r=await fetch('/api/bot?action=links');const d=await r.json();
+    _links=(d&&d.links)||[];relayPaint();connectLinkPaint();
     if(d.links&&d.links.length){
       const names=d.links.map(l=>l.platform).join(', ');
-      document.getElementById('connectResult').innerHTML=`<div class="connect-done">✓ ${t('connect_active')}: ${names}</div>`;
+      const rb=document.getElementById('connectResult');
+      // Не затираем уже показанный код/ссылку — дописываем статус над ним.
+      if(rb&&!rb.querySelector('.connect-code-box'))rb.innerHTML=`<div class="connect-done">✓ ${t('connect_active')}: ${names}</div>`;
     }
   }catch(e){}
 }
@@ -3466,7 +3482,118 @@ function handleLinkReturn(){
   if(!p)return;
   const map={discord_ok:t('link_ok'),discord_fail:t('link_fail'),discord_expired:t('link_fail'),need_login:t('link_login'),no_idol:t('link_noidol')};
   if(map[p])toast(map[p]);
+  if(p==='discord_ok')linksLoad(true);   // привязка изменилась — кэш сессии протух
   history.replaceState({},'',location.pathname);
+}
+
+/* ---------- ВХОД В МЕССЕНДЖЕР ЖИВЁТ У ЧАТА, А НЕ ПОД КОЛЛЕКЦИЕЙ ----------
+   Кнопка в Гримёрке лежит ниже фотокарточек — на 390px это примерно 1900px вниз.
+   Туда доскроллит только тот, кто уже ищет настройки, то есть почти никто, а переезд
+   в мессенджер — главная точка удержания, а не строчка настроек.
+   Поэтому полоса стоит между шапкой чата и лентой: её видит каждый, кто открыл
+   переписку, и спрашиваем мы ровно тех, кто уже общается. Полоса вне .chat-log,
+   значит новые сообщения её не уносят вверх, и лента (flex:1) честно ужимается.
+   LINE тут не показываем: канал заблокирован вендором, зовущая кнопка в никуда хуже,
+   чем её отсутствие. Каналов ровно два — Telegram и Discord. */
+const RELAY_CH={
+  telegram:{ic:'✈️',name:'Telegram'},
+  discord :{ic:'🎮',name:'Discord'},
+};
+// Главный канал — по языку интерфейса, там физически сидит аудитория.
+// RU/UK/BE/KK → Telegram, всё остальное → Discord. Второй канал остаётся рядом:
+// выбор виден (просьба Сармата), но рекомендация читается размером, а не текстом.
+function relayPrimary(){return ['ru','uk','be','kk'].includes(getLang())?'telegram':'discord'}
+// Привязки кэшируем на сессию: один GET на всё приложение, а не по запросу на каждое
+// открытие чата. Ошибка сети = считаем «не привязано» и зовём — это безопасный дефолт.
+let _links=null,_linksP=null;
+function linksLoad(force){
+  if(force){_links=null;_linksP=null}
+  if(_links)return Promise.resolve(_links);
+  if(_linksP)return _linksP;
+  _linksP=fetch('/api/bot?action=links').then(r=>r.json()).then(d=>{
+    _links=(d&&d.links)||[];_linksP=null;relayPaint();connectLinkPaint();return _links;
+  }).catch(()=>{_linksP=null;return []});
+  return _linksP;
+}
+function linkedNames(){return (_links||[]).map(l=>(RELAY_CH[l.platform]||{name:l.platform}).name)}
+// Привязка происходит ПРЯМО В ПОЛОСЕ, без модалки. Причина техническая и она же
+// продуктовая: в приложении одновременно живёт только один оверлей (ovSolo + наблюдатель
+// ниже по файлу), поэтому открытая модалка ЗАКРЫЛА БЫ чат — человек терял бы переписку
+// ровно в тот момент, когда мы просим его остаться. Ссылка появляется на месте кнопки.
+// Discord — исключение: OAuth уводит страницей целиком, тут оверлеи ни при чём.
+async function relayGo(pf){
+  if(!currentUser){openAuth('signup');return}
+  if(pf==='discord'){connectDiscord();return}
+  const el=document.getElementById('chatRelay');
+  if(!el){openConnect(pf);return}
+  el.className='chat-relay busy';
+  el.innerHTML=`<span class="cr-wait" role="status" aria-label="${t('chat_loading')}"><i></i><i></i><i></i></span>`;
+  try{
+    const r=await fetch('/api/bot?action=link-token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lang:getLang(),platform:pf})});
+    const d=await r.json();
+    if(!r.ok||!d.code){relayPaint();toast(d.error||t('chat_err'));return}
+    // Канал без deep-link (ручной код) в полосу не влезает — там нужны два шага.
+    // Такой канал уводим в прежнюю модалку, она под это и сделана.
+    if(!d.deeplink){relayPaint();openConnect(pf);return}
+    el.className='chat-relay go';
+    el.innerHTML=`<a class="cr-go" href="${d.deeplink}" target="_blank" rel="noopener">${RELAY_CH[pf].ic} ${t('connect_open')}</a>
+      <span class="cr-go-sub">${t('relay_after')}</span>`;
+    // Тап уже был — окно откроется. Если браузер съест window.open после await,
+    // ссылка выше остаётся видимой и рабочей: тупика нет.
+    window.open(d.deeplink,'_blank','noopener');
+  }catch(e){relayPaint();toast(t('chat_net'))}
+}
+function relayHtml(){
+  const linked=linkedNames();
+  // Состояние «подключено» — не вторая просьба, а тихий статус: звать туда, куда уже
+  // сходили, — самый быстрый способ превратить полосу в баннер, который перестают видеть.
+  if(linked.length)return `<span class="cr-ok">✓</span><b class="cr-on-nm">${escapeHtml(linked.join(' · '))}</b><span class="cr-on-sub">${t('relay_on')}</span>`;
+  const pk=relayPrimary(),sk=pk==='telegram'?'discord':'telegram';
+  const p=RELAY_CH[pk],s=RELAY_CH[sk];
+  return `<button class="cr-b prim" onclick="relayGo('${pk}')" aria-label="${t('relay_cta')} — ${p.name}">
+      <span class="cr-e" aria-hidden="true">${p.ic}</span>
+      <span class="cr-t"><b>${t('relay_cta')}</b><small>${p.name}</small></span></button>
+    <button class="cr-b alt" onclick="relayGo('${sk}')" aria-label="${t('relay_cta')} — ${s.name}">
+      <span class="cr-e" aria-hidden="true">${s.ic}</span>
+      <span class="cr-t"><b>${s.name}</b></span></button>`;
+}
+function relayPaint(){
+  const el=document.getElementById('chatRelay');
+  if(!el)return;
+  const linked=linkedNames().length;
+  const hot=el.classList.contains('hot');
+  el.className='chat-relay'+(linked?' done':(hot?' hot':''));
+  el.innerHTML=relayHtml();
+}
+function relayMount(){
+  const box=document.getElementById('chatBox');
+  if(!box||!myIdol)return;                    // без айдола переписки нет — и полосы тоже
+  let el=document.getElementById('chatRelay');
+  if(!el){
+    el=document.createElement('div');
+    el.id='chatRelay';el.className='chat-relay';
+    const head=box.querySelector('.chat-head');
+    head?head.insertAdjacentElement('afterend',el):box.prepend(el);
+  }
+  relayPaint();                                // рисуем сразу, до сети: без пустоты и без скачка
+  linksLoad();                                 // состояние уточнится на месте, вёрстка не прыгает
+}
+// «Напишет первой» — обещание, которое до первого твоего сообщения ещё пустое, а после
+// уже прожито. Поэтому подсветка включается по факту отправки, а не при входе в чат.
+// Меняется только цвет обводки: высота та же, лента не дёргается.
+function relayHot(){
+  const el=document.getElementById('chatRelay');
+  if(el&&!linkedNames().length)el.classList.add('hot');
+}
+// Кнопка в Гримёрке остаётся ровно там, где стояла (структуру кнопок не трогаем),
+// но у привязанного превращается в статус. Красим через querySelector, чтобы не лезть
+// в шаблон кабинета — там сейчас работает ведущая сессия.
+function connectLinkPaint(){
+  const b=document.querySelector('.connect-link');
+  if(!b)return;
+  const linked=linkedNames();
+  b.classList.toggle('done',!!linked.length);
+  b.innerHTML=linked.length?`✓ ${t('connect_active')}: ${escapeHtml(linked.join(' · '))}`:t('connect_link');
 }
 
 let _tourI=0;
@@ -4198,6 +4325,7 @@ const T={
     connect_discord_sub:"one tap, no server needed", connect_line_sub:"Japan · Taiwan · Thailand",
     connect_telegram_sub:"one tap · opens Telegram", connect_other:"or another app",
     connect_active:"Connected", connect_open:"Open Telegram →", connect_step1:"1. Add the Idolingo bot and send it this code:", connect_step2:"2. Done — keep chatting right there. It's the same thread.",
+    relay_cta:"She texts you first", relay_on:"she can text you there", relay_after:"say hi to the bot — same thread",
     link_ok:"Discord connected 🎉 Open a DM with the bot and say hi!", link_fail:"Couldn't connect Discord — try again", link_login:"Log in first", link_noidol:"Get an idol first",
     chat_online:"online", chat_typing:"typing…", chat_ph:"Message…",
     chat_loading:"Loading chat…", chat_first:n=>`${n} is about to text you`, chat_first_sub:"Her first message lands on its own — this screen picks it up. Don't feel like waiting? Just say something.",
@@ -4313,6 +4441,7 @@ const T={
     connect_discord_sub:"одна кнопка, сервер не нужен", connect_line_sub:"Япония · Тайвань · Таиланд",
     connect_telegram_sub:"один тап · откроется Telegram", connect_other:"или другое приложение",
     connect_active:"Подключено", connect_open:"Открыть Telegram →", connect_step1:"1. Добавь бота Idolingo и пришли ему этот код:", connect_step2:"2. Готово — продолжай прямо там. Это тот же тред.",
+    relay_cta:"Напишет первой", relay_on:"она может писать туда", relay_after:"поздоровайся с ботом — это тот же тред",
     link_ok:"Discord подключён 🎉 Открой личку с ботом и напиши ему!", link_fail:"Не удалось подключить Discord — попробуй ещё раз", link_login:"Сначала войди", link_noidol:"Сначала заведи айдола",
     chat_online:"в сети", chat_typing:"печатает…", chat_ph:"Сообщение…",
     chat_loading:"Загружаю переписку…", chat_first:n=>`${n} вот-вот тебе напишет`, chat_first_sub:"Первое сообщение придёт само — экран его подхватит. Не хочешь ждать — просто напиши ей.",
