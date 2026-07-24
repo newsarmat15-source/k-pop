@@ -43,7 +43,7 @@
      считается от того же символа — без метки браузер вечно играл бы старый файл.
      Метка ДОЛЖНА совпадать с JAMO_CACHE_TAG в lib/tts-ko.js. */
   var JAMO = /^[ㄱ-ㅎㅏ-ㅣ]$/;
-  var JAMO_TAG = "-s1";
+  var JAMO_TAG = "-s2";
 
   window.speakKoStop = function () {
     try { if (cur) { cur.pause(); cur.currentTime = 0; } } catch (e) {}
