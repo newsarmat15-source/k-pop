@@ -258,8 +258,13 @@ function syllabify(s) {
  * Заодно отсекаем то, что показывать бессмысленно: практики, фанкамы, реакции и чужие
  * «lyrics»-видео (у нас свой текст на экране — второй поверх клипа только мешает).
  */
-const YT_BAD = /performance|dance practice|practice ver|choreograph|안무|연습|live|fancam|reaction|cover|remix|sped|slowed|teaser|behind|making|spoiler|shorts|hour|loop|color coded|line distribution|karaoke|lyrics/i;
-const YT_GOOD = /official|m\/v|music video|뮤직비디오/i;
+const YT_BAD = /performance|dance practice|practice ver|choreograph|안무|연습|live|concert|fancam|reaction|cover|remix|sped|slowed|teaser|behind|making|spoiler|shorts|hour|loop|color coded|line distribution|karaoke|lyrics|lyric video|audio|오디오|topic|instrumental|inst\.|full album|album ver/i;
+// Настоящий клип помечается «M/V» — отраслевой стандарт k-pop. «official» сам по себе
+// слабый сигнал: «Official Audio» — это статичная картинка со звуком, не видео, и
+// именно её Сармат видел как «просто картинку без видео». Поэтому M/V весит много,
+// а голое «official» — мало.
+const YT_MV = /\bm\/?v\b|뮤직비디오|music video/i;
+const YT_GOOD = /official/i;
 
 function ytCandidates(html) {
   const out = [];
@@ -289,11 +294,14 @@ async function youtubeId(query, duration = 0) {
       let s = 0;
       const d = c.sec && duration ? Math.abs(c.sec - duration) : 999;
       s += d <= 2 ? 6 : d <= 6 ? 4 : d <= 15 ? 1 : -4;
-      if (YT_BAD.test(c.title)) s -= 5;
-      if (YT_GOOD.test(c.title)) s += 2;
+      if (YT_MV.test(c.title)) s += 6;          // настоящий клип — главный приоритет
+      if (YT_GOOD.test(c.title)) s += 1;        // «official» слабо, у аудио оно тоже есть
+      if (YT_BAD.test(c.title)) s -= 6;         // концерт, фанкам, «official audio», текстовик
+      if (c.sec && c.sec < 90) s -= 3;          // короче полутора минут — тизер, не клип
       return s;
     };
-    return cands.slice().sort((a, b) => score(b) - score(a))[0].id;
+    const best = cands.slice().sort((a, b) => score(b) - score(a))[0];
+    return best.id;
   } catch (e) {
     return "";
   }
@@ -405,7 +413,9 @@ async function handleBuild(req, res) {
     return v;
   });
 
-  const ytId = await youtubeId(rec.artistName + " " + rec.trackName + " official", rec.duration);
+  // Ищем именно клип: «M/V» в запросе смещает выдачу к музыкальному видео, а не к
+  // «Official Audio» (картинка со звуком), концертам и текстовикам.
+  const ytId = await youtubeId(rec.artistName + " " + rec.trackName + " M/V", rec.duration);
   const song = {
     id,
     title: rec.trackName,
