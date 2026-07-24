@@ -205,6 +205,33 @@ const LP_PRE=1.0;             // сколько секунд клипа даём
 const LP_WAIT=2500;           // звук вообще не пошёл — идём молча
 const LP_WAIT_MAX=5500;       // звук грузится — ждём, но не дольше этого
 function lpNow(){return (window.performance&&performance.now)?performance.now():Date.now()}
+
+/* СГЛАЖЕННЫЕ ЧАСЫ МЕДИА-ВРЕМЕНИ (ресёрч 24.07, docs/RESEARCH_karaoke_sync.md).
+   И у <audio>, и у YouTube время обновляется редко и рывками: плеер YouTube шлёт
+   currentTime 5-6 раз в секунду [SO 19524742], у audio.currentTime на части браузеров
+   значение стоит по нескольку кадров [Mozilla bug 587465]. Наивная схема «последняя
+   проба плюс стенные часы между пробами» то обгоняет звук, то отстаёт, а на новой
+   пробе прыгает назад — это и есть «то спешит, то опаздывает, всегда по-разному».
+   Здесь виртуальное время каждый кадр МЯГКО подтягивается к реальной пробе, а не
+   прыгает: малый рассинхрон растворяется за несколько кадров, большой разрыв
+   (перемотка) применяется сразу. Единственный правильный клок — звук, экран его
+   догоняет [web.dev «A tale of two clocks»]. */
+function mkClock(tau){return {v:0,real:0,realWall:0,wall:0,run:false,init:false,tau:tau||0.1}}
+function clockSet(c,real,run){
+  const w=lpNow();
+  if(!c.init){c.v=real;c.init=true}
+  c.real=real;c.realWall=w;c.run=!!run;c.wall=w;
+}
+function clockGet(c){
+  if(!c||!c.init)return 0;
+  const w=lpNow();
+  const dt=Math.max(0,(w-c.wall)/1000);c.wall=w;
+  const target=c.real+(c.run?(w-c.realWall)/1000:0);
+  const err=target-c.v;
+  if(err>0.6||err<-0.6){c.v=target;}            // перемотка или большой разрыв — сразу
+  else{c.v+=err*(1-Math.exp(-dt/c.tau));}        // иначе плавно, без рывка на пробе
+  return c.v;
+}
 function lpSongObj(){
   const all=(window.SONGS||[]);
   return all.find(s=>s&&s.id===LP_SONG)||all[0]||null;
@@ -349,8 +376,8 @@ function lpGo(withAudio){
   const S=window._lp;if(!S||!S.playing)return;
   if(withAudio){
     S.master='audio';
+    S.clk=mkClock(0.09);          // звук пробуем каждый кадр в lpFrame, интервал не нужен
     lpSync();
-    if(!S.iv)S.iv=setInterval(lpSync,200);
   }else{
     S.master='solo';
     try{if(S.audio)S.audio.pause()}catch(e){}
@@ -365,10 +392,14 @@ function lpSync(){
   const S=window._lp;if(!S||S.master!=='audio'||!S.audio)return;
   let ct=0,playing=true;
   try{ct=S.audio.currentTime||0;playing=!S.audio.paused&&!S.audio.ended}catch(e){}
-  S.t0=ct+LP_AUDIO_T0;S.wall=lpNow();S.run=playing;
+  // Реальная проба уходит в сглаженные часы, а не в голую экстраполяцию: см. mkClock.
+  if(S.clk)clockSet(S.clk,ct+LP_AUDIO_T0,playing);
+  else{S.t0=ct+LP_AUDIO_T0;S.wall=lpNow();}
+  S.run=playing;   // для детектора простоя в lpFrame
 }
 function lpTime(){
   const S=window._lp;if(!S)return 0;
+  if(S.master==='audio'&&S.clk)return clockGet(S.clk);
   return S.run===false?S.t0:S.t0+(lpNow()-S.wall)/1000;
 }
 function lpRenderLine(i){
@@ -386,6 +417,7 @@ function lpFrame(){
   if(!S||!S.playing){return}
   if(!document.getElementById('lpStage')){lpStop();return}
   S.raf=requestAnimationFrame(lpFrame);
+  if(S.master==='audio'&&S.audio)lpSync();   // пробуем звук каждый кадр — часы его сгладят
   const tm=lpTime(),D=S.D;
   // Гость поставил клип на паузу и не вернулся — это тупик: кнопки «дальше» на
   // экране уже нет. Через 12 секунд простоя показываем итог по прочитанному.
@@ -2884,14 +2916,17 @@ function karaTick(){
   karaWatchdog(K);
   let ct=0,st=1;
   try{ct=K.player.getCurrentTime()||0;st=K.player.getPlayerState?K.player.getPlayerState():1;}catch(e){}
-  K.clock={t:ct-K.off,wall:(window.performance&&performance.now?performance.now():Date.now()),run:st===1};
-  karaApply(K.clock.t);
+  // YouTube отдаёт время 5-6 раз в секунду и ступеньками [SO 19524742]; сглаженные
+  // часы превращают эти ступени в непрерывное движение и убирают прыжок на каждой пробе.
+  if(!K.clk)K.clk=mkClock(0.12);
+  clockSet(K.clk,ct-K.off,st===1);
+  K.clock={t:ct-K.off,run:st===1};   // оставлено для прочих читателей
+  karaApply(clockGet(K.clk));
 }
 function karaNow(K){
+  if(K.clk)return clockGet(K.clk);
   const c=K.clock;if(!c)return 0;
-  if(!c.run)return c.t;
-  const now=(window.performance&&performance.now?performance.now():Date.now());
-  return c.t+(now-c.wall)/1000;
+  return c.t;
 }
 function karaStartRaf(){
   if(window._karaRaf||!window.requestAnimationFrame)return;
