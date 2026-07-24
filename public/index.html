@@ -13,18 +13,35 @@
      и трёх самых разборчивых сочетаниях, где первое — жёлтое на чёрном
      [Ko, Applied Ergonomics vol. 65, ноябрь 2017]. -->
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iIzE1MGYxZSIvPjxnIGZpbGw9IiNmZmU5YTgiPjxyZWN0IHg9IjE0IiB5PSIxNiIgd2lkdGg9IjcyIiBoZWlnaHQ9IjE1Ii8+PHJlY3QgeD0iNzEiIHk9IjE2IiB3aWR0aD0iMTUiIGhlaWdodD0iMzQiLz48cmVjdCB4PSIxNCIgeT0iNDMiIHdpZHRoPSI3MiIgaGVpZ2h0PSIxNSIvPjxyZWN0IHg9IjE0IiB5PSI0MyIgd2lkdGg9IjE1IiBoZWlnaHQ9IjQxIi8+PHJlY3QgeD0iMTQiIHk9IjY5IiB3aWR0aD0iNzIiIGhlaWdodD0iMTUiLz48L2c+PC9zdmc+">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,800;1,500;1,600;1,800&family=Unbounded:wght@300;500;700;900&family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
-<!-- Хангыль. До 23.07 корейские буквы рисовались системным фолбэком (на Windows — Malgun Gothic,
-     на macOS — Apple SD Gothic Neo, на Android — Noto Sans CJK): начертание буквы, которую человек
-     должен запомнить, менялось от устройства к устройству. Это дефект обучения, не оформления.
-     Noto Sans KR — референсное начертание хангыля, полное покрытие (11 172 слога + чамо),
-     лицензия OFL. Только два нужных начертания: 400 (текст) и 700 (плитка буквы .hm-ch).
-     Отдельным запросом, а не в общий css2, чтобы 46 КБ @font-face-таблицы корейских сабсетов
-     не блокировали первый рендер: media=print + onload переводит его в неблокирующий,
-     латиница и кириллица приходят прежним запросом. Сами woff2 качаются по unicode-range —
-     только те сабсеты, чьи слоги реально есть на экране. -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23100B18'/%3E%3Crect x='6' y='13' width='20' height='6' fill='%23F3D9AC'/%3E%3C/svg%3E">
+<!-- ШРИФТ, 24.07. Одна гарнитура на все три письменности продукта — Pretendard Variable
+     (OFL, вариативный 45..920). Раньше их было четыре: Segoe UI на латиницу/кириллицу,
+     Noto Sans KR на хангыль, Playfair на заголовки, Orbitron на подписи — и хангыль
+     визуально не совпадал ни с одной строкой рядом.
+     ЛОВУШКА, проверена замером: динамический сабсет с CDN содержит 92 unicode-range,
+     из них НОЛЬ кириллических. Если подключить только его, весь русский текст молча
+     уезжает в системный шрифт. Поэтому хангыль и CJK идут с CDN, а латиница с кириллицей —
+     своим файлом /fonts/pretendard-lat-cyr.woff2 (153 КБ, вариативный), объявленным
+     в style.css ПОСЛЕ этой ссылки: при пересечении диапазонов побеждает последнее
+     объявление, значит U+0000-024F и U+0400-04FF отдаёт наш файл, всё остальное — CDN. -->
+<link rel="preload" as="font" type="font/woff2" href="/fonts/pretendard-lat-cyr.woff2" crossorigin>
+<link href="https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css" rel="stylesheet">
+<!-- Google Fonts убран целиком 24.07. Было три гарнитуры оттуда: Playfair Display
+     (заголовки), Orbitron (подписи) и Unbounded (знак бренда и крупные числа).
+     Первые две — прямые приметы интерфейса 2021 года и просто четвёртая и пятая
+     гарнитура на экране. Unbounded снят по другой причине: замером на этой машине
+     fonts.googleapis.com отдаёт таймаут за 21 секунду и блокирует событие load,
+     то есть знак бренда зависит от чужого домена, который может не ответить.
+     Знак остаётся тем же леттерингом («Idol» чернилами + плашка «ingo»), но набран
+     Pretendard 900 с широким трекингом — одна гарнитура на весь продукт, ноль
+     сторонних шрифтовых доменов. -->
+<link rel="dns-prefetch" href="https://fonts.googleapis.com">
+<!-- Хангыль-фолбэк. Основное начертание даёт Pretendard; Noto Sans KR остаётся страховкой
+     на случай недоступности CDN. Запрос неблокирующий (media=print + onload), и пока
+     Pretendard рисует хангыль, ни один корейский сабсет Noto не скачивается. -->
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet" media="print" onload="this.media='all';this.onload=null">
 <noscript><link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet"></noscript>
 <link rel="stylesheet" href="/style.css">
@@ -36,6 +53,10 @@
     <button class="navtab" data-view="cabinet-own">Гримёрка</button>
     <button class="navtab" data-view="roster">Айдолы</button>
   </div>
+  <!-- Селектор языка свёрнут в иконку 44x44: развёрнутым он съедал полстроки и ломал
+       шапку на две строки, из-за чего главная кнопка «Понять песню» упиралась в сгиб.
+       Сам <select> лежит поверх иконки прозрачным — родной список ОС открывается
+       по тапу как обычно, а видимым остаётся только глобус. -->
   <div class="lang-wrap">
     <label class="lang-cap" id="langCap" for="langSel">язык обучения</label>
     <select id="langSel" class="lang-sel" onchange="setLang(this.value)" title="Language of your lessons / Язык обучения">
@@ -46,6 +67,7 @@
       <option value="zh">🇨🇳 中文</option>
       <option value="ru">🇷🇺 Русский</option>
     </select>
+    <span class="lang-ico" aria-hidden="true">文A</span>
   </div>
   <div class="auth-area" id="authArea"></div>
 </div></header>

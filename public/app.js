@@ -184,20 +184,37 @@ function toast(msg){
    остаются за регистрацией.
    Разметка строки — те же .kline/.tok/.tok-k/.tok-r/.tok-m и .ksl/.ksw, что в
    настоящем разборе: демо не может разойтись с продуктом, потому что это он и есть.
-   Клип не обязателен: если YouTube не завёлся (запрет встраивания, блокировка
-   автоплея на iOS, нет сети) — куплет идёт по собственным часам, молча, но
-   полностью, а пустой плеер убирается с экрана. Демо не может не состояться. */
+   ЗВУК ВИТРИНЫ — СВОЙ ФАЙЛ, НЕ YOUTUBE (правка 24.07).
+   Раньше витрина поднимала плеер YouTube, и это давало тишину чаще, чем звук:
+   встраивание может быть запрещено, автоплей на iOS блокируется, скрипт грузится
+   1-3 секунды. Демо уходило в молчаливый запасной режим, и первое впечатление
+   от продукта было немым. Теперь играет <audio> с локальным отрывком: один тап
+   пользователя — и звук стартует мгновенно и всегда, без сети до YouTube.
+   Отрывок ровно на длину куплета (19с), лежит в public/audio/.
+   ЮРИДИЧЕСКОЕ: это чужая фонограмма, размещённая у нас, а не встроенная. Решение
+   Сармата от 24.07, риск назван и принят. Сделано так, чтобы снос стоил одно
+   движение: удалить файл и обнулить LP_AUDIO — витрина сама уйдёт на свои часы.
+   Внутри Гримёрки песни по-прежнему играют с YouTube: там их заказывает сам
+   пользователь, и хранить мы ничего не хотим.
+   Звук не обязателен: если файл не отдался или кодек не поддержан — куплет идёт
+   по собственным часам, молча, но полностью. Демо не может не состояться. */
 const LP_SONG='spring_day';   // единственный разбор, открытый без аккаунта
+const LP_AUDIO='/audio/spring_day_demo.m4a';  // пусто — витрина работает молча
+const LP_AUDIO_T0=16.79;      // время дорожки альбома в нулевой секунде отрывка
 const LP_PRE=1.0;             // сколько секунд клипа даём до первого слова
-const LP_WAIT=2500;           // плеер вообще не появился — идём без клипа
-const LP_WAIT_MAX=5500;       // плеер грузится — ждём, но не дольше этого
+const LP_WAIT=2500;           // звук вообще не пошёл — идём молча
+const LP_WAIT_MAX=5500;       // звук грузится — ждём, но не дольше этого
 function lpNow(){return (window.performance&&performance.now)?performance.now():Date.now()}
 function lpSongObj(){
   const all=(window.SONGS||[]);
   return all.find(s=>s&&s.id===LP_SONG)||all[0]||null;
 }
 // Первый куплет с таймингами по словам. У курируемых песен тайминг построчный,
-// поэтому внутри строки слова делим по длине — та же схема, что в karaBuild.
+// ПРАВКА 24.07: если у слова есть собственное время (t) — берём его.
+// Раньше слова внутри строки всегда делились пропорционально длине в буквах, и это
+// давало промах больше секунды: 이렇게 подсвечивалось на 18.78, а поётся на 19.96.
+// Заливка ехала относительно звука, и это первое, что видел гость. Деление по длине
+// осталось только как запасной вариант для строк без пословной разметки.
 function lpBuild(){
   const s=lpSongObj();
   const v=s&&s.verses&&s.verses[0];
@@ -208,12 +225,19 @@ function lpBuild(){
     if(!ws.length)return;
     const end=(i+1<v.lines.length?v.lines[i+1].t:v.end)||(ln.t+4);
     const span=Math.max(0.4,end-ln.t);
+    const exact=ws.every(x=>x.t!=null);
     const wt=ws.map(x=>Math.max(1,String(x.k).replace(/\s/g,'').length));
     const sum=wt.reduce((a,b)=>a+b,0)||1;
     let acc=ln.t;
     const words=ws.map((x,j)=>{
-      const t0=acc;acc+=span*wt[j]/sum;
-      return {k:x.k,r:(L==='ru'&&x.rr)?x.rr:(x.r||x.rom||''),m:LT(x,L),t0,t1:acc,raw:x};
+      let t0,t1;
+      if(exact){
+        t0=x.t;
+        // Конец слова: своё te, иначе начало следующего, у последнего — конец строки.
+        t1=x.te!=null?x.te:(j+1<ws.length?ws[j+1].t:end);
+        if(!(t1>t0))t1=t0+0.3;
+      }else{t0=acc;acc+=span*wt[j]/sum;t1=acc}
+      return {k:x.k,r:(L==='ru'&&x.rr)?x.rr:(x.r||x.rom||''),m:LT(x,L),t0,t1,raw:x};
     });
     lines.push({t0:ln.t,t1:end,words,s:LT(ln.s,L),
       txt:ws.map(x=>x.k).join(' ')});
@@ -256,14 +280,10 @@ function renderLanding(){
     return;
   }
   set('lpSub',t('lp_sub')(D.song.title,D.song.artist));
-  window._lp={D,i:-1,playing:false,done:false,raf:null,iv:null,player:null,master:null,run:true,t0:0,wall:0};
-  // API ютуба тянем заранее, а не по тапу: холодная загрузка скрипта — это 1-3 секунды,
-  // и без прогрева демо всегда уходило в тишину, не дождавшись плеера. Ничего не играет
-  // и не создаётся — только скрипт.
-  try{if(typeof loadYT==='function')loadYT(function(){})}catch(e){}
+  window._lp={D,i:-1,playing:false,done:false,raf:null,iv:null,audio:null,master:null,run:true,t0:0,wall:0};
   host.innerHTML=`
     <div class="lp-src">${escapeHtml(D.song.title)} · ${escapeHtml(D.song.artist)}</div>
-    <div class="lp-vid" id="lpVidBox" style="display:none"><div id="lpYt"></div></div>
+    ${LP_AUDIO?`<audio id="lpAudio" preload="auto" playsinline src="${LP_AUDIO}"></audio>`:''}
     <div class="lp-stage" id="lpStage">${lpLineHtml(D.lines[0])}</div>
     <div class="lp-prog"><i id="lpProg"></i></div>
     <div class="lp-ctrl" id="lpCtrl">
@@ -271,107 +291,81 @@ function renderLanding(){
       <div class="lp-note">${t('lp_note')}</div>
     </div>`;
 }
-/* Язык гость выбирает на самой странице, а не в шапке: в шапке селектор был
-   самым громким элементом первого экрана. Опции берём из того же select'а в
-   шапке — второго списка языков в коде не заводим. */
+/* Правка 24.07: под демо стоял выбор языка интерфейса — то есть самое заметное
+   место после самого товара занимала настройка. Теперь там единственный следующий
+   шаг: завести айдола. Язык вернулся в шапку, но уже иконкой 44x44 (см. .lang-wrap),
+   а не золотым селектором на пол-строки. */
 function lpRenderLang(){
   const box=document.getElementById('lpLang');if(!box)return;
-  const src=document.getElementById('langSel');
-  if(!src){box.innerHTML='';return}
-  const cur=getLang();
-  const opts=[...src.options].map(o=>
-    `<option value="${o.value}"${o.value===cur?' selected':''}>${escapeHtml(o.textContent)}</option>`).join('');
-  box.innerHTML=`<label for="lpLangSel">🌐 ${escapeHtml(t('lp_lang'))}</label>
-    <select id="lpLangSel" onchange="setLang(this.value)">${opts}</select>`;
+  box.innerHTML=`<button class="lp-getidol" type="button" onclick="lpGetIdol()">${escapeHtml(t('lp_cta'))}</button>`;
 }
+// Гостю сначала аккаунт (иначе выбор айдола некуда сохранить), дальше витрина.
+function lpGetIdol(){if(currentUser){showView('roster')}else{openAuth('signup')}}
 function lpStop(){
   const S=window._lp;if(!S)return;
   if(S.raf){cancelAnimationFrame(S.raf);S.raf=null}
   if(S.iv){clearInterval(S.iv);S.iv=null}
   if(S.wait){clearInterval(S.wait);S.wait=null}
-  try{S.player&&S.player.destroy&&S.player.destroy()}catch(e){}
-  S.player=null;S.playing=false;
+  try{if(S.audio){S.audio.pause();S.audio.currentTime=0}}catch(e){}
+  S.audio=null;S.playing=false;
 }
 function lpPlay(){
   const S=window._lp;if(!S||S.playing)return;
   S.playing=true;S.done=false;S.i=-1;S.master=null;S.run=true;
   const ctrl=document.getElementById('lpCtrl');
   if(ctrl)ctrl.innerHTML=`<div class="lp-wait" id="lpWait">${t('lp_wait')}</div>`;
-  lpStartVideo();
+  lpStartAudio();
 }
-function lpStartVideo(){
+// Звук стартуем СИНХРОННО внутри обработчика тапа: play() из таймера или из
+// колбэка браузер считает автоплеем и глушит. Отсюда и порядок — сначала play(),
+// и только потом всё остальное.
+function lpStartAudio(){
   const S=window._lp;if(!S)return;
-  const box=document.getElementById('lpVidBox');
-  const yt=S.D.song.ytId;
-  if(!yt||!box||typeof loadYT!=='function'||!window.requestAnimationFrame){lpGo(false);return}
-  box.style.display='';
-  box.innerHTML='<div id="lpYt"></div>';
+  const el=document.getElementById('lpAudio');
+  if(!LP_AUDIO||!el||!window.requestAnimationFrame){lpGo(false);return}
+  S.audio=el;
   let settled=false;
-  const stopWatch=()=>{if(S.wait){clearInterval(S.wait);S.wait=null}};
-  const done=ok=>{if(settled)return;settled=true;stopWatch();lpGo(!!ok)};
+  const done=ok=>{if(settled)return;settled=true;if(S.wait){clearInterval(S.wait);S.wait=null}lpGo(!!ok)};
+  el.onerror=()=>done(false);
   const t0=lpNow();
-  // Ждём клип по состоянию плеера, а не по одному таймеру. Замер на живом Chrome
-  // (23.07): объект плеера появляется через 0.6с, CUED на 1.8с, буферизация до
-  // 3.8с, PLAYING на 4.0с — одного короткого таймаута тут мало, он всегда рубил
-  // звук. Поэтому: пока плеер жив (буферизует/перематывает) — ждём до LP_WAIT_MAX;
-  // если объекта плеера так и нет — уходим в тишину через LP_WAIT; если плеер
-  // застрял в CUED (автоплей запрещён системой, типичный iOS) — не ждём вовсе,
-  // это не «медленно», это «никогда».
-  let cuedAt=0;
+  // Ждём не «загрузки», а реально пошедшего времени: у отрывка в 300 КБ это доли
+  // секунды, но на слабой сети готовность приходит позже, чем событие play.
   S.wait=setInterval(()=>{
     if(settled)return;
-    const el=lpNow()-t0;
-    let has=false,st=-9;
-    try{has=!!(S.player&&S.player.getPlayerState)}catch(e){}
-    if(has)try{st=S.player.getPlayerState()}catch(e){}
-    if(st===1){done(true);return}
-    if(st===5){
-      if(!cuedAt)cuedAt=lpNow();
-      else if(lpNow()-cuedAt>1500){done(false);return}   // автоплей заблокирован
-    }else cuedAt=0;
-    if(!S.player&&el>=LP_WAIT){done(false);return}
-    if(el>=LP_WAIT_MAX)done(false);
-  },200);
-  const startAt=Math.max(0,Math.floor(S.D.start+S.D.off-LP_PRE));
+    if(el.currentTime>0.05&&!el.paused){done(true);return}
+    if(lpNow()-t0>=LP_WAIT&&el.paused){done(false);return}   // тап не дал звука
+    if(lpNow()-t0>=LP_WAIT_MAX)done(!el.paused);
+  },100);
   try{
-    loadYT(()=>{
-      if(window._lp!==S||!S.playing||settled)return;
-      try{
-        S.player=new YT.Player('lpYt',{videoId:yt,
-          playerVars:{playsinline:1,rel:0,modestbranding:1,start:startAt,origin:location.origin},
-          events:{
-            onReady:e=>{try{e.target.playVideo()}catch(err){}},
-            onError:()=>done(false),
-            onStateChange:e=>{if(e&&e.data===1)done(true)}
-          }});
-      }catch(err){done(false)}
-    });
-  }catch(err){done(false)}
+    el.currentTime=0;
+    const p=el.play();
+    if(p&&p.catch)p.catch(()=>done(false));
+  }catch(e){done(false)}
 }
-// Часы куплета. Ведёт клип, если он реально играет (тогда заливка совпадает со
-// звуком), иначе — собственный отсчёт. Опрос плеера редкий, между опросами время
-// доигрывается по стенным часам: заливка идёт на частоте экрана, а не рывками.
-function lpGo(withVideo){
+// Часы куплета. Ведёт звук, если он реально идёт (тогда заливка совпадает со
+// слышимым), иначе — собственный отсчёт. Опрос дорожки редкий, между опросами
+// время доигрывается по стенным часам: заливка идёт на частоте экрана, не рывками.
+function lpGo(withAudio){
   const S=window._lp;if(!S||!S.playing)return;
-  if(withVideo){
-    S.master='yt';
+  if(withAudio){
+    S.master='audio';
     lpSync();
     if(!S.iv)S.iv=setInterval(lpSync,200);
   }else{
     S.master='solo';
-    const box=document.getElementById('lpVidBox');if(box){box.style.display='none';box.innerHTML='<div id="lpYt"></div>'}
-    try{S.player&&S.player.destroy&&S.player.destroy()}catch(e){}
-    S.player=null;
+    try{if(S.audio)S.audio.pause()}catch(e){}
+    S.audio=null;
     S.t0=S.D.start-0.6;S.wall=lpNow();S.run=true;
   }
   const w=document.getElementById('lpWait');if(w)w.textContent=t('lp_sing');
   if(!S.raf)S.raf=requestAnimationFrame(lpFrame);
 }
+// Время отрывка → время дорожки альбома, в котором посчитаны все тайминги строк.
 function lpSync(){
-  const S=window._lp;if(!S||S.master!=='yt'||!S.player||!S.player.getCurrentTime)return;
-  let ct=0,st=1;
-  try{ct=S.player.getCurrentTime()||0;st=S.player.getPlayerState?S.player.getPlayerState():1}catch(e){}
-  S.t0=ct-S.D.off;S.wall=lpNow();S.run=(st===1);
+  const S=window._lp;if(!S||S.master!=='audio'||!S.audio)return;
+  let ct=0,playing=true;
+  try{ct=S.audio.currentTime||0;playing=!S.audio.paused&&!S.audio.ended}catch(e){}
+  S.t0=ct+LP_AUDIO_T0;S.wall=lpNow();S.run=playing;
 }
 function lpTime(){
   const S=window._lp;if(!S)return 0;
@@ -431,9 +425,8 @@ function lpFinish(){
   if(S.raf){cancelAnimationFrame(S.raf);S.raf=null}
   if(S.iv){clearInterval(S.iv);S.iv=null}
   if(S.wait){clearInterval(S.wait);S.wait=null}
-  try{S.player&&S.player.pauseVideo&&S.player.pauseVideo()}catch(e){}
-  try{S.player&&S.player.destroy&&S.player.destroy()}catch(e){}
-  S.player=null;
+  try{if(S.audio)S.audio.pause()}catch(e){}
+  S.audio=null;
   const host=document.getElementById('lpDemo');if(!host)return;
   const words=lpWords();
   host.innerHTML=`
@@ -676,9 +669,13 @@ function renderCabinet(chartEntry,readOnly){
   const movesVal=isOther?viewedIdol.movesLearned:(myTraining?myTraining.dance_moves_learned:0);
   const mockAward=isOther?{weeksAtTop:0,fastRise:false,allTimeVotes:viewedIdol.votes}:{weeksAtTop:2,fastRise:false,allTimeVotes:movesVal*57+340};
   const clipsData=isOther?(viewedIdol.clips||[]):myClips;
-  // Фотокарточки: открывается по мере прогресса. Старт — 1 открыта, остальные заблюрены (интрига).
+  // Фотокарточки: открываются по мере прогресса. НО настоящих карточек ещё нет —
+  // «открытые» рисовались одним и тем же портретом айдола по нескольку раз, и три
+  // одинаковых кадра подряд читаются как баг, а не как коллекция. Пока карточек нет,
+  // открыта ровно одна, остальные закрыты (интрига честнее повтора).
+  // Вернуть формулу, когда появятся реальные изображения: см. §7 CLAUDE.md, «Фотокарточки».
   const TOTAL_CARDS=8;
-  const unlockedCards=Math.min(TOTAL_CARDS,1+Math.ceil((langPct/100)*(TOTAL_CARDS-1)));
+  const unlockedCards=1;
 
   const langRest=fmtRest(myTraining&&myTraining.language_cooldown_until?new Date(myTraining.language_cooldown_until).getTime()-Date.now():0);
   const danceRest=fmtRest(myTraining&&myTraining.dance_cooldown_until?new Date(myTraining.dance_cooldown_until).getTime()-Date.now():0);
@@ -2481,6 +2478,9 @@ function openSongs(){
   karaStop();
   const st=document.getElementById('ytStage');if(st)st.style.display='none';
   document.getElementById('songOv').classList.add('show');
+  // Список песен короткий (пока одна) — панель на 86vh давала около 470px пустоты
+  // под последней карточкой. В режиме списка панель растёт по содержимому.
+  document.getElementById('songBox').classList.add('fit');
   document.getElementById('songBack').style.visibility='hidden';
   document.getElementById('songTitle').textContent=t('songs_h');
   document.getElementById('songBody').innerHTML=`
@@ -2508,8 +2508,10 @@ function renderSongList(){
       <span class="lsn-txt"><b>${escapeHtml(s.title)}</b><small>${escapeHtml(s.artist)} · ${escapeHtml(LT(s.level,L))}</small></span>
     </button>`;
   }).join('');
+  // «Пройденные песни 0/1» при нуле — строка ни о чём: она отчитывается о том, чего
+  // ещё не начинали. Показываем счётчик только когда есть чем отчитаться.
   box.innerHTML=`<div class="lsn-list">${cards||`<div class="song-none">${q?t('song_none')(escapeHtml(q)):t('songs_empty')}</div>`}</div>
-    <div class="lsn-unit">${t('songs_done_h')} · ${done.length}/${allSongs().length}</div>`;
+    ${done.length?`<div class="lsn-unit">${t('songs_done_h')} · ${done.length}/${allSongs().length}</div>`:''}`;
 }
 
 // ---- Онлайн-поиск: юзер ищет любую песню → собираем разбор автоматически ----
@@ -2675,6 +2677,7 @@ function openSong(id){
   if(window._kara&&window._kara.timer)clearInterval(window._kara.timer);
   window._kara=karaBuild(song);
   document.getElementById('songOv').classList.add('show');
+  document.getElementById('songBox').classList.remove('fit');  // разбору нужна вся высота
   document.getElementById('songBack').style.visibility='visible';
   document.getElementById('songTitle').textContent=song.title;
   // Постоянный плеер: показываем сцену, обновляем ссылку/подписи, меняем видео БЕЗ пересоздания.
@@ -2696,7 +2699,7 @@ function openSong(id){
     // ГОТОВИМ клип (cue): показываем родную кнопку ▶ + подсказку, юзер тапает сам → играет со
     // звуком, караоке подхватывает время. Единственный надёжный путь на телефонах.
     try{p.cueVideoById(song.ytId)}catch(e){}
-    K.loadAt=Date.now();K.recovered=false;K.playing=false;K.errored=false;karaShowErr(null);karaShowHint(true);
+    K.loadAt=Date.now();K.recovered=false;K.playing=false;K.errored=false;karaShowErr(null);karaShowHint(true);karaCompact(false);
     if(K.timer)clearInterval(K.timer);
     K.timer=setInterval(karaTick,200); // опрос плеера; между опросами время идёт само (karaFrame)
     karaStartRaf();
@@ -2756,6 +2759,10 @@ function karaStop(){
 // (state -1 unstarted / 3 buffering) — один раз тихо перезагружаем видео. Не трогаем, если
 // юзер просто поставил на паузу (state 2) или ждёт тапа (5 cued).
 function karaShowErr(html){const e=document.getElementById('ytErr');if(!e)return;if(html){e.innerHTML=html;e.style.display='flex';}else{e.style.display='none';e.innerHTML='';}}
+// Пока клип НЕ играет — он главный (тапни ▶). Как только пошёл — сворачиваем его в
+// маленькое окно: замер на 390x844 показал, что развёрнутый клип с подсказкой и подвалом
+// занимает 296px из 378px окна чтения, то есть ради видео мы прячем сам продукт.
+function karaCompact(on){const s=document.getElementById('ytStage');if(s)s.classList.toggle('compact',!!on)}
 // Подсказка «тапни ▶» — нужна на iOS, где автозапуск запрещён. Прячется, как только клип пошёл.
 function karaShowHint(show){const e=document.getElementById('ytHint');if(!e)return;if(show){e.textContent=getLang()==='ru'?'▶ Нажми на клип, чтобы включить со звуком':'▶ Tap the clip to start with sound';e.style.display='block';}else{e.style.display='none';}}
 // Ошибка плеера YouTube. 101/150 = владелец ЗАПРЕТИЛ встраивание (BTS/HYBE — почти все клипы);
@@ -2766,6 +2773,7 @@ function karaOnError(code){
   const K=window._kara;const yt=K&&K.song&&K.song.ytId;
   console.warn('[yt-error]',code,yt,K&&K.song&&K.song.title);
   if(K)K.errored=true;
+  karaCompact(false);  // ошибка рисуется поверх клипа — в свёрнутом окне её не прочитать
   const url='https://www.youtube.com/watch?v='+(yt||'');
   const embed=(code===101||code===150);
   const msg=embed?'Владелец клипа запретил встраивание на других сайтах':(code===100?'Видео недоступно (удалено или приватное)':'Клип не запускается');
@@ -2773,7 +2781,7 @@ function karaOnError(code){
 }
 function karaWatchdog(K){
   let ct=0,st=-9;try{ct=K.player.getCurrentTime()||0;st=K.player.getPlayerState?K.player.getPlayerState():-9;}catch(e){}
-  if(ct>0.05){K.playing=true;K.errored=false;karaShowErr(null);karaShowHint(false);return;}
+  if(ct>0.05){K.playing=true;K.errored=false;karaShowErr(null);karaShowHint(false);karaCompact(true);return;}
   if(K.playing||K.errored)return;
   const stuck=(st===-1||st===3);
   if(!K.recovered&&stuck&&Date.now()-(K.loadAt||0)>4500){
@@ -2846,12 +2854,18 @@ function karaApply(t){
 function romOf(w){const L=getLang();if(L==='ru'&&w&&w.rr)return w.rr;return (w&&(w.r!=null?w.r:w.rom))||'';}
 // escapeHtml не трогает кавычки — для атрибутов нужен свой.
 function attrEsc(s){return escapeHtml(s).replace(/"/g,'&quot;')}
+// Правка 24.07: смысл строки переехал из панели куплета ПОД САМУ СТРОКУ.
+// Причина — замер на 390x844: окно чтения 378px, а смысл первой строки лежал на 550px
+// ниже неё, и scrollIntoView(block:'center') центрировал только поющуюся строку,
+// выталкивая её смысл за экран. Обещание «сверху слова, снизу синхронно смысл» на
+// телефоне не выполнялось ни секунды. Теперь пара «строка + её смысл» — одна группа
+// .kgrp, и центрируется именно она: оба слоя видны одновременно.
 function renderKaraVerse(){
   const K=window._kara;if(!K)return;
   const box=document.getElementById('karaLines');if(!box)return;
   const v=K.verses[K.vIdx];const L=getLang();
-  K.tok=[];K.lastLine=null;
-  const html=v.lines.map(ln=>{
+  K.tok=[];K.lastLine=null;K.sense=null;
+  const html=v.lines.map((ln,li)=>{
     const toks=ln.words.map(w=>{
       const idx=K.tok.length;K.tok.push({t0:w.t0,t1:w.t1,fill:-1,cls:''});
       const kr=w.k||'',rm=romOf(w);
@@ -2860,13 +2874,30 @@ function renderKaraVerse(){
     }).join('');
     // ln.x — строка поётся не по-корейски. Её показываем (иначе экран врёт о том, что
     // сейчас звучит, и заливка едет), но приглушённо: разбирать в ней нечего.
-    return `<div class="kline${ln.x?' foreign':''}">${toks}</div>`;
+    return `<div class="kgrp${ln.x?' foreign':''}" data-li="${li}"><div class="kline">${toks}</div>${karaSenseHtml(K,ln,li,L)}</div>`;
   }).join('');
   box.innerHTML=html;
   // Элементы кэшируем: заливка идёт 60 раз в секунду, querySelectorAll в кадре — расточительство.
   K.tokEls=box.querySelectorAll('.tok');
   K.lineEls=box.querySelectorAll('.kline');
+  K.grpEls=box.querySelectorAll('.kgrp');   // сюда скроллим: строка ВМЕСТЕ со смыслом
+  buildSenseFill(K,v);
   renderVersePanel();
+}
+// Смысл ОДНОЙ строки — заливается пословно синхронно с пением (см. updateKaraSense).
+// 🔗 рядом — почему именно такая компоновка слов даёт такой смысл.
+function karaSenseHtml(K,ln,li,L){
+  const txt=LT(ln.s,L);if(!txt)return '';
+  const combo=LT(ln.c,L);
+  const co=K.comboOpen===li;
+  const words=String(txt).split(/\s+/).filter(Boolean);
+  return `<div class="ksl" data-li="${li}">
+    <div class="ksl-row">
+      <span class="ksl-t">${words.map(w=>`<span class="ksw" data-txt="${attrEsc(w)}">${escapeHtml(w)}</span>`).join(' ')}</span>
+      ${combo?`<button class="ksl-c${co?' on':''}" type="button" aria-expanded="${co?'true':'false'}" aria-label="${t('kara_combo_a')}" onclick="karaToggleCombo(${li})">🔗</button>`:''}
+    </div>
+    ${(combo&&co)?`<p class="ksl-cb">${escapeHtml(combo)}</p>`:''}
+  </div>`;
 }
 
 // Плавная заливка: активное слово красится слева-направо по мере произношения.
@@ -2900,7 +2931,9 @@ function updateKaraWords(t,f){
     if(f.up)fl.classList.add('upcoming');
     K.lastFocusEl=fl;K.lastUp=!!f.up;
   }
-  if(fl&&fl!==K.lastLine){K.lastLine=fl;fl.scrollIntoView({behavior:'smooth',block:'center'});}
+  // Центрируем ГРУППУ (строка + её смысл), а не одну строку — иначе смысл уезжает за экран.
+  const target=(K.grpEls&&K.grpEls[f.li])||fl;
+  if(fl&&fl!==K.lastLine){K.lastLine=fl;target.scrollIntoView({behavior:'smooth',block:'center'});}
 }
 
 // Панель куплета. Главное здесь — СМЫСЛОВОЙ перевод: не «слово=слово», а что фраза
@@ -2908,10 +2941,10 @@ function updateKaraWords(t,f){
 // почему они расходятся. Отдельные слова во время проигрывания читать некогда —
 // их набор ждёт в конце песни (openSongRecap).
 //
-// Правка 23.07: смысловой перевод теперь тоже ЗАЛИВАЕТСЯ по ходу песни, строка за
-// строкой. Сверху человек видит, какие слова поют; снизу — что эти слова значат
-// вместе, в тот же момент. Если у строки есть 🔗 — там объяснение, почему именно
-// такая компоновка слов даёт такой смысл (раскрывается по тапу, чтобы не мешать).
+// Правка 23.07: смысловой перевод тоже ЗАЛИВАЕТСЯ по ходу песни, строка за строкой.
+// Правка 24.07: сам построчный смысл переехал под свою строку (renderKaraVerse), и
+// в панели остались только вещи, которые читают НЕ во время пения: «дословно ≠ по
+// смыслу», заметка и вход в набор слов. Панель ушла под сгиб — там ей и место.
 function renderVersePanel(){
   const K=window._kara;if(!K)return;
   const p=document.getElementById('karaPause');if(!p)return;
@@ -2921,26 +2954,12 @@ function renderVersePanel(){
   const why=LT(v.why,L);
   const note=LT(v.note,L);
   const open=!!K.senseOpen;
-  // Построчный смысл есть — показываем его синхронно с пением; иначе старый цельный абзац.
-  const sl=(v.lines||[]).map((ln,li)=>({li,txt:LT(ln.s,L),combo:LT(ln.c,L)}));
-  const synced=sl.some(x=>x.txt);
-  K.sense=null;
+  // Построчный смысл есть — он уже нарисован под строками; иначе показываем цельный абзац.
+  const synced=(v.lines||[]).some(ln=>LT(ln.s,L));
   p.style.display='block';
   p.innerHTML=`
     <div class="kp-h">${t('kara_verse')} ${K.vIdx+1}/${K.verses.length}</div>
-    ${synced
-      ? `<div class="kp-slines" id="kpSlines">${sl.map(x=>{
-          if(!x.txt)return '';
-          const words=String(x.txt).split(/\s+/).filter(Boolean);
-          const co=K.comboOpen===x.li;
-          return `<div class="ksl" data-li="${x.li}">
-            <div class="ksl-row">
-              <span class="ksl-t">${words.map(w=>`<span class="ksw" data-txt="${attrEsc(w)}">${escapeHtml(w)}</span>`).join(' ')}</span>
-              ${x.combo?`<button class="ksl-c${co?' on':''}" type="button" aria-expanded="${co?'true':'false'}" aria-label="${t('kara_combo_a')}" onclick="karaToggleCombo(${x.li})">🔗</button>`:''}
-            </div>
-            ${(x.combo&&co)?`<p class="ksl-cb">${escapeHtml(x.combo)}</p>`:''}
-          </div>`;
-        }).join('')}</div>`
+    ${synced?''
       : (tr?`<div class="kp-tr">${escapeHtml(tr)}</div>`:`<div class="kp-tr kp-dim">${t('kara_tr_none')}</div>`)}
     ${(lit||why)?`<div class="kp-sense">
       <button class="kp-sense-t" type="button" aria-expanded="${open?'true':'false'}" onclick="karaToggleSense()">
@@ -2953,13 +2972,12 @@ function renderVersePanel(){
     </div>`:''}
     ${note?`<p class="kp-note">💡 ${escapeHtml(note)}</p>`:''}
     <button class="kp-allwords" type="button" onclick="openSongRecap()">🗂 ${t('kara_allwords')}</button>`;
-  if(synced)buildSenseFill(K,v);
 }
 // Готовим заливку смысловых строк: каждой строке — её окно времени (от первого до
 // последнего слова куплета) и веса слов перевода, чтобы длинные слова заливались
 // дольше коротких. Считаем один раз на куплет, в кадре только пишем --fill.
 function buildSenseFill(K,v){
-  const box=document.getElementById('kpSlines');if(!box)return;
+  const box=document.getElementById('karaLines');if(!box)return;
   const rows=[];
   box.querySelectorAll('.ksl').forEach(el=>{
     const li=+el.getAttribute('data-li');
@@ -2991,7 +3009,8 @@ function updateKaraSense(tm){
   }
 }
 function karaToggleSense(){const K=window._kara;if(!K)return;K.senseOpen=!K.senseOpen;renderVersePanel();}
-function karaToggleCombo(li){const K=window._kara;if(!K)return;K.comboOpen=(K.comboOpen===li?null:li);renderVersePanel();}
+// 🔗 живёт теперь внутри .kara-lines, поэтому пересобираем строки, а не панель.
+function karaToggleCombo(li){const K=window._kara;if(!K)return;K.comboOpen=(K.comboOpen===li?null:li);renderKaraVerse();}
 
 /* ---- Конец песни: все слова по куплетам + добавление в тетрадь ---- */
 function songVocabEntry(song,vi,w){
@@ -3003,7 +3022,7 @@ function openSongRecap(){
   const K=window._kara;if(!K)return;
   // Клип НЕ останавливаем: музыка продолжает играть, пока человек разбирает слова —
   // так набор слов ощущается частью песни, а не экзаменом после неё.
-  K.recap=true;K.lastLine=null;K.tokEls=null;K.lineEls=null;K.sense=null;
+  K.recap=true;K.lastLine=null;K.tokEls=null;K.lineEls=null;K.grpEls=null;K.sense=null;
   renderSongRecap();
   const b=document.getElementById('songBody');if(b)b.scrollTop=0;
 }
@@ -3935,7 +3954,7 @@ const LANG_NOTE={
   zh:'课程和界面尚未翻译成中文，将以英文显示。翻译正在准备中。'
 };
 function markPartialLangs(){
-  ['langSel','lpLangSel'].forEach(id=>{
+  ['langSel'].forEach(id=>{   // второго селектора (под демо) больше нет — там теперь CTA
     const s=document.getElementById(id);if(!s)return;
     [...s.options].forEach(o=>{
       const tag=LANG_TAG[o.value];
@@ -3978,7 +3997,7 @@ const T={
     lp_sub:(ttl,art)=>`The first verse of “${ttl}” by ${art} — every word: how it is written, how it sounds, what it means.`,
     lp_play:n=>`▶ Play the first verse · ${n} sec`,
     lp_note:"No sign-up. Nothing to fill in.",
-    lp_lang:"Interface language",
+    lp_lang:"Interface language", lp_cta:"Get your own idol →",
     lp_wait:"Starting the clip…",
     lp_sing:"Read along with the line",
     lp_none:"The breakdown is still loading — reopen this page.",
@@ -4040,7 +4059,7 @@ const T={
     wb_empty_songs_btn:"Break your first song →",
     wb_song_words:(s,tot)=>`${s} of ${tot} words in your workbook`, wb_song_open:"Play it again", wb_song_filter_btn:"Its words",
     wb_song_analysis:"Breakdown", wb_an_none:"No breakdown saved for this song yet — open it once and it lands here.",
-    songs_h:"Break a song", songs_intro:"Pick a song — your idol walks you through it line by line.", songs_empty:"No songs yet.", songs_done_h:"Songs you’ve done", song_search:"e.g. BLACKPINK DDU-DU or Ditto", song_search_hint:"Type the title/artist in English or Korean — not transliterated.", song_none:q=>`“${q}” isn’t here yet. Soon you’ll add any song — we’ll pull lyrics, translation and sync automatically.`, song_botnote:"Asks to sign in? That’s YouTube’s bot-check (worse on VPN) →", song_fail:"The clip couldn’t load — open it on YouTube below 👇 (the breakdown still works)", song_online_h:"Add from search", song_searching:"Searching the database…", song_search_empty:"Nothing with synced lyrics — try another spelling (English or Korean).", song_need_login:"Log in to search and add songs.", song_building:"Building the breakdown… (~30 sec)", song_build_fail:"Couldn’t build this one — try another song", song_added:"Added 🎉", song_net:"Network unavailable", song_guide:"Play the video, then step through the lyrics line by line below.", song_next:"Next line", song_finish:"Finish song ✓", song_save:tab=>`+ ${tab}`, song_saved:"Saved ✓", song_save_toast:"Saved to your Workbook", song_done_toast:"Song complete 🎉", song_open_yt:"Open on YouTube", song_reload:"Reload video",
+    songs_h:"Break a song", songs_intro:"Pick a song — your idol walks you through it line by line.", songs_empty:"No songs yet.", songs_done_h:"Songs you’ve done", song_search:"e.g. Ditto", song_search_hint:"Type the title/artist in English or Korean — not transliterated.", song_none:q=>`“${q}” isn’t here yet. Soon you’ll add any song — we’ll pull lyrics, translation and sync automatically.`, song_botnote:"Asks to sign in? That’s YouTube’s bot-check (worse on VPN) →", song_fail:"The clip couldn’t load — open it on YouTube below 👇 (the breakdown still works)", song_online_h:"Add from search", song_searching:"Searching the database…", song_search_empty:"Nothing with synced lyrics — try another spelling (English or Korean).", song_need_login:"Log in to search and add songs.", song_building:"Building the breakdown… (~30 sec)", song_build_fail:"Couldn’t build this one — try another song", song_added:"Added 🎉", song_net:"Network unavailable", song_guide:"Play the video, then step through the lyrics line by line below.", song_next:"Next line", song_finish:"Finish song ✓", song_save:tab=>`+ ${tab}`, song_saved:"Saved ✓", song_save_toast:"Saved to your Workbook", song_done_toast:"Song complete 🎉", song_open_yt:"Open on YouTube", song_reload:"Reload video",
     kara_hint:"Press play — words light up in time. At each verse end it pauses for the breakdown. If the highlight drifts from the clip, tap “Sync” exactly when you hear the verse’s first word.", kara_synctap:"Sync", kara_syncdone:"Synced to the clip ✓", kara_cont:"Don’t stop", kara_verse:"Verse", kara_repeat:"Repeat verse", kara_nextv:"Next verse",
     kara_sense_h:"Word-for-word ≠ what it means", kara_lit:"word-for-word", kara_why:"why they differ", kara_allwords:"All the words in this song", kara_tr_none:"No translation for this verse yet.",
     kara_whole:"the whole verse", kara_combo_a:"why these words mean this together",
@@ -4088,7 +4107,7 @@ const T={
     lp_sub:(ttl,art)=>`Первый куплет «${ttl}» — ${art}. Каждое слово: как пишется, как звучит, что значит.`,
     lp_play:n=>`▶ Слушать первый куплет · ${n} сек`,
     lp_note:"Регистрация не нужна. Заполнять ничего не надо.",
-    lp_lang:"Язык интерфейса",
+    lp_lang:"Язык интерфейса", lp_cta:"Завести айдола →",
     lp_wait:"Включаем клип…",
     lp_sing:"Читай вслед за строкой",
     lp_none:"Разбор ещё загружается — открой страницу заново.",
@@ -4155,7 +4174,7 @@ const T={
     wb_empty_songs_btn:"Разобрать первую песню →",
     wb_song_words:(s,tot)=>`${s} из ${tot} слов в тетради`, wb_song_open:"Слушать снова", wb_song_filter_btn:"Её слова",
     wb_song_analysis:"Разбор", wb_an_none:"Разбор этой песни ещё не сохранён — открой её один раз, и он появится здесь.",
-    songs_h:"Разбор песни", songs_intro:"Выбери песню — айдол разберёт её строка за строкой.", songs_empty:"Пока нет песен.", songs_done_h:"Пройденные песни", song_search:"напр. BLACKPINK DDU-DU или Ditto", song_search_hint:"Пиши название/артиста по-английски или по-корейски — не русскими буквами.", song_none:q=>`«${q}» пока нет. Скоро можно будет добавить любую — текст, перевод и синхрон соберём автоматически.`, song_botnote:"Просит войти? Это бот-чек YouTube (чаще на VPN) →", song_fail:"Клип не загрузился — открой его на YouTube ниже 👇 (разбор всё равно работает)", song_online_h:"Добавить из поиска", song_searching:"Ищу в базе…", song_search_empty:"Нет с синхро-текстом — попробуй другое написание (англ. или кор.).", song_need_login:"Войди, чтобы искать и добавлять песни.", song_building:"Собираю разбор… (~30 сек)", song_build_fail:"Эту не получилось собрать — попробуй другую", song_added:"Добавлено 🎉", song_net:"Сеть недоступна", song_guide:"Включи видео, а затем разбирай текст строку за строкой ниже.", song_next:"Следующая строка", song_finish:"Завершить песню ✓", song_save:tab=>`+ в ${tab}`, song_saved:"Сохранено ✓", song_save_toast:"Сохранено в Рабочую тетрадь", song_done_toast:"Песня пройдена 🎉", song_open_yt:"Открыть на YouTube", song_reload:"Перезагрузить видео",
+    songs_h:"Разбор песни", songs_intro:"Выбери песню — айдол разберёт её строка за строкой.", songs_empty:"Пока нет песен.", songs_done_h:"Пройденные песни", song_search:"напр. Ditto", song_search_hint:"Пиши название/артиста по-английски или по-корейски — не русскими буквами.", song_none:q=>`«${q}» пока нет. Скоро можно будет добавить любую — текст, перевод и синхрон соберём автоматически.`, song_botnote:"Просит войти? Это бот-чек YouTube (чаще на VPN) →", song_fail:"Клип не загрузился — открой его на YouTube ниже 👇 (разбор всё равно работает)", song_online_h:"Добавить из поиска", song_searching:"Ищу в базе…", song_search_empty:"Нет с синхро-текстом — попробуй другое написание (англ. или кор.).", song_need_login:"Войди, чтобы искать и добавлять песни.", song_building:"Собираю разбор… (~30 сек)", song_build_fail:"Эту не получилось собрать — попробуй другую", song_added:"Добавлено 🎉", song_net:"Сеть недоступна", song_guide:"Включи видео, а затем разбирай текст строку за строкой ниже.", song_next:"Следующая строка", song_finish:"Завершить песню ✓", song_save:tab=>`+ в ${tab}`, song_saved:"Сохранено ✓", song_save_toast:"Сохранено в Рабочую тетрадь", song_done_toast:"Песня пройдена 🎉", song_open_yt:"Открыть на YouTube", song_reload:"Перезагрузить видео",
     kara_hint:"Нажми play — слова подсвечиваются в такт. В конце куплета — пауза для разбора. Если подсветка не совпадает с клипом — жми «Синхрон» ровно когда слышишь первое слово куплета.", kara_synctap:"Синхрон", kara_syncdone:"Синхронизировано ✓", kara_cont:"Не останавливать", kara_verse:"Куплет", kara_repeat:"Повторить куплет", kara_nextv:"Следующий куплет",
     kara_sense_h:"Дословно ≠ по смыслу", kara_lit:"дословно", kara_why:"почему расходится", kara_allwords:"Все слова песни", kara_tr_none:"Перевод этого куплета пока не собран.",
     kara_whole:"куплет целиком", kara_combo_a:"почему эти слова вместе значат это",
